@@ -221,6 +221,9 @@ html[data-theme="light"] .mobility-route-meta { border-color:#e0e5ea; color:#586
 .glow-left { animation:nova-glow-breathe 8s ease-in-out infinite alternate; }
 .glow-right { animation:nova-glow-breathe 10s ease-in-out -3s infinite alternate-reverse; }
 .hero.is-observed:not(.is-visible) .hero-copy,.hero.is-observed:not(.is-visible) .hero-visual,.hero.is-observed:not(.is-visible) .hero-visual * { animation-play-state:paused; }
+.hero-grid,.join-grid { animation:nova-grid-drift 90s linear infinite; }
+.hero.is-observed:not(.is-visible) .hero-grid { animation-play-state:paused; }
+.signup-orbit { animation:nova-signup-orbit 72s linear infinite; transform-origin:50% 50%; }
 
 @keyframes nova-copy-arrive { from { opacity:0; transform:translateY(12px); filter:blur(3px); } to { opacity:1; transform:translateY(0); filter:blur(0); } }
 @keyframes nova-visual-arrive { from { opacity:0; filter:blur(7px); } to { opacity:1; filter:blur(0); } }
@@ -233,4 +236,6 @@ html[data-theme="light"] .mobility-route-meta { border-color:#e0e5ea; color:#586
 @keyframes nova-signal-pulse { 0%,100% { opacity:.65; box-shadow:0 0 5px #9bd8b966; } 50% { opacity:1; box-shadow:0 0 13px #9bd8b9cc; } }
 @keyframes nova-meter-flow { to { background-position:200% 0; } }
 @keyframes nova-glow-breathe { from { opacity:.08; scale:.92; } to { opacity:.18; scale:1.08; } }
+@keyframes nova-grid-drift { from { background-position:0 0,0 0; } to { background-position:62px 62px,-62px -62px; } }
+@keyframes nova-signup-orbit { from { transform:translate(-50%,-50%) rotate(-25deg); } to { transform:translate(-50%,-50%) rotate(335deg); } }
 @media (max-width: 700px) { .city-signal-card { left:0; bottom:19%; width:151px; padding:9px 10px; }.signal-card-bottom strong { font-size:11px; }.signal-card-bottom small { display:none; } }
