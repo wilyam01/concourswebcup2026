@@ -5,13 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#080b12" />
   <title>Rejoindre Nova Terra — Espace citoyen</title>
+  <script src="theme.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="public.css" />
+  <link rel="stylesheet" href="theme.css" />
 </head>
 <body class="signup-page">
-  <header class="signup-header"><a class="public-brand" href="index.html"><span class="brand-symbol"><i></i><i></i><i></i><i></i></span><span><b>NOVA <em>TERRA</em></b><small>VILLE · PLANÈTE · COMMUNAUTÉ</small></span></a><a href="index.html" class="back-home">← Retour à l’accueil</a></header>
+  <header class="signup-header"><a class="public-brand" href="index.html"><span class="brand-symbol"><i></i><i></i><i></i><i></i></span><span><b>NOVA <em>TERRA</em></b><small>VILLE · PLANÈTE · COMMUNAUTÉ</small></span></a><button class="theme-toggle" type="button" data-theme-toggle aria-label="Changer le thème"><span class="theme-symbol" aria-hidden="true">☼</span></button><a href="index.html" class="back-home">← Retour à l’accueil</a></header>
   <main class="signup-main"><div class="signup-ambient"><div class="signup-orbit"></div><div class="signup-world">NT</div></div><section class="signup-card"><div class="section-kicker"><span>ESPACE CITOYEN</span> · NOUVELLE AURORE</div><h1>Votre place<br />est <em>ici.</em></h1><p class="signup-lead">Créez votre espace pour suivre la vie municipale et prendre part aux décisions de la cité.</p><div class="prototype-note"><i>i</i><span><b>Maquette de préinscription</b><br />Ce formulaire illustre le parcours. Aucune donnée n’est envoyée ni conservée.</span></div><form id="signupForm"><label for="fullName">Nom complet</label><input id="fullName" name="fullName" autocomplete="name" placeholder="Ex. Alex Morgan" required /><label for="email">Adresse e-mail</label><input id="email" name="email" type="email" autocomplete="email" placeholder="vous@novaterra.city" required /><label for="sector">Votre secteur</label><select id="sector" name="sector" required><option value="" disabled selected>Choisir un secteur</option><option>District Boréal · Secteur 01</option><option>Centre civique · Secteur 04</option><option>Serres du Sud · Secteur 07</option><option>Autre secteur</option></select><button type="submit" class="button signup-submit">Continuer <span>→</span></button><p class="form-message" id="formMessage" role="status" hidden></p></form><div class="signup-login">Déjà citoyen·ne ? <a href="connexion.html">Connexion à mon espace <span>↗</span></a></div></section></main>
   <script src="signup.js"></script>
 </body>

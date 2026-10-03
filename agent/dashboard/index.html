@@ -5,19 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#17201e" />
     <title>Terra Nova | Espace agent</title>
+    <script src="../../theme.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="agent.css" />
+    <link rel="stylesheet" href="../../theme.css" />
   </head>
-  <body>
+  <body class="agent-page">
     <aside class="sidebar">
       <a class="brand" href="../../"><span>TN</span><b>Terra Nova<small>ESPACE AGENT</small></b></a>
       <nav aria-label="Navigation agent"><a class="active" href="#dashboard">Tableau de bord</a><a href="#demandes">Demandes</a><a href="#messages">Messages citoyens <span id="unread-count">0</span></a></nav>
       <div class="agent-profile"><span>AM</span><div><b>Alex Morgan</b><small>Agent municipal</small></div></div>
     </aside>
     <main id="dashboard">
-      <header class="topbar"><div><p class="kicker">NOUVELLE AURORE / COORDINATION</p><h1>Bonjour, Alex.</h1></div><div class="top-actions"><span id="api-state" class="api-state">Chargement...</span><a href="../../contact/">Voir le contact citoyen</a></div></header>
+      <header class="topbar"><div><p class="kicker">NOUVELLE AURORE / COORDINATION</p><h1>Bonjour, Alex.</h1></div><div class="top-actions"><span id="api-state" class="api-state">Chargement...</span><a href="../../contact/">Voir le contact citoyen</a><button class="theme-toggle agent-theme-toggle" type="button" data-theme-toggle aria-label="Changer le thème"><span class="theme-symbol" aria-hidden="true">☼</span></button></div></header>
       <section class="metrics" aria-label="Synthese des demandes"><article><span>A traiter</span><strong id="todo-total">0</strong><small>Priorites a examiner</small></article><article><span>En cours</span><strong id="progress-total">0</strong><small>Services mobilises</small></article><article><span>Termine</span><strong id="done-total">0</strong><small>Dossiers clotures</small></article><article><span>Messages recus</span><strong id="message-total">0</strong><small>Flux citoyen</small></article></section>
       <section class="work-section" id="demandes"><div class="section-heading"><div><p class="kicker">SUIVI OPERATIONNEL</p><h2>Demandes citoyennes</h2></div><button class="refresh-button" id="refresh-data" type="button">Actualiser</button></div><div class="toolbar"><label class="search"><span class="sr-only">Rechercher une demande</span><input id="request-search" type="search" placeholder="Rechercher un dossier, un secteur..." /></label><label><span class="sr-only">Filtrer par priorite</span><select id="priority-filter"><option value="all">Toutes priorites</option><option value="high">Priorite haute</option><option value="normal">Priorite normale</option><option value="low">Priorite basse</option></select></label></div><p class="dashboard-error" id="dashboard-error" role="alert" hidden></p><div class="kanban" id="kanban" aria-live="polite"></div></section>
       <section class="messages-section" id="messages"><div class="section-heading"><div><p class="kicker">BOITE DE RECEPTION</p><h2>Messages citoyens</h2></div><span id="message-label">0 message</span></div><div class="message-list" id="message-list"></div></section>
