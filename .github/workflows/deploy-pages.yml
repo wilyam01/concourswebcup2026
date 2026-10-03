@@ -20,9 +20,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Verify project structure
-        shell: powershell
-        run: powershell -ExecutionPolicy Bypass -File .\scripts\check.ps1
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify project and API proxy tests
+        run: npm test
   deploy:
     needs: check
     environment:
