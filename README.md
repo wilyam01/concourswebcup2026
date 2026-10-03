@@ -13,6 +13,7 @@ npx serve .
 ## Pages disponibles
 
 - `index.html` : vitrine publique avec catalogue des services et actualités
+- `connexion.html` : maquette de connexion (authentification non activée)
 - `inscription.html` : maquette de préinscription citoyenne (aucune donnée envoyée)
 - `dashboard.html` : tableau de bord citoyen et état de la cité
 - `contact/index.html` : formulaire de contact citoyen
