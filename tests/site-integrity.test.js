@@ -48,6 +48,32 @@ test('HTML pages reference existing local files and fragment targets', () => {
   }
 });
 
+test('interface languages are available across the app and backed by local catalogs', () => {
+  const accessibility = fs.readFileSync(path.join(projectRoot, 'accessibility.js'), 'utf8');
+  const language = fs.readFileSync(path.join(projectRoot, 'language.js'), 'utf8');
+  const expectedLocales = ['fr', 'en', 'zh', 'es', 'it', 'pt', 'de', 'sw'];
+  const pickerMarkup = accessibility.match(/<select id="interfaceLanguage">([\s\S]*?)<\/select>/);
+  assert.ok(pickerMarkup, 'the accessibility dialog should include a language selector');
+  const pickerLocales = [...pickerMarkup[1].matchAll(/<option value="([a-z]{2})">/g)].map((match) => match[1]);
+  const supportedMatch = language.match(/const supported = \[([^\]]+)\]/);
+  assert.ok(supportedMatch, 'language.js should declare supported locales');
+  assert.deepEqual(pickerLocales, expectedLocales);
+  assert.deepEqual([...supportedMatch[1].matchAll(/'([a-z]{2})'/g)].map((match) => match[1]), expectedLocales);
+  for (const locale of expectedLocales.slice(2)) {
+    assert.match(language, new RegExp(`'${locale}'`), `${locale} should have local translations`);
+  }
+
+  const pages = [
+    'index.html', 'dashboard.html', 'connexion.html', 'inscription.html',
+    'contact/index.html', 'agent/dashboard/index.html', 'presentation.html',
+    'proposer-un-projet.html',
+  ];
+  for (const page of pages) {
+    const markup = fs.readFileSync(path.join(projectRoot, page), 'utf8');
+    assert.match(markup, /language\.js(?:\?[^"]*)?"/, `${page} should load the local language catalog`);
+  }
+});
+
 test('citizen participation saves private votes and ideas and follows language changes', () => {
   class Element {
     constructor(tag = 'div') {

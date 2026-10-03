@@ -18,7 +18,7 @@
   dialog.setAttribute('aria-labelledby', 'a11yTitle');
   dialog.innerHTML = `
     <div class="a11y-dialog-heading"><div><p class="a11y-kicker">NOVA TERRA · CONFORT DE LECTURE</p><h2 id="a11yTitle">Langue et accessibilité</h2></div><button class="a11y-close" type="button" aria-label="Fermer les préférences">×</button></div>
-    <label class="a11y-setting" for="interfaceLanguage"><span><b>Langue de l’interface</b><small>Choisis une langue pour l’interface.</small></span><select id="interfaceLanguage"><option value="fr">🇫🇷 Français</option><option value="en">🇬🇧 English</option><option value="zh">🇨🇳 中文 (Mandarin)</option><option value="es">🇪🇸 Español</option><option value="it">🇮🇹 Italiano</option><option value="pt">🇵🇹 Português</option><option value="de">🇩🇪 Deutsch</option></select></label>
+    <label class="a11y-setting" for="interfaceLanguage"><span><b>Langue de l’interface</b><small>Français, anglais, chinois, espagnol, italien, portugais, allemand et kiswahili disponibles.</small></span><select id="interfaceLanguage"><option value="fr">🇫🇷 Français</option><option value="en">🇬🇧 English</option><option value="zh">🇨🇳 中文</option><option value="es">🇪🇸 Español</option><option value="it">🇮🇹 Italiano</option><option value="pt">🇵🇹 Português</option><option value="de">🇩🇪 Deutsch</option><option value="sw">🇹🇿 Kiswahili</option></select></label>
     <label class="a11y-contrast-setting" for="highContrast"><span><b>Contraste élevé</b><small>Renforce les contours et la lisibilité.</small></span><input id="highContrast" type="checkbox" /></label>
     <label class="a11y-setting a11y-color-setting" for="colorVisionMode"><span><b>Palette de couleurs</b><small>Choisis des repères mieux différenciés pour le daltonisme.</small></span><select id="colorVisionMode"><option value="normal">Standard</option><option value="safe">Daltonisme · contrastée</option></select></label>
     <label class="a11y-contrast-setting" for="simplifiedInterface"><span><b>Interface simplifiée</b><small>Allège les décors et facilite le repérage.</small></span><input id="simplifiedInterface" type="checkbox" /></label>
@@ -48,7 +48,7 @@
   let language = safeRead(storageKeys.language, 'fr');
   let contrast = safeRead(storageKeys.contrast, 'off') === 'on';
   let textSize = safeRead(storageKeys.textSize, 'normal');
-  if (!['fr', 'en', 'zh', 'es', 'it', 'pt', 'de'].includes(language)) language = 'fr';
+  if (!['fr', 'en', 'zh', 'es', 'it', 'pt', 'de', 'sw'].includes(language)) language = 'fr';
   if (!['normal', 'large', 'largest'].includes(textSize)) textSize = 'normal';
   const languageSelect = dialog.querySelector('#interfaceLanguage');
   const contrastToggle = dialog.querySelector('#highContrast');
@@ -338,7 +338,7 @@
     if (node) {
       if (!originals.has(node)) originals.set(node, node.nodeValue);
       const original = originals.get(node);
-      if (language === 'fr') node.nodeValue = original;
+      if (language !== 'en') node.nodeValue = original;
       else node.nodeValue = original.replace(original.trim(), value);
     } else if (element.children.length === 0) {
       if (!originals.has(element)) originals.set(element, element.textContent);
@@ -348,6 +348,7 @@
 
   function applyLanguage() {
     document.documentElement.lang = language;
+    languageSelect.value = language;
     (translations[page] || []).forEach(([selector, value, placeholder]) => {
       setText(document.querySelector(selector), value, placeholder);
     });
@@ -378,8 +379,8 @@
       });
     }
     const labels = language === 'en'
-      ? { title: 'Language and accessibility', kicker: 'NOVA TERRA · READING COMFORT', language: 'Interface language', languageHint: 'Choose the language for controls and navigation.', contrast: 'High contrast', contrastHint: 'Strengthen outlines and improve readability.', size: 'Text size', close: 'Close preferences', launcher: 'Open language and accessibility preferences', colors: 'Colour palette', colorsHint: 'Choose clearer colour cues for colour vision deficiency.', colorOptionNormal: 'Standard', colorOptionSafe: 'Colour vision friendly', simple: 'Simplified interface', simpleHint: 'Reduce decoration and make content easier to scan.', lowBandwidth: 'Low-bandwidth mode', lowBandwidthHint: 'Reduce visual effects and space out checks. The network can enable it automatically.', lowAuto: 'Automatic', lowOn: 'Enabled', lowOff: 'Disabled', ecoTitle: 'F57 · Environmental report', ecoMethod: 'Partial browser measurement; cached and third-party resources may be excluded. This is not an estimate of energy use or CO₂.', glossary: 'Open the plain language glossary', glossaryTitle: 'Quick glossary', glossaryKicker: 'NOVA TERRA · PLAIN LANGUAGE', glossaryClose: 'Close glossary' }
-      : { title: 'Langue et accessibilité', kicker: 'NOVA TERRA · CONFORT DE LECTURE', language: 'Langue de l’interface', languageHint: 'Choisis la langue des commandes et repères.', contrast: 'Contraste élevé', contrastHint: 'Renforce les contours et la lisibilité.', size: 'Taille du texte', close: 'Fermer les préférences', launcher: 'Ouvrir les préférences de langue et d’accessibilité', colors: 'Palette de couleurs', colorsHint: 'Choisis des repères mieux différenciés pour le daltonisme.', colorOptionNormal: 'Standard', colorOptionSafe: 'Palette adaptée', simple: 'Interface simplifiée', simpleHint: 'Allège les décors et facilite le repérage.', lowBandwidth: 'Mode connexion lente', lowBandwidthHint: 'Réduit les effets visuels et espace les vérifications. Le réseau peut l’activer automatiquement.', lowAuto: 'Automatique', lowOn: 'Activé', lowOff: 'Désactivé', ecoTitle: 'F57 · Bilan environnemental', ecoMethod: 'Mesure partielle du navigateur; cache et ressources tierces peuvent être exclus. Ce n’est pas une estimation d’énergie ou de CO₂.', glossary: 'Ouvrir le glossaire facile à lire', glossaryTitle: 'Petit glossaire', glossaryKicker: 'NOVA TERRA · MOTS SIMPLES', glossaryClose: 'Fermer le glossaire' };
+      ? { title: 'Language and accessibility', kicker: 'NOVA TERRA · READING COMFORT', language: 'Interface language', languageHint: 'French, English, Chinese, Spanish, Italian, Portuguese, German and Kiswahili are available.', contrast: 'High contrast', contrastHint: 'Strengthen outlines and improve readability.', size: 'Text size', close: 'Close preferences', launcher: 'Open language and accessibility preferences', colors: 'Colour palette', colorsHint: 'Choose clearer colour cues for colour vision deficiency.', colorOptionNormal: 'Standard', colorOptionSafe: 'Colour vision friendly', simple: 'Simplified interface', simpleHint: 'Reduce decoration and make content easier to scan.', lowBandwidth: 'Low-bandwidth mode', lowBandwidthHint: 'Reduce visual effects and space out checks. The network can enable it automatically.', lowAuto: 'Automatic', lowOn: 'Enabled', lowOff: 'Disabled', ecoTitle: 'F57 · Environmental report', ecoMethod: 'Partial browser measurement; cached and third-party resources may be excluded. This is not an estimate of energy use or CO₂.', glossary: 'Open the plain language glossary', glossaryTitle: 'Quick glossary', glossaryKicker: 'NOVA TERRA · PLAIN LANGUAGE', glossaryClose: 'Close glossary' }
+      : { title: 'Langue et accessibilité', kicker: 'NOVA TERRA · CONFORT DE LECTURE', language: 'Langue de l’interface', languageHint: 'Français, anglais, chinois, espagnol, italien, portugais, allemand et kiswahili disponibles.', contrast: 'Contraste élevé', contrastHint: 'Renforce les contours et la lisibilité.', size: 'Taille du texte', close: 'Fermer les préférences', launcher: 'Ouvrir les préférences de langue et d’accessibilité', colors: 'Palette de couleurs', colorsHint: 'Choisis des repères mieux différenciés pour le daltonisme.', colorOptionNormal: 'Standard', colorOptionSafe: 'Palette adaptée', simple: 'Interface simplifiée', simpleHint: 'Allège les décors et facilite le repérage.', lowBandwidth: 'Mode connexion lente', lowBandwidthHint: 'Réduit les effets visuels et espace les vérifications. Le réseau peut l’activer automatiquement.', lowAuto: 'Automatique', lowOn: 'Activé', lowOff: 'Désactivé', ecoTitle: 'F57 · Bilan environnemental', ecoMethod: 'Mesure partielle du navigateur; cache et ressources tierces peuvent être exclues. Ce n’est pas une estimation d’énergie ou de CO₂.', glossary: 'Ouvrir le glossaire facile à lire', glossaryTitle: 'Petit glossaire', glossaryKicker: 'NOVA TERRA · MOTS SIMPLES', glossaryClose: 'Fermer le glossaire' };
     dialog.querySelector('#a11yTitle').textContent = labels.title;
     dialog.querySelector('.a11y-kicker').textContent = labels.kicker;
     dialog.querySelector('.a11y-setting b').textContent = labels.language;
@@ -408,7 +409,7 @@
     refreshEcoReport();
     closeButton.setAttribute('aria-label', labels.close);
     launcher.setAttribute('aria-label', labels.launcher);
-    window.dispatchEvent(new Event('nova:language-change'));
+    window.dispatchEvent(new CustomEvent('nova:language-change', { detail: { language } }));
   }
 
   function applyLoginLanguage() {
