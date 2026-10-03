@@ -9,7 +9,7 @@
 .community-alert-copy p { margin:4px 0 0; color:#c3cfdf; font-size:10px; line-height:1.6; white-space:pre-wrap; }
 .community-alert-meta { display:block; margin-top:5px; color:#8796aa; font:8px var(--mono,monospace); }
 .community-alert-close { border:0; color:#aab8ca; background:transparent; font-size:18px; }
-.community-inbox-trigger { position:fixed; z-index:80; right:22px; bottom:22px; display:flex; align-items:center; gap:8px; min-height:42px; padding:0 13px; border:1px solid #7fa7ff66; border-radius:999px; color:#f0f5ff; background:#182640f5; box-shadow:0 12px 38px #0006; font:10px var(--sans,Arial,sans-serif); }
+.community-inbox-trigger { position:fixed; z-index:80; right:22px; bottom:74px; display:flex; align-items:center; gap:8px; min-height:42px; padding:0 13px; border:1px solid #7fa7ff66; border-radius:999px; color:#f0f5ff; background:#182640f5; box-shadow:0 12px 38px #0006; font:10px var(--sans,Arial,sans-serif); }
 .community-inbox-trigger:hover { border-color:#75dff0; transform:translateY(-2px); }
 .notification i { display:none; }
 .community-inbox-count { display:grid; min-width:19px; height:19px; padding:0 4px; place-items:center; border-radius:99px; color:#111827; background:#ff8097; font:9px var(--mono,monospace); }
@@ -70,9 +70,9 @@
 .profile-dialog-actions .account-delete-button { margin-right:auto; padding:9px 11px; font-size:10px; }
 .delete-confirmation { display:flex !important; grid-template-columns:auto 1fr; align-items:center; gap:8px !important; }
 .delete-confirmation input { width:auto; min-height:0; }
-.assistant-launcher { position:fixed; z-index:85; right:22px; bottom:78px; display:flex; align-items:center; gap:8px; min-height:43px; padding:0 13px; border:1px solid #62dce477; border-radius:999px; color:#f4fbff; background:linear-gradient(130deg,#20334f,#15273a); box-shadow:0 12px 38px #0006; font:10px var(--sans,Arial,sans-serif); }
+.assistant-launcher { position:fixed; z-index:85; right:22px; bottom:130px; display:flex; align-items:center; gap:8px; min-height:43px; padding:0 13px; border:1px solid #62dce477; border-radius:999px; color:#f4fbff; background:linear-gradient(130deg,#20334f,#15273a); box-shadow:0 12px 38px #0006; font:10px var(--sans,Arial,sans-serif); }
 .assistant-launcher:hover { border-color:#62e8f0; transform:translateY(-2px); }
-.assistant-panel { position:fixed; z-index:90; right:22px; bottom:132px; display:flex; width:min(355px,calc(100vw - 28px)); height:min(500px,calc(100vh - 165px)); flex-direction:column; overflow:hidden; border:1px solid #8194bd66; border-radius:15px; color:#e9f1fa; background:linear-gradient(145deg,#152236,#0d1522); box-shadow:0 24px 75px #0009; }
+.assistant-panel { position:fixed; z-index:90; right:22px; bottom:184px; display:flex; width:min(355px,calc(100vw - 28px)); height:min(500px,calc(100vh - 217px)); flex-direction:column; overflow:hidden; border:1px solid #8194bd66; border-radius:15px; color:#e9f1fa; background:linear-gradient(145deg,#152236,#0d1522); box-shadow:0 24px 75px #0009; }
 .assistant-panel[hidden] { display:none; }
 .assistant-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 14px; border-bottom:1px solid #ffffff1b; }
 .assistant-heading b,.assistant-heading small { display:block; }.assistant-heading small { margin-top:3px; color:#9eafc5; font-size:8px; }
@@ -89,9 +89,9 @@
 @media(max-width:700px) {
   .community-alert-host { width:calc(100% - 28px); margin:10px auto; }
   .community-alert { grid-template-columns:auto 1fr auto; padding:11px; }
-  .community-inbox-trigger { right:12px; bottom:14px; }
-  .assistant-launcher { right:12px; bottom:66px; }
-  .assistant-panel { right:10px; bottom:118px; }
+  .community-inbox-trigger { right:12px; bottom:72px; }
+  .assistant-launcher { right:12px; bottom:126px; }
+  .assistant-panel { right:10px; bottom:180px; height:min(500px,calc(100vh - 213px)); }
   .management-grid { grid-template-columns:1fr; }
   .management-form,.appointment-form { grid-template-columns:1fr; }
   .management-form>label,.management-form>button,.management-form>.management-feedback,.management-service-fields,.appointment-form label,.appointment-form-actions { grid-column:1; }

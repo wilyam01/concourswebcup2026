@@ -60,3 +60,4 @@ html[data-theme="light"] .a11y-launcher { color:#14263a; background:linear-gradi
 html[data-contrast="high"] .a11y-dialog,html[data-contrast="high"] .a11y-dialog * { color:#fff!important; background:#000!important; border-color:#fff!important; }
 html[data-contrast="high"] .a11y-dialog select,html[data-contrast="high"] .a11y-dialog button { color:#ffef77!important; }
 @media(prefers-reduced-motion:reduce) { .a11y-launcher { transition:none; } }
+@media(max-width:700px) { .a11y-launcher { right:14px; bottom:14px; } }
