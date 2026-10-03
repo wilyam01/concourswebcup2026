@@ -1,4 +1,6 @@
 import { db } from './db.js';
+import { recordSystemAudit } from './audit.js';
+import { logEvent } from './logger.js';
 
 let lastSync = null;
 let lastError = null;
@@ -40,6 +42,18 @@ export async function syncRequests() {
   if (!Array.isArray(rows)) throw new Error('Unexpected Terra Nova response');
   const normalized = rows.flatMap((item) => { try { return [normalizeRequest(item)]; } catch (_) { return []; } });
   if (rows.length && !normalized.length) throw new Error('Terra Nova returned no supported request records');
+  const existing = new Map(db.prepare('SELECT id,payload FROM requests').all().map((row) => {
+    try { return [row.id, JSON.stringify(JSON.parse(row.payload))]; }
+    catch (_) { return [row.id, '']; }
+  }));
+  const createdIds = [];
+  const updatedIds = [];
+  normalized.forEach((item) => {
+    const previous = existing.get(item.id);
+    const current = JSON.stringify(item);
+    if (previous === undefined) createdIds.push(item.id);
+    else if (previous !== current) updatedIds.push(item.id);
+  });
   const update = db.prepare(`INSERT INTO requests(id,payload,updated_at) VALUES(?,?,datetime('now'))
     ON CONFLICT(id) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at`);
   const save = db.transaction((items) => {
@@ -48,6 +62,12 @@ export async function syncRequests() {
   save(normalized);
   lastSync = new Date().toISOString();
   lastError = null;
+  const changedIds = [...createdIds, ...updatedIds];
+  if (changedIds.length) recordSystemAudit({
+    action: 'official_requests.feed_changed', entityType: 'request_feed', entityId: 'webcup',
+    summary: 'Official request feed changed', metadata: { created: createdIds.length, updated: updatedIds.length, requestIds: changedIds },
+  });
+  logEvent('info', 'terra_nova.sync.completed', { records: normalized.length, created: createdIds.length, updated: updatedIds.length });
   return normalized.length;
 }
 
@@ -61,7 +81,10 @@ export function startPolling() {
   const interval = Math.max(10000, Number(process.env.TERRA_NOVA_POLL_MS) || 30000);
   const poll = async () => {
     try { await syncRequests(); }
-    catch (error) { lastError = error.message; console.error('[Terra Nova sync]', error.message); }
+    catch (error) {
+      lastError = error?.name === 'TimeoutError' ? 'SYNC_TIMEOUT' : 'SYNC_FAILED';
+      logEvent('warn', 'terra_nova.sync.failed', { errorType: error?.name || 'Error' });
+    }
   };
   void poll();
   const timer = setInterval(poll, interval);

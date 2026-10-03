@@ -3,6 +3,8 @@
     language: 'novaTerraLanguage.v1',
     contrast: 'novaTerraContrast.v1',
     textSize: 'novaTerraTextSize.v1',
+    colorVision: 'novaTerraColorVision.v1',
+    simplified: 'novaTerraSimplified.v1',
   };
   const safeRead = (key, fallback) => {
     try { return localStorage.getItem(key) || fallback; } catch (_) { return fallback; }
@@ -18,7 +20,10 @@
     <div class="a11y-dialog-heading"><div><p class="a11y-kicker">NOVA TERRA · CONFORT DE LECTURE</p><h2 id="a11yTitle">Langue et accessibilité</h2></div><button class="a11y-close" type="button" aria-label="Fermer les préférences">×</button></div>
     <label class="a11y-setting" for="interfaceLanguage"><span><b>Langue de l’interface</b><small>Choisis la langue des commandes et repères.</small></span><select id="interfaceLanguage"><option value="fr">Français</option><option value="en">English</option></select></label>
     <label class="a11y-contrast-setting" for="highContrast"><span><b>Contraste élevé</b><small>Renforce les contours et la lisibilité.</small></span><input id="highContrast" type="checkbox" /></label>
+    <label class="a11y-setting a11y-color-setting" for="colorVisionMode"><span><b>Palette de couleurs</b><small>Choisis des repères mieux différenciés pour le daltonisme.</small></span><select id="colorVisionMode"><option value="normal">Standard</option><option value="safe">Daltonisme · contrastée</option></select></label>
+    <label class="a11y-contrast-setting" for="simplifiedInterface"><span><b>Interface simplifiée</b><small>Allège les décors et facilite le repérage.</small></span><input id="simplifiedInterface" type="checkbox" /></label>
     <fieldset class="a11y-size-setting"><legend>Taille du texte</legend><div role="group" aria-label="Taille du texte"><button type="button" data-text-size="normal" aria-pressed="false">A</button><button type="button" data-text-size="large" aria-pressed="false">A+</button><button type="button" data-text-size="largest" aria-pressed="false">A++</button></div></fieldset>
+    <button class="a11y-glossary-button" type="button" id="openGlossary">Ouvrir le glossaire facile à lire</button>
   `;
   const launcher = document.createElement('button');
   launcher.className = 'a11y-launcher';
@@ -29,6 +34,11 @@
   launcher.setAttribute('aria-controls', 'a11yPreferences');
   dialog.id = 'a11yPreferences';
   document.body.append(launcher, dialog);
+  const glossary = document.createElement('dialog');
+  glossary.className = 'a11y-dialog a11y-glossary';
+  glossary.setAttribute('aria-labelledby', 'glossaryTitle');
+  glossary.innerHTML = '<div class="a11y-dialog-heading"><div><p class="a11y-kicker" id="glossaryKicker">NOVA TERRA · MOTS SIMPLES</p><h2 id="glossaryTitle">Petit glossaire</h2></div><button class="a11y-close" type="button" id="closeGlossary" aria-label="Fermer le glossaire">×</button></div><dl class="a11y-glossary-list" id="glossaryList"></dl>';
+  document.body.append(glossary);
   const skipLink = document.querySelector('.skip-link');
   const skipTarget = skipLink?.getAttribute('href') ? document.querySelector(skipLink.getAttribute('href')) : null;
   if (skipTarget && !skipTarget.hasAttribute('tabindex')) skipTarget.setAttribute('tabindex', '-1');
@@ -40,6 +50,12 @@
   if (!['normal', 'large', 'largest'].includes(textSize)) textSize = 'normal';
   const languageSelect = dialog.querySelector('#interfaceLanguage');
   const contrastToggle = dialog.querySelector('#highContrast');
+  const colorVisionSelect = dialog.querySelector('#colorVisionMode');
+  const simplifiedToggle = dialog.querySelector('#simplifiedInterface');
+  const glossaryButton = dialog.querySelector('#openGlossary');
+  let colorVision = safeRead(storageKeys.colorVision, 'normal');
+  let simplified = safeRead(storageKeys.simplified, 'off') === 'on';
+  if (!['normal', 'safe'].includes(colorVision)) colorVision = 'normal';
   const closeButton = dialog.querySelector('.a11y-close');
   languageSelect.value = language;
   contrastToggle.checked = contrast;
@@ -358,15 +374,26 @@
       });
     }
     const labels = language === 'en'
-      ? { title: 'Language and accessibility', kicker: 'NOVA TERRA · READING COMFORT', language: 'Interface language', languageHint: 'Choose the language for controls and navigation.', contrast: 'High contrast', contrastHint: 'Strengthen outlines and improve readability.', size: 'Text size', close: 'Close preferences', launcher: 'Open language and accessibility preferences' }
-      : { title: 'Langue et accessibilité', kicker: 'NOVA TERRA · CONFORT DE LECTURE', language: 'Langue de l’interface', languageHint: 'Choisis la langue des commandes et repères.', contrast: 'Contraste élevé', contrastHint: 'Renforce les contours et la lisibilité.', size: 'Taille du texte', close: 'Fermer les préférences', launcher: 'Ouvrir les préférences de langue et d’accessibilité' };
+      ? { title: 'Language and accessibility', kicker: 'NOVA TERRA · READING COMFORT', language: 'Interface language', languageHint: 'Choose the language for controls and navigation.', contrast: 'High contrast', contrastHint: 'Strengthen outlines and improve readability.', size: 'Text size', close: 'Close preferences', launcher: 'Open language and accessibility preferences', colors: 'Colour palette', colorsHint: 'Choose clearer colour cues for colour vision deficiency.', colorOptionNormal: 'Standard', colorOptionSafe: 'Colour vision friendly', simple: 'Simplified interface', simpleHint: 'Reduce decoration and make content easier to scan.', glossary: 'Open the plain language glossary', glossaryTitle: 'Quick glossary', glossaryKicker: 'NOVA TERRA · PLAIN LANGUAGE', glossaryClose: 'Close glossary' }
+      : { title: 'Langue et accessibilité', kicker: 'NOVA TERRA · CONFORT DE LECTURE', language: 'Langue de l’interface', languageHint: 'Choisis la langue des commandes et repères.', contrast: 'Contraste élevé', contrastHint: 'Renforce les contours et la lisibilité.', size: 'Taille du texte', close: 'Fermer les préférences', launcher: 'Ouvrir les préférences de langue et d’accessibilité', colors: 'Palette de couleurs', colorsHint: 'Choisis des repères mieux différenciés pour le daltonisme.', colorOptionNormal: 'Standard', colorOptionSafe: 'Palette adaptée', simple: 'Interface simplifiée', simpleHint: 'Allège les décors et facilite le repérage.', glossary: 'Ouvrir le glossaire facile à lire', glossaryTitle: 'Petit glossaire', glossaryKicker: 'NOVA TERRA · MOTS SIMPLES', glossaryClose: 'Fermer le glossaire' };
     dialog.querySelector('#a11yTitle').textContent = labels.title;
     dialog.querySelector('.a11y-kicker').textContent = labels.kicker;
     dialog.querySelector('.a11y-setting b').textContent = labels.language;
     dialog.querySelector('.a11y-setting small').textContent = labels.languageHint;
     dialog.querySelector('.a11y-contrast-setting b').textContent = labels.contrast;
     dialog.querySelector('.a11y-contrast-setting small').textContent = labels.contrastHint;
+    dialog.querySelector('.a11y-color-setting b').textContent = labels.colors;
+    dialog.querySelector('.a11y-color-setting small').textContent = labels.colorsHint;
+    colorVisionSelect.options[0].textContent = labels.colorOptionNormal;
+    colorVisionSelect.options[1].textContent = labels.colorOptionSafe;
+    dialog.querySelector('label[for="simplifiedInterface"] b').textContent = labels.simple;
+    dialog.querySelector('label[for="simplifiedInterface"] small').textContent = labels.simpleHint;
     dialog.querySelector('.a11y-size-setting legend').textContent = labels.size;
+    glossaryButton.textContent = labels.glossary;
+    glossary.querySelector('#glossaryTitle').textContent = labels.glossaryTitle;
+    glossary.querySelector('#glossaryKicker').textContent = labels.glossaryKicker;
+    glossary.querySelector('#closeGlossary').setAttribute('aria-label', labels.glossaryClose);
+    renderGlossary();
     closeButton.setAttribute('aria-label', labels.close);
     launcher.setAttribute('aria-label', labels.launcher);
     window.dispatchEvent(new Event('nova:language-change'));
@@ -446,10 +473,39 @@
     contrastToggle.checked = contrast;
   }
 
+  function applyColorVision() {
+    document.documentElement.dataset.colorVision = colorVision;
+    colorVisionSelect.value = colorVision;
+  }
+
+  function applySimplified() {
+    document.documentElement.dataset.simple = simplified ? 'on' : 'off';
+    simplifiedToggle.checked = simplified;
+  }
+
+  function renderGlossary() {
+    const terms = language === 'en'
+      ? [['City request', 'A message asking the city to help or fix something.'], ['Incident report', 'A report about a problem in a street or neighbourhood.'], ['City service', 'A team or service provided by the municipality.'], ['District', 'A named area of the city.'], ['High Council', 'The city team that reviews priorities and decisions.'], ['Alert', 'Important information that may need quick attention.']]
+      : [['Démarche', 'Une demande envoyée à la mairie pour obtenir de l’aide ou un service.'], ['Signalement', 'Un message qui décrit un problème dans la rue ou le quartier.'], ['Service municipal', 'Une équipe ou une aide proposée par la mairie.'], ['Secteur', 'Une zone de la ville qui porte un nom.'], ['Haut Conseil', 'L’équipe de la ville qui examine les priorités et les décisions.'], ['Alerte', 'Une information importante qui peut demander une action rapide.']];
+    const list = glossary.querySelector('#glossaryList');
+    list.replaceChildren(...terms.flatMap(([term, definition]) => {
+      const title = document.createElement('dt');
+      const description = document.createElement('dd');
+      title.textContent = term;
+      description.textContent = definition;
+      return [title, description];
+    }));
+  }
+
   launcher.addEventListener('click', () => dialog.showModal());
   closeButton.addEventListener('click', () => dialog.close());
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) dialog.close();
+  });
+  glossaryButton.addEventListener('click', () => glossary.showModal());
+  glossary.querySelector('#closeGlossary').addEventListener('click', () => glossary.close());
+  glossary.addEventListener('click', (event) => {
+    if (event.target === glossary) glossary.close();
   });
   languageSelect.addEventListener('change', () => {
     language = languageSelect.value;
@@ -460,6 +516,16 @@
     contrast = contrastToggle.checked;
     safeWrite(storageKeys.contrast, contrast ? 'on' : 'off');
     applyContrast();
+  });
+  colorVisionSelect.addEventListener('change', () => {
+    colorVision = colorVisionSelect.value;
+    safeWrite(storageKeys.colorVision, colorVision);
+    applyColorVision();
+  });
+  simplifiedToggle.addEventListener('change', () => {
+    simplified = simplifiedToggle.checked;
+    safeWrite(storageKeys.simplified, simplified ? 'on' : 'off');
+    applySimplified();
   });
   dialog.querySelectorAll('[data-text-size]').forEach((button) => {
     button.addEventListener('click', () => {
@@ -472,6 +538,8 @@
   applyLanguage();
   applyContrast();
   applyTextSize();
+  applyColorVision();
+  applySimplified();
   window.addEventListener('nova:profile-change', () => {
     if (page === 'login') applyLoginLanguage();
   });
