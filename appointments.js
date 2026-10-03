@@ -34,12 +34,13 @@
     const notificationButton = document.querySelector('#enableAppointmentNotifications');
     citizenPanel.hidden = false;
     function updateAppointmentCopy() {
-      if (!window.NovaTerraApi?.enabled) return;
+      const serverMode = Boolean(window.NovaTerraApi?.enabled);
       document.querySelector('#appointments .appointments-note').textContent = english()
-        ? 'Book a weekday slot from 8 a.m. to 4:30 p.m. A reminder appears one hour beforehand while the dashboard is open. Server bookings are shared across devices.'
-        : 'Réserve un créneau en semaine de 8 h à 16 h 30. Un rappel apparaît une heure avant si le tableau de bord reste ouvert. Les réservations serveur sont partagées entre appareils.';
+        ? `Book a weekday slot from 8 a.m. to 4:30 p.m. A reminder appears one hour beforehand while the dashboard is open. ${serverMode ? 'Server bookings are shared across devices.' : 'Local bookings stay in this browser.'}`
+        : `Réserve un créneau en semaine de 8 h à 16 h 30. Un rappel apparaît une heure avant si le tableau de bord reste ouvert. ${serverMode ? 'Les réservations serveur sont partagées entre appareils.' : 'Les réservations locales restent dans ce navigateur.'}`;
     }
     updateAppointmentCopy();
+    window.addEventListener('nova:language-change', updateAppointmentCopy);
     const earliestDate = new Date();
     earliestDate.setDate(earliestDate.getDate() + 1);
     dateInput.min = localDateValue(earliestDate);

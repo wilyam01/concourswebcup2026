@@ -101,7 +101,9 @@
       reply = english() ? 'Search the city service catalogue by name or need; it includes health, water, housing and mobility.' : 'Recherche un service par nom ou besoin dans le catalogue : santé, eau, logement, mobilité et plus.';
       link = { href: route('index.html#services'), label: english() ? 'Open the service catalogue' : 'Ouvrir le catalogue des services' };
     } else if (/compte|password|connexion|login|account/.test(query)) {
-      reply = english() ? 'Sign-in and account creation are available from the access page. The demo stores accounts in this browser.' : 'La connexion et la création de compte sont disponibles depuis la page d’accès. Cette maquette conserve les comptes dans ce navigateur.';
+      reply = window.NovaTerraApi?.enabled
+        ? (english() ? 'Sign-in and account creation are connected to the Nova Terra server; your account can be used on another device.' : 'La connexion et la création de compte sont reliées au serveur Nova Terra; ton compte peut être utilisé depuis un autre appareil.')
+        : (english() ? 'Sign-in and account creation work in local demo mode. Accounts are stored only in this browser.' : 'La connexion et la création de compte fonctionnent en mode démonstration local. Les comptes sont conservés uniquement dans ce navigateur.');
       link = { href: route('connexion.html'), label: english() ? 'Open sign-in' : 'Ouvrir la connexion' };
     } else {
       reply = english() ? 'I can help with services, reports, appointments, transport or alerts. For another question, contact the municipal team.' : 'Je peux aider pour les services, signalements, rendez-vous, transports ou alertes. Pour une autre question, contacte la mairie.';

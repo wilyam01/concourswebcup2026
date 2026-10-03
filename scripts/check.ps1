@@ -56,6 +56,13 @@ $presentationMarkup = Get-Content -LiteralPath (Join-Path $projectRoot "presenta
 $presentationA11yStyles = Get-Content -LiteralPath (Join-Path $projectRoot "presentation-a11y.css") -Raw
 $dashboardStyles = Get-Content -LiteralPath (Join-Path $projectRoot "styles.css") -Raw
 $apiAdapter = Get-Content -LiteralPath (Join-Path $projectRoot "nova-terra.js") -Raw
+$loginMarkup = Get-Content -LiteralPath (Join-Path $projectRoot "connexion.html") -Raw
+$signupMarkup = Get-Content -LiteralPath (Join-Path $projectRoot "inscription.html") -Raw
+$loginScript = Get-Content -LiteralPath (Join-Path $projectRoot "login.js") -Raw
+$signupScript = Get-Content -LiteralPath (Join-Path $projectRoot "signup.js") -Raw
+$appointmentsScript = Get-Content -LiteralPath (Join-Path $projectRoot "appointments.js") -Raw
+$accessibilityScript = Get-Content -LiteralPath (Join-Path $projectRoot "accessibility.js") -Raw
+$assistantScript = Get-Content -LiteralPath (Join-Path $projectRoot "assistant.js") -Raw
 $apiProxy = Get-Content -LiteralPath (Join-Path $projectRoot "api/requests.js") -Raw
 $apiCollectionPath = Join-Path $projectRoot "postman/terra-nova-api.postman_collection.json"
 $apiCollectionRaw = Get-Content -LiteralPath $apiCollectionPath -Raw
@@ -133,5 +140,9 @@ if ($agentMarkup -notmatch 'id="serviceKillSwitchCard"' -or $agentAdminScript -n
 if ($cityDataScript -notmatch "admin_required_for_kill_switch" -or $backendServer -notmatch "current\.service_status === 'unavailable'") { throw "Seul un administrateur peut rétablir un service arrêté." }
 if ($backendServer -match 'authorEmail:\s*row\.author_email|u\.email AS author_email' -or $backendServer -notmatch 'normalize_sector\(a\.target_sector\)=normalize_sector\(\?\)') { throw "Les annonces publiques ne doivent pas exposer les e-mails et doivent comparer les secteurs sans tenir compte de la casse." }
 if ($cityDataScript -notmatch 'minute !== 0 && minute !== 30' -or $cityDataScript -notmatch 'hour === 16 && minute > 30') { throw "Les créneaux locaux doivent appliquer les mêmes règles de disponibilité que l’API." }
+if ($loginMarkup -match 'Maquette de connexion|authentification n’est pas encore activée' -or $signupMarkup -match 'Maquette de préinscription|Aucune donnée n’est envoyée ni conservée') { throw "Les parcours locaux d'inscription et de connexion ne doivent pas être présentés comme désactivés." }
+if ($loginScript -notmatch 'NovaTerraAuth\.signIn' -or $signupScript -notmatch 'NovaTerraAuth\.createAccount' -or $signupScript -notmatch 'Compte local de démonstration') { throw "Les formulaires de compte doivent rester reliés à l'authentification locale ou serveur et annoncer leur mode." }
+if ($appointmentsScript -notmatch "nova:language-change', updateAppointmentCopy" -or $appointmentsScript -notmatch 'Local bookings stay in this browser' -or $appointmentsScript -notmatch 'Les réservations locales restent dans ce navigateur') { throw "Les rendez-vous doivent conserver leur mode de stockage exact après un changement de langue." }
+if ($accessibilityScript -match '8 a\.m\. and 5 p\.m\.' -or $assistantScript -notmatch 'window\.NovaTerraApi\?\.enabled') { throw "Les aides doivent annoncer les horaires et le mode de compte réellement actifs." }
 
 Write-Host "Verification Terra Nova reussie : structure et routes attendues presentes."

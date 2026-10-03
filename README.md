@@ -87,6 +87,8 @@ Le rôle Fullstack / logique métier / présentation, le déroulé de démonstra
 
 Les fonctions D02 (connexion par code e-mail), F53 (double facteur), F54 (avis de nouvel appareil), F55 (export JSON RGPD) et F56 (récapitulatif CSV des démarches) sont décrites dans le [guide de sécurité et d’exports](docs/security-and-exports.md). D02 et F53 nécessitent le backend; l’envoi des codes et des alertes par e-mail demande un fournisseur transactionnel configuré côté serveur. Les exports F55 et F56 restent disponibles en mode navigateur pour les données locales.
 
+L’inscription et la connexion par mot de passe sont actives en mode local : le compte et son hash PBKDF2 sont enregistrés dans le navigateur, sans envoi au serveur. Avec un backend configuré, les comptes citoyens sont partagés entre appareils; les comptes agent et administrateur doivent être attribués par un administrateur. La récupération de mot de passe et les fonctions par e-mail ne sont pas simulées quand leurs services ne sont pas configurés. Les textes des pages indiquent le mode de stockage réellement utilisé. Les demandes de l’API WebCup restent en lecture seule jusqu’à la publication de routes officielles d’écriture.
+
 ## API des signalements WebCup
 
 Le contrat, les reponses HTTP verifiees et l'import de tests Postman sont decrits dans [docs/webcup-api.md](docs/webcup-api.md). La collection partagee est `postman/terra-nova-api.postman_collection.json`; la cle doit rester dans une variable locale/secrete.

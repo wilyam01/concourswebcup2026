@@ -108,7 +108,7 @@
 
         <section class="panel appointments-panel" id="appointments" aria-labelledby="appointmentsTitle">
           <div class="panel-heading"><div><div class="panel-kicker">ESPACE CITOYEN · RENDEZ-VOUS</div><h2 id="appointmentsTitle">Mes rendez-vous municipaux</h2></div><button class="text-button" id="enableAppointmentNotifications" type="button" hidden>Activer les rappels système</button></div>
-          <p class="appointments-note">Choisis un service et un créneau en semaine, de 08 h à 17 h. Un rappel s’affichera une heure avant le rendez-vous (ou dès que possible si le créneau est proche). Les réservations de cette maquette restent dans ce navigateur.</p>
+          <p class="appointments-note">Choisis un service et un créneau en semaine, de 08 h à 16 h 30. Un rappel s’affichera une heure avant le rendez-vous (ou dès que possible si le créneau est proche). En mode local, les réservations restent dans ce navigateur; en mode serveur, elles sont partagées entre appareils.</p>
           <p class="appointment-feedback" id="appointmentFeedback" role="status" aria-live="polite" hidden></p>
           <div class="appointment-reminders" id="appointmentReminders" role="status" aria-live="polite" hidden></div>
           <form class="appointment-form" id="appointmentForm">
@@ -237,7 +237,7 @@
   </dialog>
   <dialog class="profile-dialog" id="deleteAccountDialog" aria-labelledby="deleteAccountTitle" aria-describedby="deleteAccountNote">
     <div class="profile-dialog-heading"><div><div class="panel-kicker">SUPPRESSION DU COMPTE</div><h2 id="deleteAccountTitle">Supprimer mon compte citoyen</h2></div><button class="profile-dialog-close" id="closeDeleteAccount" type="button" aria-label="Fermer">×</button></div>
-    <p class="profile-dialog-intro" id="deleteAccountNote">Cette action est définitive. Dans cette maquette, elle supprime le compte, les demandes et rendez-vous enregistrés dans ce navigateur.</p>
+    <p class="profile-dialog-intro" id="deleteAccountNote">Cette action est définitive. En mode local, elle supprime le compte, les demandes et rendez-vous enregistrés dans ce navigateur; en mode serveur, elle supprime les données associées du serveur municipal.</p>
     <form class="profile-form" id="deleteAccountForm"><label for="deleteAccountPassword">Confirme ton mot de passe<input id="deleteAccountPassword" name="password" type="password" autocomplete="current-password" required /></label><label class="delete-confirmation"><input id="deleteAccountConfirm" name="confirm" type="checkbox" required /> Je comprends que mon compte sera supprimé.</label><p class="profile-form-error" id="deleteAccountError" role="alert" hidden></p><div class="profile-dialog-actions"><button class="profile-secondary-button" id="cancelDeleteAccount" type="button">Annuler</button><button class="account-delete-button" type="submit">Confirmer la suppression</button></div></form>
   </dialog>
   <dialog class="welcome-guide" id="welcomeGuide" aria-labelledby="welcomeTitle">

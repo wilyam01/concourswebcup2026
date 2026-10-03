@@ -121,7 +121,7 @@ function updateSignupLanguage() {
   passwordInput.minLength = window.NovaTerraApi?.enabled ? 12 : 8;
   if (notice) notice.innerHTML = window.NovaTerraApi?.enabled
     ? (english ? '<b>Server account</b><br />Your account is saved by the Nova Terra API and can be used on another device.' : '<b>Compte sur le serveur</b><br />Ton compte est enregistré par l’API Nova Terra et pourra être utilisé sur un autre appareil.')
-    : (english ? '<b>Local demo account</b><br />Your account is saved only in this browser. Use HTTPS or localhost.' : '<b>Compte local de démonstration</b><br />Le compte est conservé uniquement dans ce navigateur. Utilise HTTPS ou localhost.');
+    : (english ? '<b>Local demo account</b><br />Your account is saved only in this browser and is not shared with other devices.' : '<b>Compte local de démonstration</b><br />Ton compte est enregistré uniquement dans ce navigateur et n’est pas partagé avec d’autres appareils.');
   if (messageKey) signupMessage.textContent = messages[messageKey][english ? 1 : 0];
   signupButton.innerHTML = creatingAccount
     ? (english ? 'Creating account…' : 'Création du compte…')
