@@ -34,12 +34,14 @@ const loginProfiles = {
     symbol: 'A',
     kicker: 'ESPACE AGENT',
     lead: 'Connectez-vous pour consulter les demandes et coordonner les services municipaux.',
-    notice: window.NovaTerraApi?.enabled ? '<b>Espace agent sécurisé</b><br />Seul un compte auquel un administrateur a attribué le rôle agent peut accéder à cet espace.' : '<b>Espace agent de démonstration</b><br />Le compte doit avoir reçu le rôle agent. Les rôles ne sont pas attribués par le choix sur cette page.',
+    notice: window.NovaTerraApi?.enabled ? '<b>Espace agent sécurisé</b><br />Seul un compte auquel un administrateur a attribué le rôle agent peut accéder à cet espace.' : '<b>Espace agent de démonstration</b><br />Tu peux créer un compte agent local; il restera dans ce navigateur.',
     destination: 'agent/dashboard/index.html',
     button: 'Ouvrir mon espace agent',
     signupHref: 'inscription.html?profile=agent',
     signupPrompt: ['Pas encore de compte agent ?', 'Need an agent account?'],
     signupLabel: ['Demander un accès agent', 'Request agent access'],
+    demoSignupPrompt: ['Pas encore de compte agent local ?', 'Need a local agent account?'],
+    demoSignupLabel: ['Créer un compte agent', 'Create an agent account'],
   },
   admin: {
     name: 'Administrateur',
@@ -47,12 +49,14 @@ const loginProfiles = {
     symbol: '⌘',
     kicker: 'ESPACE ADMINISTRATEUR',
     lead: 'Connectez-vous pour ouvrir la vue de supervision du Haut Conseil.',
-    notice: window.NovaTerraApi?.enabled ? '<b>Haut Conseil sécurisé</b><br />L’accès administrateur est attribué uniquement depuis le serveur.' : '<b>Administration de démonstration</b><br />Le compte doit avoir reçu le rôle administrateur. Les rôles ne sont pas attribués par le choix sur cette page.',
+    notice: window.NovaTerraApi?.enabled ? '<b>Haut Conseil sécurisé</b><br />L’accès administrateur est attribué uniquement depuis le serveur.' : '<b>Administration de démonstration</b><br />Tu peux créer un compte admin local; il restera dans ce navigateur.',
     destination: 'dashboard.html?view=council',
     button: 'Ouvrir le Haut Conseil',
     signupHref: 'inscription.html?profile=admin',
     signupPrompt: ['Besoin d’un accès administrateur ?', 'Need administrator access?'],
     signupLabel: ['Demander un accès admin', 'Request admin access'],
+    demoSignupPrompt: ['Pas encore de compte admin local ?', 'Need a local admin account?'],
+    demoSignupLabel: ['Créer un compte admin', 'Create an admin account'],
   },
 };
 let activeProfile = null;
@@ -99,9 +103,15 @@ function chooseLoginProfile(profileId) {
   profileKicker.innerHTML = `<span>${profile.kicker}</span> · NOUVELLE AURORE`;
   loginLead.textContent = profile.lead;
   loginButton.innerHTML = `${profile.button} <span>→</span>`;
-  signupPrompt.textContent = profile.signupPrompt[isEnglish() ? 1 : 0];
+  const signupPromptText = !window.NovaTerraApi?.enabled && profileId !== 'citizen'
+    ? profile.demoSignupPrompt
+    : profile.signupPrompt;
+  const signupLabelText = !window.NovaTerraApi?.enabled && profileId !== 'citizen'
+    ? profile.demoSignupLabel
+    : profile.signupLabel;
+  signupPrompt.textContent = signupPromptText[isEnglish() ? 1 : 0];
   signupLink.href = profile.signupHref;
-  signupLink.innerHTML = `${profile.signupLabel[isEnglish() ? 1 : 0]} <span>↗</span>`;
+  signupLink.innerHTML = `${signupLabelText[isEnglish() ? 1 : 0]} <span>↗</span>`;
   if (notice) notice.innerHTML = profile.notice;
   loginMessage.hidden = true;
   loginMessage.textContent = '';
