@@ -96,7 +96,8 @@ const loginMessages = {
   invalid_two_factor_code: ['Le code de vérification est invalide ou déjà utilisé.', 'The verification code is invalid or has already been used.'],
   two_factor_challenge_expired: ['La vérification a expiré. Recommence la connexion.', 'The verification expired. Sign in again.'],
   two_factor_not_configured: ['La configuration de sécurité du serveur est incomplète. Contacte la mairie.', 'The server security configuration is incomplete. Contact the city.'],
-  forgot: ['Les comptes locaux ne peuvent pas être récupérés. Crée un nouveau compte avec une autre adresse e-mail.', 'Local demo accounts cannot be recovered. Create a new account with a different email address.'],
+  forgot_local: ['Les comptes locaux ne peuvent pas être récupérés. Crée un nouveau compte avec une autre adresse e-mail.', 'Local demo accounts cannot be recovered. Create a new account with a different email address.'],
+  forgot_server: ['La réinitialisation du mot de passe serveur n’est pas encore disponible. Contacte l’assistance Nova Terra.', 'Server password reset is not available yet. Contact Nova Terra support.'],
 };
 
 function isEnglish() { return document.documentElement.lang === 'en'; }
@@ -345,5 +346,5 @@ document.querySelector('#twoFactorLoginBack').addEventListener('click', () => {
 });
 
 document.querySelector('#forgotPassword').addEventListener('click', () => {
-  showLoginMessage('forgot');
+  showLoginMessage(window.NovaTerraApi?.enabled ? 'forgot_server' : 'forgot_local');
 });
