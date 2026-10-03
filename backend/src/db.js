@@ -45,6 +45,7 @@ db.exec(`
     id TEXT PRIMARY KEY, owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     agent_id TEXT REFERENCES users(id) ON DELETE SET NULL, agent_name TEXT NOT NULL,
     sector TEXT NOT NULL DEFAULT '', service TEXT NOT NULL, purpose TEXT NOT NULL,
+    staff_note TEXT NOT NULL DEFAULT '',
     scheduled_at TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'booked', reminder_sent_at TEXT,
     created_at TEXT NOT NULL, updated_at TEXT NOT NULL
   );
@@ -133,6 +134,8 @@ if (!userColumns.has('two_factor_pending_secret')) db.exec("ALTER TABLE users AD
 if (!userColumns.has('two_factor_pending_expires_at')) db.exec('ALTER TABLE users ADD COLUMN two_factor_pending_expires_at TEXT');
 if (!userColumns.has('two_factor_enabled')) db.exec('ALTER TABLE users ADD COLUMN two_factor_enabled INTEGER NOT NULL DEFAULT 0');
 if (!userColumns.has('two_factor_last_counter')) db.exec('ALTER TABLE users ADD COLUMN two_factor_last_counter INTEGER NOT NULL DEFAULT -1');
+const appointmentColumns = new Set(db.prepare('PRAGMA table_info(appointments)').all().map((column) => column.name));
+if (!appointmentColumns.has('staff_note')) db.exec("ALTER TABLE appointments ADD COLUMN staff_note TEXT NOT NULL DEFAULT ''");
 
 const scheduleDefaults = [
   ['line-a', 'A', 'Ligne bleue', 'Blue line', 'District Boréal', 'Boreal District', 'Centre civique', 'Civic Centre', '06:00', '22:00', 12, 'Navette accessible · arrêt principal : place des Étoiles', 'Accessible shuttle · main stop: Place des Étoiles'],

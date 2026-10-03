@@ -168,6 +168,7 @@
       agentEmail: String(item.agentEmail || ''),
       agentName: String(item.agentName || 'Premier agent disponible').slice(0, 80),
       purpose: String(item.purpose || '').slice(0, 500),
+      staffNote: String(item.staffNote || '').slice(0, 1000),
       scheduledAt: scheduled.toISOString(),
       createdAt: String(item.createdAt || scheduled.toISOString()),
       reminderSentAt: String(item.reminderSentAt || ''),
@@ -260,6 +261,27 @@
     return normalizeAppointment(entry);
   }
 
+  async function updateAppointmentStaffNote(appointmentId, staffNote) {
+    const session = window.NovaTerraAuth?.getSession();
+    if (!session || !['agent', 'admin'].includes(session.profile)) throw new Error('forbidden');
+    const note = String(staffNote || '').trim();
+    if (note.length > 1000) throw new Error('invalid_note');
+    if (apiEnabled()) {
+      const result = await window.NovaTerraApi.request(`/appointments/${encodeURIComponent(appointmentId)}`, {
+        method: 'PATCH', body: JSON.stringify({ staffNote: note }),
+      });
+      return result.appointment;
+    }
+    const appointments = readList(appointmentKey);
+    const entry = appointments.find((item) => item.id === appointmentId);
+    if (!entry) throw new Error('appointment_not_found');
+    if (session.profile === 'agent' && entry.agentEmail?.toLowerCase() !== session.email.toLowerCase()) throw new Error('forbidden');
+    entry.staffNote = note;
+    entry.updatedAt = new Date().toISOString();
+    writeList(appointmentKey, appointments, 'terra-nova:appointments-updated');
+    return normalizeAppointment(entry);
+  }
+
   async function markAppointmentReminder(appointmentId) {
     const session = window.NovaTerraAuth?.getSession();
     if (!session) throw new Error('forbidden');
@@ -285,6 +307,7 @@
     getAppointments,
     createAppointment,
     updateAppointment,
+    updateAppointmentStaffNote,
     markAppointmentReminder,
   });
 })();

@@ -1,8 +1,8 @@
 const currentUser = window.NovaTerraAuth.getSession();
 window.addEventListener('nova:session-revoked', () => window.location.replace('connexion.html?reason=access-revoked'));
 const requestedDashboardView = new URLSearchParams(window.location.search).get('view');
-if (!currentUser || (requestedDashboardView === 'council' && currentUser.profile !== 'admin')) {
-  window.location.replace(currentUser ? 'connexion.html?profile=admin' : 'connexion.html');
+if (!currentUser || (requestedDashboardView === 'council' && !['agent', 'admin'].includes(currentUser.profile))) {
+  window.location.replace(currentUser ? 'connexion.html?profile=agent' : 'connexion.html');
 } else {
 const toast = document.querySelector('#toast');
 let toastTimer;
@@ -429,8 +429,8 @@ function renderPersonalRequestFeedback() {
   if (!lastCitizenReportId) return;
   const english = document.documentElement.lang === "en";
   document.querySelector("#personalRequestFeedback").textContent = english
-    ? `Report ${lastCitizenReportId} was saved ${window.NovaTerraApi?.enabled ? 'to your city account' : 'on this device'}. Follow its status in your request history.`
-    : `Le signalement ${lastCitizenReportId} est enregistré ${window.NovaTerraApi?.enabled ? 'dans ton compte citoyen' : 'sur cet appareil'}. Suis son état dans ton historique.`;
+    ? `Receipt confirmed: report ${lastCitizenReportId} was received and saved ${window.NovaTerraApi?.enabled ? 'to your city account' : 'on this device'}. Keep this reference to follow its status.`
+    : `Accusé de réception : le signalement ${lastCitizenReportId} a bien été reçu et enregistré ${window.NovaTerraApi?.enabled ? 'dans ton compte citoyen' : 'sur cet appareil'}. Garde cette référence pour suivre son état.`;
 }
 
 function csvCell(value) {
@@ -677,8 +677,8 @@ document.querySelectorAll('.filter').forEach((button) => {
 document.querySelectorAll('.view-btn').forEach((button) => {
   button.addEventListener('click', () => {
     const councilView = button.dataset.view === 'council';
-    if (councilView && currentUser.profile !== 'admin') {
-      notify('Cette vue est réservée au profil Administrateur.');
+    if (councilView && !['agent', 'admin'].includes(currentUser.profile)) {
+      notify('Cette vue est réservée aux agents et au Haut Conseil.');
       return;
     }
     document.querySelectorAll('.view-btn').forEach((item) => item.classList.remove('selected'));
@@ -855,6 +855,7 @@ function renderProfile(user) {
   const role = roles[user.profile] || roles.citizen;
   profileRole.textContent = role.label;
   profileRole.dataset.role = role.tone;
+  document.querySelector('.nav-item[href="#council"] .nav-lock').hidden = !['agent', 'admin'].includes(user.profile);
   alertsButton.hidden = user.profile !== 'admin';
   alertsDialog.hidden = user.profile !== 'admin';
   if (user.profile === 'admin') renderAdminAlerts(publicRequests);

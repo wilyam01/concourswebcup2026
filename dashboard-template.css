@@ -407,3 +407,5 @@ html[data-theme="light"] footer a { color: var(--ui-cobalt); }
   *::before,
   *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+.appointment-staff-note { display: grid; gap: 6px; margin-top: 10px; font-size: .85rem; }
+.appointment-staff-note textarea { width: 100%; min-height: 60px; resize: vertical; }

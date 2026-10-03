@@ -11,8 +11,8 @@
   --lilac: #b6a1f3;
   --rose: #f18dbd;
   --green: #9bd8b9;
-  --mono: 'DM Mono', monospace;
-  --sans: 'Manrope', sans-serif;
+  --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  --sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: 86px; }

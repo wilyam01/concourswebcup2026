@@ -651,9 +651,10 @@ app.get('/api/appointments/agents', authenticate, (req, res) => {
   const agents = db.prepare("SELECT id,email,display_name AS name,sector FROM users WHERE role='AGENT' AND enabled=1 ORDER BY display_name").all();
   res.json({ agents });
 });
-function appointment(row) {
+function appointment(row, includeStaffNote = false) {
   return { id: row.id, ownerEmail: row.owner_email, ownerName: row.owner_name, sector: row.sector,
     service: row.service, agentEmail: row.agent_email || '', agentName: row.agent_name, purpose: row.purpose,
+    ...(includeStaffNote ? { staffNote: row.staff_note || '' } : {}),
     scheduledAt: row.scheduled_at, createdAt: row.created_at, reminderSentAt: row.reminder_sent_at || '',
     updatedAt: row.updated_at, status: row.status };
 }
@@ -665,7 +666,7 @@ app.get('/api/appointments', authenticate, (req, res) => {
     : req.user.role === 'AGENT'
       ? db.prepare(`${appointmentColumns} WHERE a.agent_id=? ORDER BY a.scheduled_at`).all(req.user.id)
       : db.prepare(`${appointmentColumns} WHERE a.owner_id=? ORDER BY a.scheduled_at`).all(req.user.id);
-  res.json({ appointments: rows.map(appointment) });
+  res.json({ appointments: rows.map((row) => appointment(row, req.user.role !== 'CITOYEN')) });
 });
 app.post('/api/appointments', authenticate, allowRoles('CITOYEN'), (req, res) => {
   const service = clean(req.body?.service, 40), purpose = clean(req.body?.purpose, 500);
@@ -707,6 +708,19 @@ app.post('/api/appointments', authenticate, allowRoles('CITOYEN'), (req, res) =>
   res.status(201).json({ appointment: appointment(db.prepare(`${appointmentColumns} WHERE a.id=?`).get(appointmentId)) });
 });
 app.patch('/api/appointments/:id', authenticate, (req, res) => {
+  if (Object.hasOwn(req.body || {}, 'staffNote')) {
+    if (!['AGENT', 'ADMIN'].includes(req.user.role)) return res.status(403).json({ error: 'FORBIDDEN' });
+    const note = typeof req.body.staffNote === 'string' ? req.body.staffNote.trim() : null;
+    if (note === null || note.length > 1000) return res.status(400).json({ error: 'INVALID_NOTE' });
+    const current = db.prepare(`${appointmentColumns} WHERE a.id=?`).get(req.params.id);
+    if (!current) return res.status(404).json({ error: 'APPOINTMENT_NOT_FOUND' });
+    if (req.user.role === 'AGENT' && current.agent_id !== req.user.id) return res.status(403).json({ error: 'FORBIDDEN' });
+    db.transaction(() => {
+      db.prepare('UPDATE appointments SET staff_note=?,updated_at=? WHERE id=?').run(note, isoNow(), req.params.id);
+      recordAudit(req, { action: 'appointment.note_updated', entityType: 'appointment', entityId: req.params.id, summary: 'Appointment staff note updated' });
+    })();
+    return res.json({ appointment: appointment(db.prepare(`${appointmentColumns} WHERE a.id=?`).get(req.params.id), true) });
+  }
   const nextStatus = req.body?.status;
   if (!['cancelled', 'completed'].includes(nextStatus)) return res.status(400).json({ error: 'INVALID_STATUS' });
   const current = db.prepare(`${appointmentColumns} WHERE a.id=?`).get(req.params.id);
@@ -718,7 +732,7 @@ app.patch('/api/appointments/:id', authenticate, (req, res) => {
     db.prepare('UPDATE appointments SET status=?,updated_at=? WHERE id=?').run(nextStatus, isoNow(), req.params.id);
     if (current.status !== nextStatus) recordAudit(req, { action: `appointment.${nextStatus}`, entityType: 'appointment', entityId: req.params.id, summary: nextStatus === 'cancelled' ? 'Municipal appointment cancelled' : 'Municipal appointment completed', metadata: { from: current.status, to: nextStatus } });
   })();
-  res.json({ appointment: appointment(db.prepare(`${appointmentColumns} WHERE a.id=?`).get(req.params.id)) });
+  res.json({ appointment: appointment(db.prepare(`${appointmentColumns} WHERE a.id=?`).get(req.params.id), staff) });
 });
 app.post('/api/appointments/:id/reminder', authenticate, allowRoles('CITOYEN'), (req, res) => {
   const reminderAt = isoNow();

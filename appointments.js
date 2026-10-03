@@ -200,6 +200,28 @@
         addText(copy, 'b', '', `${formatDate(item.scheduledAt)} · ${serviceLabel(item.service)}`);
         addText(copy, 'small', '', `${item.ownerName} (${item.ownerEmail}) · ${item.sector} · ${appointmentStateLabel(item.status)}`);
         addText(copy, 'small', '', item.purpose);
+        const noteLabel = addText(copy, 'label', 'appointment-staff-note', english() ? 'Internal note' : 'Note interne');
+        const noteInput = document.createElement('textarea');
+        noteInput.maxLength = 1000;
+        noteInput.rows = 2;
+        noteInput.value = item.staffNote || '';
+        noteInput.setAttribute('aria-label', english() ? 'Internal appointment note' : 'Note interne du rendez-vous');
+        noteLabel.append(noteInput);
+        const saveNote = document.createElement('button');
+        saveNote.type = 'button';
+        saveNote.textContent = english() ? 'Save note' : 'Enregistrer la note';
+        saveNote.addEventListener('click', async () => {
+          saveNote.disabled = true;
+          try {
+            await window.NovaTerraCity.updateAppointmentStaffNote(item.id, noteInput.value);
+            saveNote.textContent = english() ? 'Saved' : 'Enregistrée';
+          } catch (_) {
+            saveNote.textContent = english() ? 'Could not save' : 'Échec de l’enregistrement';
+          } finally {
+            saveNote.disabled = false;
+          }
+        });
+        copy.append(saveNote);
         card.append(copy);
         if (item.status === 'booked') {
           const complete = document.createElement('button');
