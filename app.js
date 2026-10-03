@@ -517,6 +517,7 @@ document.querySelectorAll('.nav-item').forEach((link) => link.addEventListener('
 
 const profilePhotoInput = document.querySelector('#profilePhotoInput');
 const profilePhotoButtons = [...document.querySelectorAll('.profile-photo-trigger')];
+const topProfileButton = document.querySelector('.top-avatar.profile-photo-trigger');
 const profilePhotoStorageKey = `novaTerraProfilePhoto.v1:${encodeURIComponent(currentUser.email)}`;
 const legacyProfilePhotoStorageKey = 'novaTerraProfilePhoto';
 const profileName = document.querySelector('#profileName');
@@ -526,6 +527,9 @@ const profileForm = document.querySelector('#profileForm');
 const profileNameInput = document.querySelector('#profileNameInput');
 const profileSectorInput = document.querySelector('#profileSectorInput');
 const profileFormError = document.querySelector('#profileFormError');
+
+topProfileButton.setAttribute('aria-label', 'Personnaliser le profil');
+topProfileButton.title = 'Personnaliser le profil';
 
 function renderProfile(user) {
   profileName.textContent = user.name;
@@ -545,8 +549,9 @@ function showProfilePhoto(dataUrl) {
     image.src = dataUrl;
     image.alt = '';
     button.replaceChildren(image);
-    button.setAttribute('aria-label', 'Changer la photo de profil');
-    button.title = 'Changer la photo de profil';
+    const label = button === topProfileButton ? 'Personnaliser le profil' : 'Changer la photo de profil';
+    button.setAttribute('aria-label', label);
+    button.title = label;
     button.classList.add('has-profile-photo');
   });
 }
@@ -566,13 +571,16 @@ try {
   // A saved photo is optional when browser storage is unavailable.
 }
 
-document.querySelector('#editProfileButton').addEventListener('click', () => {
+function openProfileDialog() {
   profileNameInput.value = currentUser.name;
   profileSectorInput.value = currentUser.sector;
   profileFormError.hidden = true;
   profileFormError.textContent = '';
   profileDialog.showModal();
-});
+}
+
+document.querySelector('#editProfileButton').addEventListener('click', openProfileDialog);
+topProfileButton.addEventListener('click', openProfileDialog);
 document.querySelector('#profileDialogPhoto').addEventListener('click', () => profilePhotoInput.click());
 document.querySelector('#closeProfileDialog').addEventListener('click', () => profileDialog.close());
 document.querySelector('#cancelProfileEdit').addEventListener('click', () => profileDialog.close());
@@ -603,7 +611,9 @@ profileForm.addEventListener('submit', (event) => {
   notify('Profil mis à jour.');
 });
 
-profilePhotoButtons.forEach((button) => button.addEventListener('click', () => profilePhotoInput.click()));
+profilePhotoButtons
+  .filter((button) => button !== topProfileButton)
+  .forEach((button) => button.addEventListener('click', () => profilePhotoInput.click()));
 document.querySelector('#logoutButton').addEventListener('click', () => {
   window.NovaTerraAuth.signOut();
   window.location.replace('connexion.html');
