@@ -554,6 +554,9 @@ app.post('/api/announcements', authenticate, allowRoles('AGENT', 'ADMIN'), (req,
   const targetSector = clean(req.body?.targetSector, 120), service = clean(req.body?.service, 40);
   const serviceStatus = clean(req.body?.serviceStatus, 30), expiresAt = req.body?.expiresAt ? new Date(req.body.expiresAt) : null;
   if (!kinds.has(kind) || !title || !body) return res.status(400).json({ error: 'INVALID_TEXT' });
+  if (kind !== 'service_status' && !targetSector && req.user.role !== 'ADMIN') {
+    return res.status(403).json({ error: 'ADMIN_REQUIRED_FOR_CITYWIDE_ANNOUNCEMENT' });
+  }
   if (expiresAt && (Number.isNaN(expiresAt.getTime()) || expiresAt <= new Date())) return res.status(400).json({ error: 'INVALID_EXPIRY' });
   if (kind === 'service_status' && (!services.has(service) || !states.has(serviceStatus))) return res.status(400).json({ error: 'INVALID_SERVICE_STATUS' });
   if (kind === 'service_status' && serviceStatus === 'unavailable' && req.user.role !== 'ADMIN') {

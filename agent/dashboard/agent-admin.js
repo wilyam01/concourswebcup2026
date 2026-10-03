@@ -83,6 +83,14 @@
         : 'Suspends ou rétablis un accès citoyen. Les administrateurs peuvent aussi attribuer les rôles agent et administrateur.';
     }
     const isAdmin = user.profile === 'admin';
+    if (!isAdmin && !targetSelect.value) targetSelect.selectedIndex = 1;
+    document.querySelector('#announcementForm').closest('.management-card').querySelector(':scope > p:not(.kicker)').textContent = window.NovaTerraApi?.enabled
+      ? (english
+        ? (isAdmin ? 'Citywide notices appear on the public home page and in residents’ alert centres. Agents can publish notices for a selected sector.' : 'Choose a sector to publish a notice. Citywide notices are reserved for administrators.')
+        : (isAdmin ? 'Les informations générales apparaissent sur l’accueil public et dans le centre d’alertes des habitants. Les agents peuvent cibler un secteur.' : 'Choisis un secteur pour publier une information. Les annonces à tous les habitants sont réservées aux administrateurs.')
+      : (english
+        ? 'Demo notices are saved in this browser only. Connect the city API to share them with residents across devices.'
+        : 'Les informations de démonstration sont enregistrées dans ce navigateur uniquement. Connecte l’API municipale pour les partager entre habitants et appareils.');
     killSwitchCard.hidden = !isAdmin;
     const unavailableOption = form.querySelector('#announcementServiceFields [name="serviceStatus"] option[value="unavailable"]');
     unavailableOption.disabled = !isAdmin;
@@ -478,8 +486,8 @@
       renderAuditLogs();
     } catch (error) {
       const messages = english()
-        ? { invalid_text: 'Add a title and message within the field limits.', invalid_expiry: 'Choose an expiration time in the future.', invalid_service_status: 'Choose a service and its status.', admin_required_for_kill_switch: 'Only an administrator can stop or restore an unavailable service.' }
-        : { invalid_text: 'Ajoute un titre et un message dans les limites indiquées.', invalid_expiry: 'Choisis une date d’expiration future.', invalid_service_status: 'Choisis un service et son statut.', admin_required_for_kill_switch: 'Seul un administrateur peut couper ou rétablir un service indisponible.' };
+        ? { invalid_text: 'Add a title and message within the field limits.', invalid_expiry: 'Choose an expiration time in the future.', invalid_service_status: 'Choose a service and its status.', admin_required_for_kill_switch: 'Only an administrator can stop or restore an unavailable service.', admin_required_for_citywide_announcement: 'Only an administrator can publish an announcement to all residents. Choose a sector instead.' }
+        : { invalid_text: 'Ajoute un titre et un message dans les limites indiquées.', invalid_expiry: 'Choisis une date d’expiration future.', invalid_service_status: 'Choisis un service et son statut.', admin_required_for_kill_switch: 'Seul un administrateur peut couper ou rétablir un service indisponible.', admin_required_for_citywide_announcement: 'Seul un administrateur peut publier une information à tous les habitants. Choisis un secteur.' };
       feedback.textContent = messages[error.message] || (english() ? 'The information could not be saved in this browser.' : 'L’information n’a pas pu être enregistrée dans ce navigateur.');
       feedback.hidden = false;
     }

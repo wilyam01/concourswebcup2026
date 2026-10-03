@@ -10,6 +10,29 @@ if (hero && 'IntersectionObserver' in window) {
   heroObserver.observe(hero);
 }
 
+const motionPreference = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+const motionLimited = motionPreference?.matches
+  || document.documentElement.dataset.lowBandwidth === 'on'
+  || document.documentElement.dataset.lowResource === 'on';
+const revealTargets = document.querySelectorAll(
+  '.emergency-heading, .emergency-layout, .section-heading, .service-card, .service-note, .mobility-route, .news-lead, .news-item, .join-content'
+);
+
+if ('IntersectionObserver' in window && !motionLimited && revealTargets.length) {
+  const revealObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add('is-revealed');
+      observer.unobserve(entry.target);
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -36px 0px' });
+
+  revealTargets.forEach((element) => {
+    element.classList.add('scroll-reveal');
+    revealObserver.observe(element);
+  });
+}
+
 menuToggle?.addEventListener('click', () => {
   const isOpen = publicNav.classList.toggle('open');
   const english = document.documentElement.lang === 'en';

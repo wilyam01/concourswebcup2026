@@ -2,7 +2,7 @@
   "name": "terra-nova-webcup",
   "version": "1.0.0",
   "scripts": {
-    "test": "powershell -ExecutionPolicy Bypass -File .\\scripts\\check.ps1 && node --test .\\tests\\api-requests.test.js .\\tests\\api-client.test.js .\\tests\\eco-mode.test.js",
+    "test": "powershell -ExecutionPolicy Bypass -File .\\scripts\\check.ps1 && node .\\tests\\run.js",
     "backend:install": "npm --prefix backend install",
     "backend:start": "npm --prefix backend start",
     "backend:dev": "npm --prefix backend run dev",

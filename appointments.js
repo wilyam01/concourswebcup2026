@@ -88,7 +88,7 @@
         copy.className = 'appointment-card-copy';
         addText(copy, 'b', '', `${formatDate(item.scheduledAt)} · ${serviceLabel(item.service)}`);
         addText(copy, 'small', '', `${item.agentName} · ${item.sector} · ${appointmentStateLabel(item.status)}`);
-        addText(copy, 'small', '', item.purpose);
+        addText(copy, 'p', 'appointment-purpose-copy', `${english() ? 'Reason: ' : 'Motif : '}${item.purpose || (english() ? 'Not provided' : 'Non renseigné')}`);
         card.append(copy);
         if (item.status === 'booked') {
           const cancel = document.createElement('button');
@@ -199,7 +199,7 @@
         copy.className = 'appointment-card-copy';
         addText(copy, 'b', '', `${formatDate(item.scheduledAt)} · ${serviceLabel(item.service)}`);
         addText(copy, 'small', '', `${item.ownerName} (${item.ownerEmail}) · ${item.sector} · ${appointmentStateLabel(item.status)}`);
-        addText(copy, 'small', '', item.purpose);
+        addText(copy, 'p', 'appointment-purpose-copy', `${english() ? 'Reason: ' : 'Motif : '}${item.purpose || (english() ? 'Not provided' : 'Non renseigné')}`);
         const noteLabel = addText(copy, 'label', 'appointment-staff-note', english() ? 'Internal note' : 'Note interne');
         const noteInput = document.createElement('textarea');
         noteInput.maxLength = 1000;

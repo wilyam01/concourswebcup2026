@@ -76,6 +76,9 @@
     const title = safeText(input.title, 120);
     const body = safeText(input.body, 1200);
     const targetSector = String(input.targetSector || '').trim().slice(0, 120);
+    if (input.kind !== 'service_status' && !targetSector && staff.profile !== 'admin') {
+      throw new Error('admin_required_for_citywide_announcement');
+    }
     if (apiEnabled()) {
       try {
         const result = await window.NovaTerraApi.request('/announcements', {
@@ -83,7 +86,7 @@
         });
         return result.announcement;
       } catch (error) {
-        const messages = { INVALID_TEXT: 'invalid_text', INVALID_EXPIRY: 'invalid_expiry', INVALID_SERVICE_STATUS: 'invalid_service_status', ADMIN_REQUIRED_FOR_KILL_SWITCH: 'admin_required_for_kill_switch', FORBIDDEN: 'forbidden' };
+        const messages = { INVALID_TEXT: 'invalid_text', INVALID_EXPIRY: 'invalid_expiry', INVALID_SERVICE_STATUS: 'invalid_service_status', ADMIN_REQUIRED_FOR_KILL_SWITCH: 'admin_required_for_kill_switch', ADMIN_REQUIRED_FOR_CITYWIDE_ANNOUNCEMENT: 'admin_required_for_citywide_announcement', FORBIDDEN: 'forbidden' };
         throw new Error(messages[error.message] || error.message);
       }
     }
