@@ -581,16 +581,18 @@ async function loadPublicReports() {
       apiStatusText.textContent = window.NovaTerra.getDataSourceLabel();
     }
     error.hidden = true;
-  } catch {
+  } catch (loadError) {
+    console.error("Unable to load public reports.", loadError);
     const cachedRequests = window.NovaTerra.getCachedRequests();
+    const usingDemoData = window.NovaTerra.usingDemoData();
     let fallbackSource = "unavailable";
     if (cachedRequests.length) {
       publicRequests = cachedRequests;
-      fallbackSource = window.NovaTerra.usingDemoData() ? "demo-cache" : "api-cache";
-      reportDataSourceLabel = window.NovaTerra.usingDemoData()
+      fallbackSource = usingDemoData ? "demo-cache" : "api-cache";
+      reportDataSourceLabel = usingDemoData
         ? "Instantané local · mode démonstration"
         : "Instantané local · API indisponible";
-    } else if (!publicRequests.length && window.NovaTerra.usingDemoData()) {
+    } else if (!publicRequests.length && usingDemoData) {
       publicRequests = window.NovaTerra.getDemoRequests();
       fallbackSource = "demo";
       reportDataSourceLabel = "Mode démonstration · données fictives";
@@ -602,7 +604,8 @@ async function loadPublicReports() {
     }
     updateReportCounts(publicRequests);
     renderPublicReports();
-    apiStatus.classList.add("unavailable");
+    apiStatus.classList.toggle("unavailable", !usingDemoData);
+    apiStatus.classList.toggle("demo", usingDemoData);
     const cacheTime = window.NovaTerra.getRequestsCacheTime();
     const cacheStamp = cacheTime ? ` (${new Date(cacheTime).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })})` : "";
     const fallbackLabels = {
@@ -613,7 +616,9 @@ async function loadPublicReports() {
       unavailable: "API indisponible · aucune donnée disponible"
     };
     apiStatusText.textContent = fallbackLabels[fallbackSource];
-    error.textContent = publicRequests.length
+    error.textContent = usingDemoData
+      ? "Les données de démonstration n’ont pas pu être chargées correctement. Réessaie."
+      : publicRequests.length
       ? "La connexion est interrompue. Les dernières demandes disponibles restent affichées."
       : "Les demandes ne sont pas disponibles pour le moment. Reessaie lorsque la connexion est retablie.";
     error.hidden = false;

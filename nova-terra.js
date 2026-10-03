@@ -184,6 +184,13 @@ function getCachedRequests() {
   });
 }
 
+function getDemoRequests() {
+  return readStored(NOVA_TERRA_REQUESTS_KEY, demoRequests).flatMap((item) => {
+    try { return [normalizeRequest(item)]; }
+    catch { return []; }
+  });
+}
+
 async function getFromApi(path, preferredKey) {
   const payload = window.NovaTerraApi?.enabled
     ? await window.NovaTerraApi.request(path)
@@ -195,12 +202,7 @@ window.NovaTerra = {
   citizenRequestsStorageKey: NOVA_TERRA_CITIZEN_REQUESTS_KEY,
   usingDemoData: () => !NOVA_TERRA_API_BASE_URL && !NOVA_TERRA_REQUESTS_API_URL,
   canUpdateRequestStatus: () => !NOVA_TERRA_REQUESTS_API_URL && !NOVA_TERRA_API_BASE_URL,
-  getDemoRequests() {
-    return readStored(NOVA_TERRA_REQUESTS_KEY, demoRequests).flatMap((item) => {
-      try { return [normalizeRequest(item)]; }
-      catch { return []; }
-    });
-  },
+  getDemoRequests,
   getCachedRequests,
   getLocalCitizenRequests(ownerEmail = null) {
     const requests = readCitizenRequests();
@@ -292,7 +294,7 @@ window.NovaTerra = {
       const payload = await getFromApi(NOVA_TERRA_ENDPOINTS.requests, "requests");
       requests = normalizeRequests(payload);
     } else {
-      return readStored(NOVA_TERRA_REQUESTS_KEY, demoRequests).map(normalizeRequest);
+      return getDemoRequests();
     }
     cacheRequests(requests);
     return requests;

@@ -35,3 +35,7 @@ main { max-width:1180px; margin:auto; padding:68px 28px 80px; }.intro { max-widt
 @media(min-width:340px) and (max-width:360px) and (max-height:740px) {
   .contact-page .form-card { margin-top:100px; }
 }
+html[data-theme="light"] .contact-page .service-note h2,
+html[data-theme="light"] .contact-page .service-note dd { color:#26364a; }
+html[data-theme="light"] .contact-page .service-note dt { color:#596477; }
+html[data-theme="light"] .contact-page .service-note > p:not(.kicker) { color:#465568; }

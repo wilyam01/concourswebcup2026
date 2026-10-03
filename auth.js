@@ -102,8 +102,10 @@
     }));
   }
 
-  async function createAccount({ name, email, sector, password }) {
+  async function createAccount({ name, email, sector, password, profile = 'citizen' }) {
+    if (!['citizen', 'agent', 'admin'].includes(profile)) return { ok: false, error: 'invalid_profile' };
     if (apiEnabled()) {
+      if (profile !== 'citizen') return { ok: false, error: 'role_assignment_requires_admin' };
       if (password.length < 12) return { ok: false, error: 'weak_password' };
       try {
         const result = await window.NovaTerraApi.request('/auth/signup', {
@@ -135,7 +137,7 @@
         name: normalizedName,
         email: normalizedEmail,
         sector: normalizedSector,
-        profile: 'citizen',
+        profile,
         enabled: true,
         salt: bytesToHex(salt),
         passwordHash: await hashPassword(password, salt),
@@ -143,8 +145,8 @@
       };
       accounts.push(account);
       localStorage.setItem(accountsKey, JSON.stringify(accounts));
-      setSession(account);
-      return { ok: true, user: { name: account.name, email: account.email, sector: account.sector, profile: 'citizen' } };
+      setSession(account, false, profile);
+      return { ok: true, user: { name: account.name, email: account.email, sector: account.sector, profile } };
     } catch (error) {
       return { ok: false, error: apiEnabled() ? remoteError(error) : error.name === 'QuotaExceededError' ? 'storage_full' : 'storage_unavailable' };
     }

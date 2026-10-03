@@ -41,6 +41,7 @@ $publicScript = Get-Content -LiteralPath (Join-Path $projectRoot "app.js") -Raw
 $contactMarkup = Get-Content -LiteralPath (Join-Path $projectRoot "contact/index.html") -Raw
 $contactScript = Get-Content -LiteralPath (Join-Path $projectRoot "contact/contact.js") -Raw
 $contactStyles = Get-Content -LiteralPath (Join-Path $projectRoot "contact/contact.css") -Raw
+$dashboardTemplateStyles = Get-Content -LiteralPath (Join-Path $projectRoot "dashboard-template.css") -Raw
 $homeMarkup = Get-Content -LiteralPath (Join-Path $projectRoot "index.html") -Raw
 $homeScript = Get-Content -LiteralPath (Join-Path $projectRoot "public.js") -Raw
 $publicStyles = Get-Content -LiteralPath (Join-Path $projectRoot "public.css") -Raw
@@ -57,6 +58,7 @@ if ($agentMarkup -notmatch 'id="kanban"') { throw "Kanban agent introuvable." }
 if ($contactMarkup -notmatch 'id="contact-form"') { throw "Formulaire citoyen introuvable." }
 if ($contactMarkup -notmatch 'id="delivery-mode"' -or $contactScript -notmatch "apiBaseUrl") { throw "Le formulaire de contact doit distinguer le mode demo de la transmission API." }
 if ($contactStyles -notmatch '\.contact-page \.community-inbox-trigger \.community-inbox-label\s*\{\s*display:\s*none' -or $contactStyles -notmatch '\.contact-page \.assistant-panel\s*\{\s*right:\s*10px;\s*bottom:\s*64px') { throw "Les commandes mobiles de contact doivent rester compactes sans recouvrir le formulaire." }
+if ($contactStyles -notmatch 'html\[data-theme="light"\] \.contact-page \.service-note h2' -or $contactStyles -notmatch 'html\[data-theme="light"\] \.contact-page \.service-note dd') { throw "Le panneau contact doit conserver un contraste lisible en thème clair." }
 if ($contactScript -notmatch "ne sera pas transmis aux services municipaux" -or $contactScript -notmatch "aucun e-mail de suivi ne sera envoyé") { throw "Le formulaire de demonstration ne doit pas laisser croire qu'un message a ete transmis." }
 if ($apiAdapter -notmatch "citizen-messages") { throw "Endpoint des messages citoyens introuvable." }
 if ($apiProxy -notmatch 'process\.env\.WEBCUP_API_KEY') { throw "La cle WebCup doit etre lue depuis une variable d'environnement serveur." }
@@ -87,6 +89,9 @@ foreach ($councilId in @("council-source", "council-priority-title", "council-pr
 }
 if ($publicScript -notmatch "updateCouncilSummary" -or $publicScript -notmatch "reviewUrgentReports") { throw "Le Haut Conseil doit etre alimente par les demandes et ouvrir le filtre urgent." }
 if ($publicScript -notmatch "Dernière réponse en mémoire" -or $publicScript -notmatch "instantané local") { throw "Le tableau doit distinguer les sources de secours du flux API." }
+if ($apiAdapter -notmatch 'function getDemoRequests\(\)' -or $apiAdapter -notmatch 'return getDemoRequests\(\)') { throw "Les demandes fictives invalides doivent etre ignorees sans signaler une panne API." }
+if ($publicScript -notmatch 'usingDemoData\s*\?\s*"Les données de démonstration') { throw "Une erreur de données fictives ne doit pas etre signalee comme une panne API." }
+if ($dashboardTemplateStyles -notmatch '\.reports-panel,\s*\.report-table-wrap\s*\{\s*min-width:\s*0;\s*max-width:\s*100%' -or $dashboardTemplateStyles -notmatch '\.reports-panel\s*\{\s*overflow:\s*hidden') { throw "Le tableau des signalements doit rester contenu dans l'ecran mobile." }
 if ($dashboardMarkup -notmatch "LECTURE SEULE" -or $dashboardMarkup -notmatch "Statuts non modifiables via l’API actuelle") { throw "Le Haut Conseil doit expliquer les limites d'ecriture de l'API." }
 if ($dashboardMarkup -notmatch 'id="logoutButton"' -or $publicScript -notmatch "NovaTerraAuth\.signOut\(\)") { throw "L’espace citoyen doit permettre de fermer sa session." }
 if ($homeMarkup -notmatch 'aria-controls="publicNav"' -or $homeMarkup -notmatch 'aria-expanded="false"') { throw "Le menu mobile public doit exposer son etat et son controle." }

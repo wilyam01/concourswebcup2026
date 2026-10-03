@@ -37,22 +37,38 @@ const signupProfiles = {
     lead: ['Créez votre espace pour suivre la vie municipale et prendre part aux décisions de la cité.', 'Create your space to follow city services and take part in community life.'],
   },
   agent: {
-    kicker: ['ESPACE AGENT · ACCÈS SUR AUTORISATION', 'AGENT SPACE · ACCESS BY APPROVAL'],
-    title: ['Demander un<br />accès <em>agent.</em>', 'Request <em>agent</em><br />access.'],
-    lead: ['Les comptes agents sont attribués par un administrateur. Le choix du profil ne donne pas à lui seul un accès agent.', 'Agent accounts are assigned by an administrator. Selecting this profile alone does not grant agent access.'],
-    noticeTitle: ['Accès agent réservé', 'Agent access is restricted'],
-    notice: ['Les inscriptions publiques créent uniquement des comptes citoyens. Contacte l’administration pour demander un accès agent.', 'Public sign-up creates citizen accounts only. Contact an administrator to request agent access.'],
-    contact: ['Contacter l’administration', 'Contact an administrator'],
-    login: ['Retour à la connexion Agent', 'Back to agent sign-in'],
+    kicker: ['ESPACE AGENT · COMPTE LOCAL', 'AGENT SPACE · LOCAL ACCOUNT'],
+    title: ['Créer un compte<br /><em>agent.</em>', 'Create an <em>agent</em><br />account.'],
+    lead: ['Compte de démonstration enregistré uniquement dans ce navigateur.', 'Demo account saved only in this browser.'],
+    button: ['Créer mon compte agent', 'Create my agent account'],
+    server: {
+      kicker: ['ESPACE AGENT · ACCÈS SUR AUTORISATION', 'AGENT SPACE · ACCESS BY APPROVAL'],
+      title: ['Demander un<br />accès <em>agent.</em>', 'Request <em>agent</em><br />access.'],
+      lead: ['Les comptes agents du serveur doivent être attribués par un administrateur.', 'Server agent accounts must be assigned by an administrator.'],
+      noticeTitle: ['Accès agent réservé', 'Agent access is restricted'],
+      notice: ['Les inscriptions serveur créent uniquement des comptes citoyens. Contacte l’administration pour demander un accès agent.', 'Server sign-up creates citizen accounts only. Contact an administrator to request agent access.'],
+      contact: ['Contacter l’administration', 'Contact an administrator'],
+      login: ['Retour à la connexion Agent', 'Back to agent sign-in'],
+    },
+    existing: ['Déjà un compte agent ?', 'Already have an agent account?'],
+    loginLink: ['Connexion agent', 'Agent sign in'],
   },
   admin: {
-    kicker: ['HAUT CONSEIL · ACCÈS SUR AUTORISATION', 'HIGH COUNCIL · ACCESS BY APPROVAL'],
-    title: ['Demander un<br />accès <em>admin.</em>', 'Request <em>admin</em><br />access.'],
-    lead: ['Les comptes administrateur sont créés ou autorisés par un administrateur existant. Le choix du profil ne crée pas de privilèges.', 'Administrator accounts are created or approved by an existing administrator. Choosing this profile does not grant privileges.'],
-    noticeTitle: ['Accès administrateur réservé', 'Administrator access is restricted'],
-    notice: ['Les inscriptions publiques créent uniquement des comptes citoyens. Contacte un administrateur existant pour demander un accès Haut Conseil.', 'Public sign-up creates citizen accounts only. Contact an existing administrator to request High Council access.'],
-    contact: ['Demander un accès administrateur', 'Request administrator access'],
-    login: ['Retour à la connexion Admin', 'Back to administrator sign-in'],
+    kicker: ['ESPACE ADMIN · COMPTE LOCAL', 'ADMIN SPACE · LOCAL ACCOUNT'],
+    title: ['Créer un compte<br /><em>admin.</em>', 'Create an <em>admin</em><br />account.'],
+    lead: ['Compte de démonstration enregistré uniquement dans ce navigateur.', 'Demo account saved only in this browser.'],
+    button: ['Créer mon compte admin', 'Create my admin account'],
+    server: {
+      kicker: ['HAUT CONSEIL · ACCÈS SUR AUTORISATION', 'HIGH COUNCIL · ACCESS BY APPROVAL'],
+      title: ['Demander un<br />accès <em>admin.</em>', 'Request <em>admin</em><br />access.'],
+      lead: ['Les comptes administrateur du serveur sont créés ou autorisés par un administrateur existant.', 'Server administrator accounts must be created or approved by an existing administrator.'],
+      noticeTitle: ['Accès administrateur réservé', 'Administrator access is restricted'],
+      notice: ['Les inscriptions serveur créent uniquement des comptes citoyens. Contacte un administrateur existant pour demander un accès Haut Conseil.', 'Server sign-up creates citizen accounts only. Contact an existing administrator to request High Council access.'],
+      contact: ['Demander un accès administrateur', 'Request administrator access'],
+      login: ['Retour à la connexion Admin', 'Back to administrator sign-in'],
+    },
+    existing: ['Déjà un compte admin ?', 'Already have an admin account?'],
+    loginLink: ['Connexion admin', 'Administrator sign in'],
   },
 };
 
@@ -81,19 +97,26 @@ function updateSignupLanguage() {
   const english = isEnglish();
   const languageIndex = english ? 1 : 0;
   const profile = signupProfiles[selectedProfile];
-  document.querySelector('.section-kicker').textContent = profile.kicker[languageIndex];
-  document.querySelector('.signup-card h1').innerHTML = profile.title[languageIndex];
-  document.querySelector('.signup-lead').textContent = profile.lead[languageIndex];
-  const needsApproval = selectedProfile !== 'citizen';
+  const serverRole = selectedProfile !== 'citizen' && window.NovaTerraApi?.enabled;
+  const copy = serverRole ? profile.server : profile;
+  document.querySelector('.section-kicker').textContent = copy.kicker[languageIndex];
+  document.querySelector('.signup-card h1').innerHTML = copy.title[languageIndex];
+  document.querySelector('.signup-lead').textContent = copy.lead[languageIndex];
+  const needsApproval = Boolean(serverRole);
   signupForm.hidden = needsApproval;
   existingAccountLink.hidden = needsApproval;
   roleAccessPanel.hidden = !needsApproval;
   if (needsApproval) {
-    roleAccessTitle.textContent = profile.noticeTitle[languageIndex];
-    roleAccessMessage.textContent = profile.notice[languageIndex];
-    roleContactLink.textContent = profile.contact[languageIndex];
+    roleAccessTitle.textContent = copy.noticeTitle[languageIndex];
+    roleAccessMessage.textContent = copy.notice[languageIndex];
+    roleContactLink.textContent = copy.contact[languageIndex];
     roleLoginLink.href = `connexion.html?profile=${selectedProfile}`;
-    roleLoginLink.textContent = profile.login[languageIndex];
+    roleLoginLink.textContent = copy.login[languageIndex];
+  } else if (selectedProfile !== 'citizen') {
+    const loginAnchor = existingAccountLink.querySelector('a');
+    existingAccountLink.childNodes[0].textContent = profile.existing[languageIndex];
+    loginAnchor.href = `connexion.html?profile=${selectedProfile}`;
+    loginAnchor.firstChild.textContent = profile.loginLink[languageIndex];
   }
   passwordInput.minLength = window.NovaTerraApi?.enabled ? 12 : 8;
   if (notice) notice.innerHTML = window.NovaTerraApi?.enabled
@@ -102,7 +125,7 @@ function updateSignupLanguage() {
   if (messageKey) signupMessage.textContent = messages[messageKey][english ? 1 : 0];
   signupButton.innerHTML = creatingAccount
     ? (english ? 'Creating account…' : 'Création du compte…')
-    : (english ? 'Continue <span>→</span>' : 'Continuer <span>→</span>');
+    : (profile.button?.[languageIndex] || (english ? 'Continue <span>→</span>' : 'Continuer <span>→</span>'));
 }
 
 function showSignupMessage(key) {
@@ -116,7 +139,7 @@ window.addEventListener('nova:language-change', updateSignupLanguage);
 
 signupForm.addEventListener('submit', async (event) => {
   event.preventDefault();
-  if (selectedProfile !== 'citizen') return;
+  if (selectedProfile !== 'citizen' && window.NovaTerraApi?.enabled) return;
   if (!signupForm.reportValidity()) return;
   if (passwordInput.value !== confirmPasswordInput.value) {
     showSignupMessage('password_mismatch');
@@ -138,11 +161,17 @@ signupForm.addEventListener('submit', async (event) => {
     email: signupForm.elements.email.value,
     sector: signupForm.elements.sector.value,
     password: passwordInput.value,
+    profile: selectedProfile,
   });
 
   if (result.ok) {
     showSignupMessage('created');
-    window.location.assign('dashboard.html');
+    const destinations = {
+      citizen: 'dashboard.html',
+      agent: 'agent/dashboard/index.html',
+      admin: 'dashboard.html?view=council',
+    };
+    window.location.assign(destinations[result.user.profile] || destinations.citizen);
     return;
   }
 
