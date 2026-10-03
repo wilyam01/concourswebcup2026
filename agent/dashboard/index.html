@@ -62,6 +62,7 @@
           <article class="management-card audit-trail-card" id="auditTrailCard" hidden><p class="kicker">F47 · F48 · TRACE DES ACTIONS</p><h3>Journal de sécurité et d’audit</h3><p id="auditIntro">Qui a changé quoi : demandes, accès, annonces, services et rendez-vous.</p><div class="audit-tools"><label for="auditCategory">Filtrer le journal<select id="auditCategory"><option value="">Toutes les actions</option><option value="auth">Connexions</option><option value="account">Comptes et rôles</option><option value="access" hidden>Accès et rôles</option><option value="report">Demandes</option><option value="contact">Messages citoyens</option><option value="announcement">Annonces</option><option value="service">Statuts des services</option><option value="appointment">Rendez-vous</option><option value="official">Synchronisation API</option></select></label><button class="refresh-button" id="refreshAudit" type="button">Actualiser</button></div><div class="audit-log-list" id="auditLogList" role="log" aria-live="polite"></div><button class="refresh-button audit-load-more" id="auditLoadMore" type="button" hidden>Charger plus</button><p class="management-feedback" id="auditFeedback" role="status" aria-live="polite"></p></article>
         </div>
       </section>
+      <section class="management-section" id="citizenIdeasSection" aria-labelledby="citizenIdeasTitle"><div class="section-heading"><div><p class="kicker">F68 · PROPOSITIONS CITOYENNES</p><h2 id="citizenIdeasTitle">Idées proposées par les habitants</h2></div><button class="refresh-button" id="refreshCitizenIdeas" type="button">Actualiser</button></div><div id="citizenIdeasList" class="citizen-ideas-list" aria-live="polite"></div><p id="citizenIdeasFeedback" class="management-feedback" role="status" aria-live="polite"></p></section>
       <section class="management-section agent-appointments-section" id="agentAppointments"><div class="section-heading"><div><p class="kicker">F39 · RENDEZ-VOUS RÉSERVÉS</p><h2>Agenda des agents</h2></div><span>Demandes issues de ce navigateur</span></div><div class="managed-appointments" id="managedAppointments" aria-live="polite"></div><p class="appointment-empty" id="managedAppointmentsEmpty">Aucun rendez-vous à afficher.</p></section>
     </main>
     <template id="empty-column"><div class="empty-column">Aucune demande dans cette colonne.</div></template>
@@ -74,6 +75,7 @@
     <script src="../../community.js?v=community-participation-2"></script>
     <script src="../../appointments.js"></script>
     <script src="agent-admin.js?v=activity-summary-1"></script>
+    <script src="agent-ideas.js?v=citizen-ideas-1"></script>
     <script src="../../assistant.js"></script>
     <script src="../../accessibility.js"></script>
   </body>

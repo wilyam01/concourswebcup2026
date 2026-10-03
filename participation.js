@@ -6,6 +6,7 @@
   const votesKey = `nova-terra.participation-votes.v1:${userKey}`;
   const ideasKey = `nova-terra.participation-ideas.v1:${userKey}`;
   let english = false;
+  let sharedVoteData = { totals: [], mine: [] };
   try { english = localStorage.getItem('novaTerraLanguage.v1') === 'en'; } catch (_) { /* Keep French when preferences cannot be read. */ }
 
   const consultations = {
@@ -65,7 +66,11 @@
       titleLabel: 'Titre de l’idée', bodyLabel: 'Décris ton idée', save: 'Enregistrer mon idée',
     };
     document.querySelector('#participationIntro').textContent = copy.intro;
-    document.querySelector('#participationStorageNote').textContent = copy.storage;
+    document.querySelector('#participationStorageNote').textContent = window.NovaTerraApi?.enabled
+      ? (english
+        ? 'Connected city service: consultation votes are counted together and submitted ideas are shared with signed-in residents. Project cards are currently illustrative examples.'
+        : 'Service municipal connecté : les avis sont comptabilisés ensemble et les idées transmises sont partagées avec les habitants connectés. Les projets affichés sont encore des exemples illustratifs.')
+      : copy.storage;
     document.querySelector('#participationTitle').textContent = copy.title;
     document.querySelector('#consultationsTitle').textContent = copy.opinion;
     document.querySelector('#projectsTitle').textContent = copy.projects;
@@ -97,8 +102,23 @@
         radio.type = 'radio';
         radio.name = `consultation-${consultation.id}`;
         radio.value = String(index);
-        radio.checked = votes.some((vote) => vote.id === consultation.id && vote.choice === index);
-        radio.addEventListener('change', () => {
+        radio.checked = window.NovaTerraApi?.enabled
+          ? sharedVoteData.mine.some((vote) => vote.consultationId === consultation.id && Number(vote.choice) === index)
+          : votes.some((vote) => vote.id === consultation.id && vote.choice === index);
+        radio.addEventListener('change', async () => {
+          if (window.NovaTerraApi?.enabled) {
+            radio.disabled = true;
+            try {
+              await window.NovaTerraApi.request(`/consultation-votes/${encodeURIComponent(consultation.id)}`, {
+                method: 'PUT', body: JSON.stringify({ choice: index }),
+              });
+              await loadSharedVotes();
+              feedback.textContent = english ? 'Your opinion was shared with the consultation results.' : 'Ton avis a été ajouté aux résultats partagés de la consultation.';
+            } catch (_) {
+              feedback.textContent = english ? 'Your opinion could not be sent.' : 'Ton avis n’a pas pu être transmis.';
+            } finally { radio.disabled = false; }
+            return;
+          }
           const nextVotes = read(votesKey).filter((vote) => vote.id !== consultation.id);
           nextVotes.push({ id: consultation.id, choice: index, updatedAt: new Date().toISOString() });
           feedback.textContent = save(votesKey, nextVotes)
@@ -108,11 +128,29 @@
         const text = document.createElement('span');
         text.textContent = option;
         label.append(radio, text);
+        if (window.NovaTerraApi?.enabled) {
+          const total = sharedVoteData.totals.filter((vote) => vote.consultationId === consultation.id && Number(vote.choice) === index).reduce((sum, vote) => sum + Number(vote.count), 0);
+          const tally = document.createElement('small');
+          tally.textContent = english ? `${total} votes` : `${total} avis`;
+          label.append(tally);
+        }
         group.append(label);
       });
       card.append(group);
       consultationList.append(card);
     });
+  }
+
+  async function loadSharedVotes() {
+    if (!window.NovaTerraApi?.enabled) return;
+    try {
+      sharedVoteData = await window.NovaTerraApi.request('/consultation-votes');
+      sharedVoteData.totals = Array.isArray(sharedVoteData.totals) ? sharedVoteData.totals : [];
+      sharedVoteData.mine = Array.isArray(sharedVoteData.mine) ? sharedVoteData.mine : [];
+      renderConsultations();
+    } catch (_) {
+      feedback.textContent = english ? 'Shared consultation results are unavailable.' : 'Les résultats partagés des consultations ne sont pas disponibles.';
+    }
   }
 
   function renderProjects() {
@@ -142,10 +180,27 @@
     });
   }
 
+  async function loadIdeas() {
+    if (!window.NovaTerraApi?.enabled) {
+      renderIdeas(read(ideasKey));
+      return;
+    }
+    try {
+      const result = await window.NovaTerraApi.request('/citizen-ideas');
+      renderIdeas(Array.isArray(result.ideas) ? result.ideas : []);
+    } catch (_) {
+      renderIdeas([]);
+      feedback.textContent = english
+        ? 'Shared ideas could not be loaded. Please try again.'
+        : 'Les idées partagées ne sont pas disponibles pour le moment.';
+    }
+  }
+
   renderCopy();
   renderConsultations();
+  loadSharedVotes();
   renderProjects();
-  renderIdeas(read(ideasKey));
+  loadIdeas();
   window.addEventListener('nova:language-change', () => {
     english = document.documentElement.lang === 'en';
     renderCopy();
@@ -153,7 +208,7 @@
     renderProjects();
   });
 
-  document.querySelector('#participationIdeaForm').addEventListener('submit', (event) => {
+  document.querySelector('#participationIdeaForm').addEventListener('submit', async (event) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const idea = {
@@ -162,6 +217,24 @@
       createdAt: new Date().toISOString(),
     };
     if (!idea.title || !idea.body) return;
+    if (window.NovaTerraApi?.enabled) {
+      try {
+        await window.NovaTerraApi.request('/citizen-ideas', {
+          method: 'POST',
+          body: JSON.stringify({ title: idea.title, body: idea.body }),
+        });
+        event.currentTarget.reset();
+        feedback.textContent = english
+          ? 'Your idea was sent and is now shared with residents.'
+          : 'Ton idée a été transmise et partagée avec les habitants.';
+        await loadIdeas();
+      } catch (_) {
+        feedback.textContent = english
+          ? 'Your idea could not be sent. Please try again.'
+          : 'Ton idée n’a pas pu être transmise. Réessaie.';
+      }
+      return;
+    }
     const updated = [...read(ideasKey), idea].slice(-20);
     if (!save(ideasKey, updated)) {
       feedback.textContent = english ? 'This device could not save your idea.' : 'Impossible d’enregistrer ton idée sur cet appareil.';

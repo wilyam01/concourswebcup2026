@@ -22,3 +22,10 @@ main { min-height:100vh; margin-left:230px; padding:37px clamp(20px,4vw,58px) 70
 .appointment-staff-note { display:grid; gap:6px; margin-top:10px; font-size:12px; }
 .appointment-staff-note textarea { width:100%; min-height:60px; padding:9px; border:1px solid var(--line); border-radius:8px; font:inherit; resize:vertical; }
 .appointment-card-copy > button { margin-top:7px; padding:7px 10px; border:1px solid var(--line); border-radius:8px; background:var(--panel); color:var(--ink); }
+.citizen-ideas-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.citizen-idea-management-card { min-width:0; padding:14px; border:1px solid var(--line); border-radius:10px; background:var(--panel); color:var(--ink); }
+.citizen-idea-management-card h3 { margin:0 0 8px; font-size:13px; overflow-wrap:anywhere; }
+.citizen-idea-management-card p { margin:0 0 10px; font-size:11px; line-height:1.6; white-space:pre-wrap; overflow-wrap:anywhere; }
+.citizen-idea-management-card small { color:var(--muted); font:9px var(--mono); }
+#citizenIdeasSection[hidden] { display:none !important; }
+@media (max-width:640px) { .citizen-ideas-list { grid-template-columns:1fr; } }

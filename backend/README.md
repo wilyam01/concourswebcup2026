@@ -10,6 +10,8 @@ Express API with SQLite, bcrypt password hashing, JWT sessions, role checks, and
 - `GET /api/citizen-requests/community`, `PUT/DELETE /api/citizen-requests/:id/support` for privacy-filtered community reports and one support per citizen
 - `GET /api/notifications`, `POST /api/notifications/read` for the signed-in citizen's request status updates
 - `GET /api/activity-summary` (admin-only) for aggregate citywide activity indicators
+- `POST /api/citizen-ideas` for public project proposals (five submissions per IP per hour); `GET /api/citizen-ideas` for signed-in residents and municipal staff
+- `GET /api/consultation-votes` for shared totals and the signed-in citizen's votes; `PUT /api/consultation-votes/:consultationId` to submit or update a vote
 - `GET/POST /api/citizen-messages` for contact form submissions and agent inbox
 - `GET/POST /api/announcements`, `PATCH /api/announcements/:id/close`, `POST /api/announcements/read`
 - `GET /api/service-statuses`
@@ -32,7 +34,7 @@ Use `Authorization: Bearer <token>` on protected routes. Citizen signup never ac
 
 Citizen security and data export setup for D02/F53/F54/F55/F56 is documented in [the project security guide](../docs/security-and-exports.md). Passwordless email and new-device email require `RESEND_API_KEY` plus a verified `RESEND_FROM`; TOTP requires a persistent, private `TOTP_ENCRYPTION_KEY`.
 
-The public `POST /api/citizen-ideas` endpoint accepts a project title (3–100 characters) and description (10–1,000 characters) without authentication. Submissions are stored in the `citizen_ideas` SQLite table and are limited to five per IP per hour. The endpoint returns a reference for the receipt; configure the frontend API URL to enable server submission. In local-only mode, the public form clearly states that proposals stay in that browser and are not sent to the city.
+The public `POST /api/citizen-ideas` endpoint accepts a project title (3–100 characters) and description (10–1,000 characters) without authentication. Submissions are stored in the `citizen_ideas` SQLite table and are limited to five per IP per hour. The endpoint returns a reference for the receipt. Signed-in residents, agents, and administrators can list submissions; the agent dashboard includes a refreshable proposal list. `GET/PUT /api/consultation-votes` routes share consultation totals and store one replaceable vote per signed-in citizen and consultation. Configure the frontend API URL to enable server sharing. In local-only mode, proposals and votes stay in the browser and the interface identifies them as local.
 
 The server applies role checks on protected endpoints, rate-limits authentication, contact, and privacy requests, and temporarily locks an email after five failed sign-ins. Citizens can view only their own privacy requests; only administrators can list and process the register. Lockout events, privacy-request state changes, and successful sign-ins are recorded in the admin audit feed; routine failures and HTTP request outcomes are emitted as structured JSON to stdout/stderr for the hosting platform's log collector. Audit records keep actor snapshots so they remain attributable after account deletion. Audit metadata omits credentials, request details, response notes, and message bodies.
 

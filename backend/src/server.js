@@ -121,6 +121,29 @@ const ideaSubmissionLimit = rateLimit({ windowMs: 60 * 60 * 1000, limit: 5, stan
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
+app.get('/api/citizen-ideas', authenticate, allowRoles('CITOYEN', 'AGENT', 'ADMIN'), (_req, res) => {
+  const ideas = db.prepare('SELECT id AS reference,title,body,created_at AS createdAt FROM citizen_ideas ORDER BY created_at DESC LIMIT 200').all();
+  res.json({ ideas });
+});
+
+app.get('/api/consultation-votes', authenticate, allowRoles('CITOYEN', 'AGENT', 'ADMIN'), (req, res) => {
+  const totals = db.prepare('SELECT consultation_id AS consultationId,choice,COUNT(*) AS count FROM consultation_votes GROUP BY consultation_id,choice').all();
+  const mine = db.prepare('SELECT consultation_id AS consultationId,choice FROM consultation_votes WHERE user_id=?').all(req.user.id);
+  res.json({ totals, mine });
+});
+
+app.put('/api/consultation-votes/:consultationId', authenticate, allowRoles('CITOYEN'), (req, res) => {
+  const consultationId = clean(req.params.consultationId, 60);
+  const choice = Number(req.body?.choice);
+  if (!/^[a-z0-9-]+$/.test(consultationId) || !Number.isInteger(choice) || choice < 0 || choice > 20) {
+    return res.status(400).json({ error: 'INVALID_INPUT' });
+  }
+  db.prepare(`INSERT INTO consultation_votes(consultation_id,choice,user_id,updated_at) VALUES(?,?,?,?)
+    ON CONFLICT(consultation_id,user_id) DO UPDATE SET choice=excluded.choice,updated_at=excluded.updated_at`)
+    .run(consultationId, choice, req.user.id, isoNow());
+  res.json({ saved: true });
+});
+
 app.post('/api/citizen-ideas', ideaSubmissionLimit, (req, res) => {
   const title = clean(req.body?.title, 100);
   const body = clean(req.body?.body, 1000);

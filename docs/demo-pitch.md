@@ -7,6 +7,7 @@ Ce guide présente le produit livré sans confondre les fonctions disponibles av
 - **D05 — Consulter le catalogue des services :** depuis la vitrine publique, parcourir les services municipaux et accéder aux informations utiles.
 - **D06 — Consulter les annonces municipales :** rechercher les annonces publiées dans le fil public; le service connecté affiche les annonces globales de la mairie et le mode local signale clairement son contenu de démonstration.
 - **Proposer un projet :** toute personne peut envoyer une idée depuis « Participer aux décisions », sans compte. Avec une API configurée, la proposition est enregistrée dans SQLite et une référence est affichée; sans API, elle reste sur l’appareil et l’écran le précise.
+- **Consultations et suivi municipal :** avec l’API, les votes sont comptabilisés ensemble et les citoyens connectés consultent les idées reçues. Les agents et administrateurs retrouvent ces propositions dans leur tableau de bord; en mode local, avis et idées restent sur l’appareil.
 - **Côté citoyen :** consulter et rechercher les signalements, filtrer par statut et urgence, déposer un signalement et suivre sa référence dans son historique.
 - **Côté agents et Haut Conseil :** ouvrir la vue de suivi adaptée à leur rôle, repérer les demandes prioritaires et préparer leur traitement.
 - **Rendez-vous municipaux :** consulter et gérer les rendez-vous selon son rôle. Les agents et administrateurs peuvent ajouter une note interne (jusqu’à 1 000 caractères) ; cette note n’est pas renvoyée au compte citoyen.
@@ -33,6 +34,7 @@ Ce guide présente le produit livré sans confondre les fonctions disponibles av
 3. Montrer un signalement et son état. En mode de démonstration, utiliser une entrée visible dans les données locales.
 4. Si le parcours de dépôt est disponible, soumettre un exemple et montrer l’accusé de réception ainsi que la référence à conserver.
 5. Depuis la vitrine publique, ouvrir « Participer aux décisions » et envoyer une proposition de projet sans se connecter. Vérifier le message correspondant à la source de données active.
+6. Avec l’API et un compte agent, ouvrir le tableau de bord municipal et actualiser la liste des propositions citoyennes. Dans les consultations citoyennes, montrer les résultats partagés et le vote enregistré.
 
 ### 3. Vue équipe municipale (60 secondes)
 
@@ -51,6 +53,7 @@ Ce guide présente le produit livré sans confondre les fonctions disponibles av
 - [ ] Préparer les comptes de démonstration et vérifier que chaque rôle voit uniquement les fonctions prévues.
 - [ ] Vérifier le dépôt d’un signalement et la référence affichée si l’API est configurée.
 - [ ] Vérifier la proposition citoyenne : référence avec l’API, ou indication de sauvegarde locale sans API.
+- [ ] Avec l’API, vérifier l’affichage des idées dans l’espace agent et l’enregistrement d’un vote partagé.
 - [ ] Vérifier l’enregistrement d’une note interne avec un compte agent autorisé.
 - [ ] Parcourir les écrans sur mobile et au clavier.
 - [ ] Ne jamais afficher ni copier de clé API pendant la démonstration.

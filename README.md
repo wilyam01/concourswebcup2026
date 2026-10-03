@@ -60,6 +60,8 @@ F63 propose aux administrateurs un arrêt rapide par service. Le changement et l
 
 Un backend Express/SQLite optionnel est fourni dans `backend/`. Il permet de partager les comptes, les rôles, les signalements citoyens, les messages de contact, les annonces/alertes, les états des services et les rendez-vous entre appareils. Le mode local du navigateur reste disponible pour la démonstration hors ligne.
 
+La participation citoyenne comprend aussi les propositions de projets et les consultations. Avec le backend, les habitants peuvent envoyer une idée sans compte, les citoyens connectés peuvent consulter les propositions reçues et voter aux consultations; les agents et administrateurs disposent d’une liste de suivi des idées. Les votes et propositions sont partagés entre appareils. En mode local, les données restent sur l’appareil et le site l’indique.
+
 ### Démarrage local
 
 1. Installer Node.js 22 ou plus récent.
