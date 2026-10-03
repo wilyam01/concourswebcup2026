@@ -1,5 +1,10 @@
-/* Set this to the Nova Terra API origin when it is available. */
-const NOVA_TERRA_API_BASE_URL = "";
+const terraNovaConfig = window.TERRA_NOVA_CONFIG || {};
+const NOVA_TERRA_API_BASE_URL = (terraNovaConfig.apiBaseUrl || "").replace(/\/$/, "");
+const NOVA_TERRA_ENDPOINTS = {
+  requests: "/requests",
+  messages: "/citizen-messages",
+  ...(terraNovaConfig.endpoints || {})
+};
 
 const NOVA_TERRA_REQUESTS_KEY = "terra-nova.requests";
 const NOVA_TERRA_MESSAGES_KEY = "terra-nova.citizen-messages";
@@ -37,13 +42,19 @@ function normalizeStatus(status) {
   return "todo";
 }
 
+function normalizePriority(priority) {
+  if (["critical", "urgent", "high"].includes(priority)) return "high";
+  if (["low", "minor"].includes(priority)) return "low";
+  return "normal";
+}
+
 function normalizeRequest(item) {
   return {
     id: item.id || item.reference || `TN-${Date.now()}`,
     title: item.title || item.subject || item.name || "Demande citoyenne",
     district: item.district || item.location || item.zone || "Secteur non precise",
     type: item.type || item.category || "Demande",
-    priority: item.priority === "critical" ? "high" : (item.priority || "normal"),
+    priority: normalizePriority(item.priority),
     status: normalizeStatus(item.status),
     updatedAt: item.updatedAt || item.createdAt || "A l'instant",
     description: item.description || item.message || "Aucune description fournie."
@@ -66,20 +77,20 @@ window.NovaTerra = {
 
   async getRequests() {
     if (NOVA_TERRA_API_BASE_URL) {
-      const payload = await getFromApi("/requests", "requests");
+      const payload = await getFromApi(NOVA_TERRA_ENDPOINTS.requests, "requests");
       return payload.map(normalizeRequest);
     }
     return readStored(NOVA_TERRA_REQUESTS_KEY, demoRequests).map(normalizeRequest);
   },
 
   async getMessages() {
-    if (NOVA_TERRA_API_BASE_URL) return getFromApi("/citizen-messages", "messages");
+    if (NOVA_TERRA_API_BASE_URL) return getFromApi(NOVA_TERRA_ENDPOINTS.messages, "messages");
     return readStored(NOVA_TERRA_MESSAGES_KEY, demoMessages);
   },
 
   async sendMessage(message) {
     if (NOVA_TERRA_API_BASE_URL) {
-      const response = await fetch(`${NOVA_TERRA_API_BASE_URL}/citizen-messages`, {
+      const response = await fetch(`${NOVA_TERRA_API_BASE_URL}${NOVA_TERRA_ENDPOINTS.messages}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(message)
@@ -96,7 +107,7 @@ window.NovaTerra = {
 
   async updateRequestStatus(id, status) {
     if (NOVA_TERRA_API_BASE_URL) {
-      const response = await fetch(`${NOVA_TERRA_API_BASE_URL}/requests/${encodeURIComponent(id)}`, {
+      const response = await fetch(`${NOVA_TERRA_API_BASE_URL}${NOVA_TERRA_ENDPOINTS.requests}/${encodeURIComponent(id)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status })
