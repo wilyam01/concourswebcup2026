@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#080b12" />
+  <title>Connexion — Espace citoyen Nova Terra</title>
+  <script src="theme.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="public.css" />
+  <link rel="stylesheet" href="theme.css" />
+</head>
+<body class="signup-page login-page">
+  <header class="signup-header">
+    <a class="public-brand" href="index.html" aria-label="Nova Terra, accueil"><span class="brand-symbol"><i></i><i></i><i></i><i></i></span><span><b>NOVA <em>TERRA</em></b><small>VILLE · PLANÈTE · COMMUNAUTÉ</small></span></a>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-label="Changer le thème"><span class="theme-symbol" aria-hidden="true">☼</span></button>
+    <a href="index.html" class="back-home">← Retour à l’accueil</a>
+  </header>
+  <main class="signup-main">
+    <div class="signup-ambient"><div class="signup-orbit"></div><div class="signup-world">NT</div></div>
+    <section class="signup-card login-card">
+      <div class="section-kicker"><span>ESPACE CITOYEN</span> · NOUVELLE AURORE</div>
+      <h1>Ravi·e de<br />vous <em>retrouver.</em></h1>
+      <p class="signup-lead">Connectez-vous pour suivre les services municipaux et participer à la vie de votre cité.</p>
+      <div class="prototype-note"><i>i</i><span><b>Maquette de connexion</b><br />L’authentification n’est pas encore activée. Aucun identifiant n’est envoyé ni conservé.</span></div>
+      <form id="loginForm">
+        <label for="loginEmail">Adresse e-mail</label>
+        <input id="loginEmail" name="email" type="email" autocomplete="username" placeholder="vous@novaterra.city" required />
+        <label for="loginPassword">Mot de passe</label>
+        <div class="password-field"><input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Votre mot de passe" required /><button id="togglePassword" type="button" aria-label="Afficher le mot de passe" aria-pressed="false">Afficher</button></div>
+        <div class="remember-row"><label class="remember-option"><input type="checkbox" name="remember" /> <span>Rester connecté·e</span></label><button id="forgotPassword" type="button" class="forgot-link">Mot de passe oublié ?</button></div>
+        <button type="submit" class="button signup-submit">Se connecter <span>→</span></button>
+        <p class="form-message" id="formMessage" role="status" hidden></p>
+      </form>
+      <div class="signup-login">Pas encore citoyen·ne ? <a href="inscription.html">Créer un compte <span>↗</span></a></div>
+      <a href="inscription.html" class="demo-access">Créer un compte citoyen <span>↗</span></a>
+    </section>
+  </main>
+  <script src="auth.js"></script>
+  <script src="login.js"></script>
+</body>
+</html>

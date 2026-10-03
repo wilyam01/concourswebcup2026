@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#11201f" />
+    <title>Terra Nova | Contact citoyen</title>
+    <script src="../theme.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="contact.css" />
+    <link rel="stylesheet" href="../theme.css" />
+  </head>
+  <body class="contact-page">
+    <header class="site-header">
+      <a class="brand" href="../" aria-label="Retour a Terra Nova"><span>TN</span><b>Terra Nova</b></a>
+      <nav aria-label="Navigation"><a href="../">Tableau citoyen</a><a href="../agent/dashboard/">Espace agent</a></nav>
+      <button class="theme-toggle" type="button" data-theme-toggle aria-label="Changer le thème"><span class="theme-symbol" aria-hidden="true">☼</span></button>
+    </header>
+    <main>
+      <section class="intro">
+        <p class="kicker">SERVICE CITOYEN</p>
+        <h1>Parlons de votre quartier.</h1>
+        <p>Envoyez un message aux services municipaux. Une equipe le prendra en charge et vous repondra a l'adresse indiquee.</p>
+      </section>
+      <section class="contact-layout" aria-label="Formulaire de contact">
+        <aside class="service-note">
+          <span class="signal"></span>
+          <p class="kicker">CANAL OUVERT</p>
+          <h2>Une demande, un suivi clair.</h2>
+          <p>Les messages sont transmis au poste de coordination Terra Nova. Pour une urgence immediate, contactez les services d'urgence locaux.</p>
+          <dl><div><dt>Delai indicatif</dt><dd>1 jour ouvrable</dd></div><div><dt>Suivi</dt><dd>Par email</dd></div></dl>
+        </aside>
+        <div class="form-card" id="form-card">
+          <form id="contact-form">
+            <div class="form-heading"><p class="kicker">NOUVEAU MESSAGE</p><h2>Contacter les services</h2></div>
+            <div class="two-fields">
+              <label>Votre nom<input name="name" autocomplete="name" required maxlength="60" placeholder="Ex. Alex Morgan" /></label>
+              <label>Votre email<input name="email" type="email" autocomplete="email" required maxlength="120" placeholder="vous@exemple.fr" /></label>
+            </div>
+            <label>Type de demande<select name="category"><option>Information</option><option>Accompagnement</option><option>Suggestion</option><option>Probleme de quartier</option><option>Autre</option></select></label>
+            <label>Sujet<input name="subject" required maxlength="100" placeholder="Resumez votre demande" /></label>
+            <label>Votre message<textarea name="message" required maxlength="1000" placeholder="Precisez les informations utiles a notre equipe."></textarea></label>
+            <div class="form-footer"><span>Les champs sont obligatoires.</span><button type="submit">Envoyer le message</button></div>
+          </form>
+          <section class="success" id="success-message" hidden aria-live="polite">
+            <span class="success-mark">OK</span><p class="kicker">MESSAGE TRANSMIS</p><h2>Merci, votre message est bien parti.</h2><p>Les services municipaux ont recu votre demande. Une reponse sera envoyee a votre adresse email.</p><button type="button" id="new-message">Envoyer un autre message</button>
+          </section>
+          <p class="form-error" id="form-error" role="alert" hidden></p>
+        </div>
+      </section>
+    </main>
+    <script src="../config.js"></script>
+    <script src="../nova-terra.js"></script>
+    <script src="contact.js"></script>
+  </body>
+</html>

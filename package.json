@@ -1,0 +1,7 @@
+{
+  "name": "terra-nova-webcup",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "powershell -ExecutionPolicy Bypass -File .\\scripts\\check.ps1"
+  }
+}
