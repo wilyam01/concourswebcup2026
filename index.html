@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#080a14" />
+  <title>Terra Nova — Cœur numérique</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#top" aria-label="Terra Nova accueil">
+        <span class="brand-mark"><i></i><i></i><i></i><i></i></span>
+        <span><b>TERRA<span class="brand-light">NOVA</span></b><small>PLANETARY SYSTEMS</small></span>
+      </a>
+      <div class="side-label">ESPACE DE TRAVAIL</div>
+      <button class="workspace"><span class="workspace-icon">TN</span><span><b>Nouvelle Aurore</b><small>Colonie · Secteur 07</small></span><span class="chevron">⌄</span></button>
+      <div class="side-label nav-label">NAVIGATION</div>
+      <nav class="nav-list" aria-label="Navigation principale">
+        <a class="nav-item active" href="#overview"><span class="nav-icon">◉</span>Vue d’ensemble<span class="nav-dot"></span></a>
+        <a class="nav-item" href="#reports"><span class="nav-icon">⌖</span>Signalements<span class="nav-count">12</span></a>
+        <a class="nav-item" href="#planet"><span class="nav-icon">◌</span>État de la planète</a>
+        <a class="nav-item" href="#council"><span class="nav-icon">⌘</span>Haut Conseil<span class="nav-lock">✦</span></a>
+      </nav>
+      <div class="side-bottom">
+        <div class="side-label">RÉSEAU</div>
+        <div class="network"><span class="live-dot"></span><span><b>Réseau opérationnel</b><small>Latence 18 ms</small></span><span class="network-signal">▂▅▇</span></div>
+        <div class="profile"><div class="avatar">AM</div><div><b>Alex Morgan</b><small>Citoyen · Niveau 04</small></div><button aria-label="Options du profil">···</button></div>
+      </div>
+    </aside>
+
+    <main id="top">
+      <header class="topbar">
+        <button class="mobile-menu" id="menuButton" aria-label="Ouvrir le menu">☰</button>
+        <div class="breadcrumbs"><span>Nouvelle Aurore</span><span class="crumb-slash">/</span><b>Vue d’ensemble</b></div>
+        <div class="top-actions"><span class="sync"><span class="live-dot"></span>SYNC. EN DIRECT</span><span class="top-divider"></span><span class="date-label">SOL 184 · 14:32 UTC</span><button class="icon-button notification" aria-label="Notifications">♧<i></i></button><div class="avatar top-avatar">AM</div></div>
+      </header>
+
+      <div class="content" id="overview">
+        <section class="welcome-row">
+          <div><div class="eyebrow"><span class="eyebrow-line"></span>JEUDI 18 JUIN 2089 <span class="eyebrow-sep">·</span> CYCLE 184</div><h1>Le pouls de <span>Terra Nova.</span></h1><p class="subheading">Chaque signal compte. Voici ce qui se passe dans votre cité.</p></div>
+          <div class="view-switch" role="group" aria-label="Choisir le tableau de bord"><button class="view-btn selected" data-view="citizen">◉ Citoyen</button><button class="view-btn" data-view="council">⌘ Haut Conseil</button></div>
+        </section>
+
+        <section class="metric-grid" aria-label="Indicateurs de la colonie">
+          <article class="metric-card"><div class="metric-top"><span>POPULATION ACTIVE</span><span class="metric-symbol violet">⌁</span></div><div class="metric-value">24,<span>892</span></div><div class="metric-foot"><span class="trend up">↗ 2,4%</span><span>vs cycle précédent</span><div class="spark violet-spark"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div></article>
+          <article class="metric-card"><div class="metric-top"><span>BIEN-ÊTRE CITOYEN</span><span class="metric-symbol cyan">♡</span></div><div class="metric-value">86<span class="unit">/100</span></div><div class="metric-foot"><span class="trend up">↗ 4 pts</span><span>objectif : 90</span><div class="progress-mini"><i style="width:86%"></i></div></div></article>
+          <article class="metric-card"><div class="metric-top"><span>À TRAITER</span><span class="metric-symbol pink">⌖</span></div><div class="metric-value">18</div><div class="metric-foot"><span class="trend warn">↑ 3 nouveaux</span><span>depuis votre dernière visite</span><div class="spark pink-spark"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div></article>
+          <article class="metric-card"><div class="metric-top"><span>RESSOURCES VITALES</span><span class="metric-symbol mint">✳</span></div><div class="metric-value">94<span class="unit">%</span></div><div class="metric-foot"><span class="trend stable">● Stable</span><span>réserves planétaires</span><div class="progress-mini mint-progress"><i style="width:94%"></i></div></div></article>
+        </section>
+
+        <section class="main-grid">
+          <article class="panel map-panel" id="planet">
+            <div class="panel-heading"><div><div class="panel-kicker">CARTOGRAPHIE EN TEMPS RÉEL</div><h2>Réseau de la cité <span class="live-pill"><i></i> EN DIRECT</span></h2></div><button class="more-button" aria-label="Plus d’options">···</button></div>
+            <div class="map-wrap">
+              <div class="map-grid"></div><div class="map-orbit orbit-one"></div><div class="map-orbit orbit-two"></div>
+              <svg class="map-lines" viewBox="0 0 700 280" preserveAspectRatio="none" aria-hidden="true"><path d="M60 213 L145 165 L227 189 L300 116 L372 140 L465 77 L553 102 L645 43"/><path d="M145 165 L160 76 L260 48 L300 116 L408 212 L515 202 L553 102"/><path d="M227 189 L260 48 M372 140 L408 212 M465 77 L515 202 M60 213 L106 115 L160 76"/></svg>
+              <div class="map-label label-north">DISTRICT BORÉAL <span>SECT. 01</span></div><div class="map-label label-centre">CENTRE CIVIQUE <span>SECT. 04</span></div><div class="map-label label-south">SERRES DU SUD <span>SECT. 07</span></div>
+              <button class="map-point point-one" aria-label="Centre civique"><i></i></button><button class="map-point point-two" aria-label="Alerte secteur 3"><i></i></button><button class="map-point point-three" aria-label="Serres du sud"><i></i></button><button class="map-point point-four" aria-label="Station d’eau"><i></i></button><button class="map-point point-five" aria-label="Signalement"><i></i></button>
+              <div class="map-legend"><span><i class="legend-cyan"></i>Infrastructure</span><span><i class="legend-pink"></i>Signalement</span><span><i class="legend-purple"></i>Votre position</span></div><div class="map-coordinates">18° 42′ N &nbsp; 22° 06′ E</div>
+              <div class="map-controls"><button aria-label="Zoom avant">＋</button><button aria-label="Zoom arrière">−</button><button aria-label="Recentrer">⌖</button></div>
+            </div>
+            <div class="map-footer"><span><i class="live-dot"></i> 7 SECTEURS CONNECTÉS</span><span>DERNIÈRE MISE À JOUR · IL Y A 12 S</span><button>Explorer la carte <b>↗</b></button></div>
+          </article>
+
+          <article class="panel climate-panel">
+            <div class="panel-heading"><div><div class="panel-kicker">CONDITIONS LOCALES <span class="tiny-live">●</span></div><h2>Météo planétaire</h2></div><button class="weather-more" aria-label="Détails météo">↗</button></div>
+            <div class="weather-place"><span class="pin">⌖</span> Nouvelle Aurore, Secteur 07</div>
+            <div class="weather-main"><div><div class="temperature">−18<span>°</span></div><div class="weather-state">Nuageux avec éclaircies</div></div><div class="weather-art"><div class="planet-halo"></div><div class="planet"></div><div class="cloud cloud-a"></div><div class="cloud cloud-b"></div></div></div>
+            <div class="weather-divider"></div><div class="weather-stats"><div><span>VENT</span><b>12 <small>km/h</small></b><i>↗ NE</i></div><div><span>PRESSION</span><b>746 <small>hPa</small></b><i class="normal">Normale</i></div><div><span>QUALITÉ AIR</span><b>98 <small>AQI</small></b><i class="good">Excellente</i></div></div>
+            <div class="forecast"><div><span>MAINT.</span><b>−18°</b><i class="fc-cloud">☁</i></div><div><span>20H</span><b>−21°</b><i>☾</i></div><div><span>00H</span><b>−23°</b><i>☾</i></div><div><span>04H</span><b>−20°</b><i class="fc-cloud">☁</i></div></div>
+          </article>
+        </section>
+
+        <section class="bottom-grid">
+          <article class="panel reports-panel" id="reports"><div class="panel-heading reports-heading"><div><div class="panel-kicker">VIE DE LA COMMUNAUTÉ <span class="count-badge">12</span></div><h2>Signalements récents</h2></div><button class="text-button" id="allReports">Voir tout <b>↗</b></button></div>
+            <div class="filters" role="group" aria-label="Filtrer les signalements"><button class="filter active" data-filter="all">Tous <span>12</span></button><button class="filter" data-filter="urgent"><i class="filter-dot urgent-dot"></i>Urgents <span>3</span></button><button class="filter" data-filter="progress">En cours <span>6</span></button><button class="filter" data-filter="resolved">Résolus <span>3</span></button></div>
+            <div class="report-list">
+              <article class="report-row" data-status="urgent"><div class="report-icon icon-urgent">ϟ</div><div class="report-info"><b>Fuite de pression — conduit C-12</b><span>District Boréal · il y a 8 min <i>•</i> par <strong>J. Okafor</strong></span></div><span class="status status-urgent">URGENT</span><button class="row-arrow" aria-label="Ouvrir le signalement">↗</button></article>
+              <article class="report-row" data-status="progress"><div class="report-icon icon-progress">⌁</div><div class="report-info"><b>Éclairage défaillant — allée 04</b><span>Centre civique · il y a 26 min <i>•</i> par <strong>M. Chen</strong></span></div><span class="status status-progress">EN COURS</span><button class="row-arrow" aria-label="Ouvrir le signalement">↗</button></article>
+              <article class="report-row" data-status="resolved"><div class="report-icon icon-resolved">✓</div><div class="report-info"><b>Rationnement d’eau — unité résidentielle</b><span>Habitat Sud · il y a 1 h <i>•</i> par <strong>A. Diallo</strong></span></div><span class="status status-resolved">RÉSOLU</span><button class="row-arrow" aria-label="Ouvrir le signalement">↗</button></article>
+            </div><button class="mobile-all" id="mobileReports">Tous les signalements <span>→</span></button>
+          </article>
+
+          <article class="panel council-panel" id="council"><div class="panel-heading"><div><div class="panel-kicker">DÉCISION COLLECTIVE</div><h2>Haut Conseil</h2></div><span class="council-mark">⌘</span></div><div class="council-alert"><div class="alert-icon">✦</div><div><div class="alert-label">VOTE EN COURS <span>· 02H 14M</span></div><b>Extension du dôme agricole</b><p>Proposition #TN-084 · Secteur Sud</p></div></div><div class="vote-meter"><div class="vote-label"><span>CONSENSUS ACTUEL</span><b>72%</b></div><div class="vote-track"><i></i></div><div class="vote-scale"><span>Seuil requis : 60%</span><span>186 / 240 votes</span></div></div><div class="council-bottom"><div class="council-avatars"><span>AM</span><span>JK</span><span>LS</span><span>+183</span></div><button class="vote-button" id="voteButton">Consulter le vote <span>↗</span></button></div></article>
+        </section>
+        <footer><span>© 2089 TERRA NOVA COLLECTIVE</span><span>UN MONDE, UNE COMMUNAUTÉ <i>✳</i></span><a href="presentation.html">SUPPORT DE PRÉSENTATION ↗</a></footer>
+      </div>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
