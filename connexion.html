@@ -21,6 +21,29 @@
   <main class="signup-main">
     <div class="signup-ambient"><div class="signup-orbit"></div><div class="signup-world">NT</div></div>
     <section class="signup-card login-card">
+      <div class="login-profile-step" id="loginProfileStep">
+        <div class="section-kicker"><span>ACCÈS NOVA TERRA</span> · CHOIX DE PROFIL</div>
+        <h1>Choisissez<br />votre <em>espace.</em></h1>
+        <p class="signup-lead">Sélectionnez votre profil avant de saisir vos identifiants.</p>
+        <div class="login-profile-options" role="group" aria-label="Choisir un profil de connexion">
+          <button class="login-profile-option" type="button" data-login-profile="citizen">
+            <span class="login-profile-symbol citizen-symbol" aria-hidden="true">◎</span>
+            <span class="login-profile-copy"><b>Citoyen(ne)</b><small>Services municipaux, signalements et vie de la cité.</small></span>
+            <span class="login-profile-arrow" aria-hidden="true">→</span>
+          </button>
+          <button class="login-profile-option" type="button" data-login-profile="council">
+            <span class="login-profile-symbol council-symbol" aria-hidden="true">⌘</span>
+            <span class="login-profile-copy"><b>Haut Conseil</b><small>Vue stratégique et décisions collectives de la cité.</small></span>
+            <span class="login-profile-arrow" aria-hidden="true">→</span>
+          </button>
+        </div>
+      </div>
+      <div id="loginCredentialsStep" hidden>
+        <button id="changeLoginProfile" class="login-profile-back" type="button">← Changer de profil</button>
+        <div class="login-selected-profile" aria-live="polite">
+          <span class="login-profile-symbol" id="selectedProfileSymbol" aria-hidden="true">◎</span>
+          <span><b id="selectedProfileName">Citoyen(ne)</b><small id="selectedProfileDescription">Espace citoyen</small></span>
+        </div>
       <div class="section-kicker"><span>ESPACE CITOYEN</span> · NOUVELLE AURORE</div>
       <h1>Ravi·e de<br />vous <em>retrouver.</em></h1>
       <p class="signup-lead">Connectez-vous pour suivre les services municipaux et participer à la vie de votre cité.</p>
@@ -36,6 +59,7 @@
       </form>
       <div class="signup-login">Pas encore citoyen·ne ? <a href="inscription.html">Créer un compte <span>↗</span></a></div>
       <a href="inscription.html" class="demo-access">Créer un compte citoyen <span>↗</span></a>
+      </div>
     </section>
   </main>
   <script src="auth.js"></script>

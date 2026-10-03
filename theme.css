@@ -356,3 +356,10 @@ html[data-theme="light"] .agent-page .refresh-button:hover { background: #e7efea
 .load-more-reports:hover { border-color: var(--cyan); }
 
 html[data-theme="light"] .demo-metrics-note { color: #6d7771; }
+html[data-theme="light"] .login-profile-option { border-color:#cbd6df; background:#fff; color:#233348; }
+html[data-theme="light"] .login-profile-option:hover { border-color:#7188b5; background:#f3f5fb; }
+html[data-theme="light"] .login-profile-copy small,
+html[data-theme="light"] .login-selected-profile small { color:#64758a; }
+html[data-theme="light"] .login-selected-profile { border-color:#d4dde5; background:#f8fafc; }
+html[data-theme="light"] .login-selected-profile b { color:#233348; }
+html[data-theme="light"] .login-profile-back { color:#596d83; }

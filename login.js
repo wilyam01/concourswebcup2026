@@ -3,15 +3,74 @@ const loginMessage = document.querySelector('#formMessage');
 const passwordInput = document.querySelector('#loginPassword');
 const togglePassword = document.querySelector('#togglePassword');
 const loginButton = loginForm.querySelector('[type="submit"]');
+const profileStep = document.querySelector('#loginProfileStep');
+const credentialsStep = document.querySelector('#loginCredentialsStep');
+const selectedProfileName = document.querySelector('#selectedProfileName');
+const selectedProfileDescription = document.querySelector('#selectedProfileDescription');
+const selectedProfileSymbol = document.querySelector('#selectedProfileSymbol');
+const profileKicker = credentialsStep.querySelector('.section-kicker');
+const loginLead = credentialsStep.querySelector('.signup-lead');
 
 const notice = document.querySelector('.prototype-note span');
-if (notice) {
-  notice.innerHTML = '<b>Connexion locale de demonstration</b><br />Les comptes sont disponibles uniquement dans ce navigateur.';
-}
+const loginProfiles = {
+  citizen: {
+    name: 'Citoyen(ne)',
+    description: 'Accès aux services et à la vie citoyenne de Nova Terra.',
+    symbol: '◎',
+    kicker: 'ESPACE CITOYEN',
+    lead: 'Connectez-vous pour suivre les services municipaux et participer à la vie de votre cité.',
+    notice: '<b>Connexion locale de démonstration</b><br />Les comptes sont disponibles uniquement dans ce navigateur.',
+    destination: 'dashboard.html',
+    button: 'Se connecter',
+  },
+  council: {
+    name: 'Haut Conseil',
+    description: "Vue stratégique de démonstration, sans droits d'administration supplémentaires.",
+    symbol: '⌘',
+    kicker: 'ESPACE HAUT CONSEIL',
+    lead: 'Connectez-vous pour ouvrir la vue stratégique et consulter les décisions collectives.',
+    notice: '<b>Vue Haut Conseil de démonstration</b><br />Utilisez un compte Nova Terra local. Cette vue ne donne pas de droits administratifs.',
+    destination: 'dashboard.html?view=council',
+    button: 'Ouvrir le Haut Conseil',
+  },
+};
+let activeProfile = null;
+
 function showLoginMessage(message) {
   loginMessage.hidden = false;
   loginMessage.textContent = message;
 }
+
+function chooseLoginProfile(profileId) {
+  const profile = loginProfiles[profileId];
+  if (!profile) return;
+  activeProfile = profileId;
+  profileStep.hidden = true;
+  credentialsStep.hidden = false;
+  selectedProfileName.textContent = profile.name;
+  selectedProfileDescription.textContent = profile.description;
+  selectedProfileSymbol.textContent = profile.symbol;
+  selectedProfileSymbol.className = `login-profile-symbol ${profileId}-symbol`;
+  profileKicker.innerHTML = `<span>${profile.kicker}</span> · NOUVELLE AURORE`;
+  loginLead.textContent = profile.lead;
+  loginButton.innerHTML = `${profile.button} <span>→</span>`;
+  if (notice) notice.innerHTML = profile.notice;
+  loginMessage.hidden = true;
+  loginMessage.textContent = '';
+  window.setTimeout(() => document.querySelector('#loginEmail').focus(), 0);
+}
+
+document.querySelectorAll('[data-login-profile]').forEach((button) => {
+  button.addEventListener('click', () => chooseLoginProfile(button.dataset.loginProfile));
+});
+document.querySelector('#changeLoginProfile').addEventListener('click', () => {
+  activeProfile = null;
+  credentialsStep.hidden = true;
+  profileStep.hidden = false;
+  passwordInput.value = '';
+  loginMessage.hidden = true;
+  loginMessage.textContent = '';
+});
 
 togglePassword.addEventListener('click', () => {
   const reveal = passwordInput.type === 'password';
@@ -23,7 +82,12 @@ togglePassword.addEventListener('click', () => {
 
 loginForm.addEventListener('submit', async (event) => {
   event.preventDefault();
+  if (!activeProfile) {
+    showLoginMessage('Choisissez un profil avant de vous connecter.');
+    return;
+  }
   if (!loginForm.reportValidity()) return;
+  const submittedProfile = activeProfile;
   loginButton.disabled = true;
   showLoginMessage('Vérification des identifiants...');
   const result = await window.NovaTerraAuth.signIn({
@@ -34,7 +98,7 @@ loginForm.addEventListener('submit', async (event) => {
 
   if (result.ok) {
     showLoginMessage('Connexion réussie. Ouverture de votre espace...');
-    window.location.assign('dashboard.html');
+    window.location.assign(loginProfiles[submittedProfile].destination);
     return;
   }
 

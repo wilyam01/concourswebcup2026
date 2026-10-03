@@ -361,6 +361,10 @@ profilePhotoInput.addEventListener('change', () => {
   reader.readAsDataURL(photo);
 });
 
+if (new URLSearchParams(window.location.search).get('view') === 'council') {
+  document.querySelector('.view-btn[data-view="council"]')?.click();
+}
+
 if (window.NovaTerra.usingDemoData()) {
   const apiStatus = document.querySelector("#api-status");
   apiStatus.classList.add("demo");
