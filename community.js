@@ -55,8 +55,8 @@
 
   function localized(kind) {
     const labels = english()
-      ? { general: 'PRIORITY MESSAGE', news: 'CITY ANNOUNCEMENT', flood: 'FLOOD WARNING', health: 'HEALTH ALERT', service_status: 'SERVICE STATUS', request_status: 'REQUEST UPDATE' }
-      : { general: 'MESSAGE PRIORITAIRE', news: 'ANNONCE MUNICIPALE', flood: 'ALERTE INONDATION', health: 'ALERTE SANITAIRE', service_status: 'ÉTAT DU SERVICE', request_status: 'MISE À JOUR DE DEMANDE' };
+      ? { general: 'PRIORITY MESSAGE', news: 'CITY ANNOUNCEMENT', flood: 'FLOOD WARNING', health: 'HEALTH ALERT', service_status: 'SERVICE STATUS', request_status: 'REQUEST UPDATE', new_device: 'NEW DEVICE SIGN-IN' }
+      : { general: 'MESSAGE PRIORITAIRE', news: 'ANNONCE MUNICIPALE', flood: 'ALERTE INONDATION', health: 'ALERTE SANITAIRE', service_status: 'ÉTAT DU SERVICE', request_status: 'MISE À JOUR DE DEMANDE', new_device: 'NOUVEL APPAREIL' };
     return labels[kind] || labels.general;
   }
 
@@ -101,6 +101,19 @@
       kind: 'request_status',
       title: english() ? `Request ${item.requestId} has changed` : `La demande ${item.requestId} a changé d’état`,
       body: `${requestStatusName(item.fromStatus)} → ${requestStatusName(item.toStatus)}`,
+      createdAt: item.createdAt,
+      read: item.read,
+    }));
+  }
+
+  async function newDeviceNotificationItems() {
+    if (!user || user.profile !== 'citizen' || !window.NovaTerraApi?.enabled) return [];
+    const result = await window.NovaTerraApi.request('/security-notifications');
+    return (Array.isArray(result.notifications) ? result.notifications : []).map((item) => ({
+      id: item.id,
+      kind: 'new_device',
+      title: english() ? 'Your account was opened on a new device' : 'Ton compte a été ouvert sur un nouvel appareil',
+      body: `${item.deviceLabel} · ${english() ? 'If this was not you, change your password.' : 'Si ce n’était pas toi, change ton mot de passe.'}`,
       createdAt: item.createdAt,
       read: item.read,
     }));
@@ -171,8 +184,8 @@
   }
 
   async function renderInbox() {
-    const [announcements, notifications] = await Promise.all([announcementItems(), citizenNotificationItems()]);
-    const items = [...announcements, ...notifications].sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt));
+    const [announcements, notifications, deviceNotifications] = await Promise.all([announcementItems(), citizenNotificationItems(), newDeviceNotificationItems()]);
+    const items = [...announcements, ...notifications, ...deviceNotifications].sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt));
     list.replaceChildren(...items.map(makeNotice));
     if (!items.length) {
       const empty = document.createElement('p');
@@ -265,11 +278,14 @@
     dialog.showModal();
     trigger.setAttribute('aria-expanded', 'true');
     await renderInbox();
-    const [items, notifications] = await Promise.all([announcementItems(), citizenNotificationItems()]);
+    const [items, notifications, deviceNotifications] = await Promise.all([announcementItems(), citizenNotificationItems(), newDeviceNotificationItems()]);
     if (window.NovaTerraApi?.enabled && user) {
       try { await window.NovaTerraApi.request('/announcements/read', { method: 'POST', body: JSON.stringify({ ids: items.map((item) => item.id) }) }); } catch (_) { /* The inbox remains readable when receipts cannot sync. */ }
       if (user.profile === 'citizen' && notifications.length) {
         try { await window.NovaTerraApi.request('/notifications/read', { method: 'POST', body: JSON.stringify({ ids: notifications.map((item) => item.id) }) }); } catch (_) { /* Status updates remain visible if read receipts cannot sync. */ }
+      }
+      if (user.profile === 'citizen' && deviceNotifications.length) {
+        try { await window.NovaTerraApi.request('/security-notifications/read', { method: 'POST', body: JSON.stringify({ ids: deviceNotifications.map((item) => item.id) }) }); } catch (_) { /* Security notices remain visible if read receipts cannot sync. */ }
       }
     } else {
       try { localStorage.setItem(readKey, JSON.stringify([...new Set([...readIds(), ...items.map((item) => item.id)])].slice(-200))); } catch (_) { /* Reading notices does not depend on persistence. */ }

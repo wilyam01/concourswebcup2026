@@ -9,8 +9,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="public.css" />
-  <link rel="stylesheet" href="theme.css" />
+  <link rel="stylesheet" href="public.css?v=security-data-exports-1" />
+  <link rel="stylesheet" href="theme.css?v=security-data-exports-1" />
   <link rel="stylesheet" href="accessibility.css" />
   <link rel="stylesheet" href="community.css" />
 </head>
@@ -65,14 +65,39 @@
         <button type="submit" class="button signup-submit">Se connecter <span>→</span></button>
         <p class="form-message" id="formMessage" role="status" hidden></p>
       </form>
+      <button id="passwordlessToggle" type="button" class="login-method-toggle" hidden>D02 · Se connecter avec un code e-mail</button>
+      <section id="passwordlessPanel" class="login-security-panel" aria-labelledby="passwordlessHeading" hidden>
+        <h2 id="passwordlessHeading">Connexion par code e-mail</h2>
+        <p>Reçois un code à usage unique valable 10 minutes sur l’adresse de ton compte citoyen.</p>
+        <label for="passwordlessEmail">Adresse e-mail</label>
+        <input id="passwordlessEmail" type="email" autocomplete="email" placeholder="vous@novaterra.city" required />
+        <button id="passwordlessRequest" class="button signup-submit" type="button">Envoyer un code</button>
+        <form id="passwordlessVerifyForm" hidden>
+          <label for="passwordlessCode">Code à 8 chiffres</label>
+          <input id="passwordlessCode" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{8}" maxlength="8" required />
+          <label class="remember-option"><input id="passwordlessRemember" type="checkbox" /> <span>Rester connecté·e</span></label>
+          <button class="button signup-submit" type="submit">Vérifier le code</button>
+        </form>
+        <p id="passwordlessMessage" class="form-message" role="status" aria-live="polite" hidden></p>
+        <button id="passwordlessBack" type="button" class="login-method-toggle">Retour à la connexion par mot de passe</button>
+      </section>
+      <form id="twoFactorLoginForm" class="login-security-panel" hidden>
+        <h2>Vérification en deux étapes</h2>
+        <p>Saisis le code actuel de ton application d’authentification ou l’un de tes codes de secours.</p>
+        <label for="twoFactorLoginCode">Code de vérification</label>
+        <input id="twoFactorLoginCode" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="19" required />
+        <button class="button signup-submit" type="submit">Vérifier et continuer</button>
+        <p id="twoFactorLoginMessage" class="form-message" role="status" aria-live="polite" hidden></p>
+        <button id="twoFactorLoginBack" type="button" class="login-method-toggle">Annuler et revenir à la connexion</button>
+      </form>
       <div class="signup-login"><span id="signupPrompt">Pas encore citoyen·ne ?</span> <a id="signupLink" href="inscription.html?profile=citizen">Créer un compte citoyen <span>↗</span></a></div>
       </div>
     </section>
   </main>
   <script src="config.js"></script>
   <script src="api-client.js"></script>
-  <script src="auth.js"></script>
-  <script src="login.js"></script>
+  <script src="auth.js?v=security-data-exports-1"></script>
+  <script src="login.js?v=security-data-exports-1"></script>
   <script src="assistant.js"></script>
   <script src="accessibility.js"></script>
 </body>

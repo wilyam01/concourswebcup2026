@@ -12,6 +12,9 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE COLLATE NOCASE,
     display_name TEXT NOT NULL, sector TEXT NOT NULL DEFAULT '', avatar_data TEXT NOT NULL DEFAULT '', password_hash TEXT NOT NULL,
+    two_factor_secret TEXT NOT NULL DEFAULT '', two_factor_pending_secret TEXT NOT NULL DEFAULT '',
+    two_factor_pending_expires_at TEXT, two_factor_enabled INTEGER NOT NULL DEFAULT 0,
+    two_factor_last_counter INTEGER NOT NULL DEFAULT -1,
     role TEXT NOT NULL CHECK(role IN ('CITOYEN','AGENT','ADMIN')),
     enabled INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -76,6 +79,31 @@ db.exec(`
     created_at TEXT NOT NULL,
     PRIMARY KEY(request_id,user_id)
   );
+  CREATE TABLE IF NOT EXISTS passwordless_challenges (
+    id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    code_hash TEXT NOT NULL, created_at TEXT NOT NULL, expires_at TEXT NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0, consumed_at TEXT
+  );
+  CREATE TABLE IF NOT EXISTS two_factor_login_challenges (
+    id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL, expires_at TEXT NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0, consumed_at TEXT
+  );
+  CREATE TABLE IF NOT EXISTS two_factor_recovery_codes (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    code_hash TEXT NOT NULL, created_at TEXT NOT NULL, consumed_at TEXT,
+    PRIMARY KEY(user_id,code_hash)
+  );
+  CREATE TABLE IF NOT EXISTS security_devices (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    device_hash TEXT NOT NULL, device_label TEXT NOT NULL,
+    first_seen_at TEXT NOT NULL, last_seen_at TEXT NOT NULL,
+    PRIMARY KEY(user_id,device_hash)
+  );
+  CREATE TABLE IF NOT EXISTS security_notifications (
+    id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    device_label TEXT NOT NULL, created_at TEXT NOT NULL, read_at TEXT
+  );
   CREATE TABLE IF NOT EXISTS transit_schedules (
     id TEXT PRIMARY KEY, line_code TEXT NOT NULL, line_name TEXT NOT NULL, line_name_en TEXT NOT NULL,
     origin TEXT NOT NULL, origin_en TEXT NOT NULL, destination TEXT NOT NULL, destination_en TEXT NOT NULL,
@@ -91,12 +119,20 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS privacy_requests_status ON privacy_requests(status, created_at DESC);
   CREATE INDEX IF NOT EXISTS citizen_notifications_user ON citizen_notifications(user_id, created_at DESC);
   CREATE INDEX IF NOT EXISTS citizen_request_supports_user ON citizen_request_supports(user_id, created_at DESC);
+  CREATE INDEX IF NOT EXISTS passwordless_challenges_user ON passwordless_challenges(user_id, created_at DESC);
+  CREATE INDEX IF NOT EXISTS two_factor_challenges_user ON two_factor_login_challenges(user_id, created_at DESC);
+  CREATE INDEX IF NOT EXISTS security_notifications_user ON security_notifications(user_id, created_at DESC);
 `);
 
 const userColumns = new Set(db.prepare('PRAGMA table_info(users)').all().map((column) => column.name));
 if (!userColumns.has('sector')) db.exec("ALTER TABLE users ADD COLUMN sector TEXT NOT NULL DEFAULT ''");
 if (!userColumns.has('enabled')) db.exec('ALTER TABLE users ADD COLUMN enabled INTEGER NOT NULL DEFAULT 1');
 if (!userColumns.has('avatar_data')) db.exec("ALTER TABLE users ADD COLUMN avatar_data TEXT NOT NULL DEFAULT ''");
+if (!userColumns.has('two_factor_secret')) db.exec("ALTER TABLE users ADD COLUMN two_factor_secret TEXT NOT NULL DEFAULT ''");
+if (!userColumns.has('two_factor_pending_secret')) db.exec("ALTER TABLE users ADD COLUMN two_factor_pending_secret TEXT NOT NULL DEFAULT ''");
+if (!userColumns.has('two_factor_pending_expires_at')) db.exec('ALTER TABLE users ADD COLUMN two_factor_pending_expires_at TEXT');
+if (!userColumns.has('two_factor_enabled')) db.exec('ALTER TABLE users ADD COLUMN two_factor_enabled INTEGER NOT NULL DEFAULT 0');
+if (!userColumns.has('two_factor_last_counter')) db.exec('ALTER TABLE users ADD COLUMN two_factor_last_counter INTEGER NOT NULL DEFAULT -1');
 
 const scheduleDefaults = [
   ['line-a', 'A', 'Ligne bleue', 'Blue line', 'District Boréal', 'Boreal District', 'Centre civique', 'Civic Centre', '06:00', '22:00', 12, 'Navette accessible · arrêt principal : place des Étoiles', 'Accessible shuttle · main stop: Place des Étoiles'],

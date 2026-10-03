@@ -169,6 +169,15 @@ html[data-theme="light"] .mobility-route-meta { border-color:#e0e5ea; color:#586
 @media (max-width: 700px) { .signup-header { height: 64px; padding: 0 17px; }.signup-main { min-height: calc(100vh - 64px); padding: 30px 16px 230px; }.signup-card { padding: 23px 19px; }.signup-card h1 { font-size: 39px; }.signup-ambient { opacity: .45; }.signup-world { left: 90%; top: 15%; width: 210px; } }
 @media (max-width: 700px) { .signup-submit { scroll-margin-bottom:230px; } }
 .login-card h1 { font-size: 40px; }
+.signup-card [hidden] { display: none !important; }
+.login-method-toggle { display: block; margin: 11px auto 0; padding: 7px 4px; border: 0; background: transparent; color: #b7a7ed; font: 9px var(--sans); text-decoration: underline; cursor: pointer; }
+.login-security-panel { margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--rule); }
+.login-security-panel h2 { margin: 0 0 7px; color: #e7eaf1; font-size: 17px; font-weight: 600; }
+.login-security-panel > p { margin: 0 0 12px; color: #909caf; font-size: 9px; line-height: 1.7; }
+.login-security-panel > label { display: block; margin: 9px 0 5px; color: #bac3ce; font-size: 9px; }
+.login-security-panel .form-message { margin-top: 9px; }
+.login-security-panel .remember-option { margin-top: 10px; }
+.login-card button:focus-visible,.login-card input:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
 .password-field { position: relative; display: flex; align-items: center; }
 .password-field input { padding-right: 69px; }
 .password-field button { position: absolute; right: 9px; padding: 5px; border: 0; background: transparent; color: var(--cyan); font-size: 8px; }

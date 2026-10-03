@@ -433,6 +433,41 @@ function renderPersonalRequestFeedback() {
     : `Le signalement ${lastCitizenReportId} est enregistré ${window.NovaTerraApi?.enabled ? 'dans ton compte citoyen' : 'sur cet appareil'}. Suis son état dans ton historique.`;
 }
 
+function csvCell(value) {
+  let text = String(value ?? '').replace(/\r?\n/g, ' ');
+  if (/^\s*[=+\-@]/.test(text)) text = `'${text}`;
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+async function downloadRequestSummary() {
+  const english = document.documentElement.lang === 'en';
+  try {
+    const requests = (await window.NovaTerra.getCitizenRequests(currentUser.email))
+      .sort((left, right) => new Date(left.createdAt) - new Date(right.createdAt));
+    const headers = english
+      ? ['Reference', 'Title', 'Area', 'Category', 'Service', 'Status', 'Priority', 'Created', 'Last updated', 'Description']
+      : ['Référence', 'Titre', 'Secteur', 'Catégorie', 'Service', 'État', 'Priorité', 'Créée le', 'Mise à jour', 'Description'];
+    const labels = personalRequestLabels();
+    const rows = requests.map((request) => [
+      request.id, request.title, request.district, labels.type[request.type] || request.type,
+      labels.service[request.service] || labels.service.other, labels.status[request.status] || request.status,
+      labels.priority[request.priority] || labels.priority.normal, request.createdAt, request.updatedAt, request.description,
+    ]);
+    const csv = `\uFEFF${[headers, ...rows].map((row) => row.map(csvCell).join(';')).join('\r\n')}`;
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `nova-terra-demandes-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+    notify(english ? 'Your request summary was downloaded.' : 'Le récapitulatif de tes démarches a été téléchargé.');
+  } catch (_) {
+    notify(english ? 'Your requests could not be exported.' : 'Tes demandes n’ont pas pu être exportées.');
+  }
+}
+
 function renderCitizenReportError() {
   if (!citizenReportErrorKey) return;
   const error = document.querySelector("#citizenReportError");
@@ -449,6 +484,7 @@ if (window.NovaTerraApi?.enabled) {
 }
 document.querySelector('.nav-item[href="#my-requests"]').hidden = personalRequestsPanel.hidden;
 if (!personalRequestsPanel.hidden) renderPersonalRequests();
+document.querySelector('#exportRequestSummary').addEventListener('click', downloadRequestSummary);
 document.querySelector("#openReportForm").addEventListener("click", (event) => openCitizenReportForm(event.currentTarget));
 document.querySelector("#closeReportForm").addEventListener("click", () => personalRequestsDialog.close());
 document.querySelector("#cancelReportForm").addEventListener("click", () => personalRequestsDialog.close());
@@ -494,6 +530,7 @@ window.addEventListener("nova:language-change", () => {
   renderPersonalRequests();
   renderPersonalRequestFeedback();
   renderCitizenReportError();
+  document.querySelector('#exportRequestSummary').textContent = document.documentElement.lang === 'en' ? 'Download my summary' : 'Télécharger mon récapitulatif';
   if (window.NovaTerraApi?.enabled) {
     const english = document.documentElement.lang === 'en';
     document.querySelector('#myRequestsNote').textContent = english
@@ -752,7 +789,59 @@ const privacyRequestFields = document.querySelector('#privacyRequestFields');
 const privacyRequestList = document.querySelector('#privacyRequestList');
 const privacyRequestFeedback = document.querySelector('#privacyRequestFeedback');
 privacyRequestButton.hidden = currentUser.profile !== 'citizen';
+const exportPersonalDataButton = document.querySelector('#exportPersonalData');
+const citizenSecuritySettings = document.querySelector('#citizenSecuritySettings');
+exportPersonalDataButton.hidden = currentUser.profile !== 'citizen';
+citizenSecuritySettings.hidden = currentUser.profile !== 'citizen';
 const profileRole = document.querySelector('#profileRole');
+
+async function exportPersonalData() {
+  const english = document.documentElement.lang === 'en';
+  exportPersonalDataButton.disabled = true;
+  try {
+    let data;
+    if (window.NovaTerraApi?.enabled) {
+      data = await window.NovaTerraApi.request('/auth/me/export');
+    } else {
+      const readArray = (key) => {
+        try { const value = JSON.parse(localStorage.getItem(key) || '[]'); return Array.isArray(value) ? value : []; }
+        catch (_) { return []; }
+      };
+      const email = currentUser.email.toLowerCase();
+      const localAccount = readArray('novaTerraAccounts.v1').find((item) => item.email?.toLowerCase() === email);
+      data = {
+        format: 'nova-terra-personal-data-v1',
+        source: 'local-browser',
+        exportedAt: new Date().toISOString(),
+        account: {
+          email: currentUser.email, name: currentUser.name, sector: currentUser.sector,
+          profile: currentUser.profile, createdAt: localAccount?.createdAt || '',
+          avatarDataUrl: localStorage.getItem(profilePhotoStorageKey) || '',
+        },
+        requests: await window.NovaTerra.getCitizenRequests(currentUser.email),
+        appointments: readArray('terra-nova.appointments.v1').filter((item) => item.ownerEmail?.toLowerCase() === email),
+        contactMessages: readArray('terra-nova.citizen-messages').filter((item) => item.email?.toLowerCase() === email),
+        announcementReads: readArray(`terra-nova.announcement-reads.v1:${currentUser.email}`),
+        privacyRequests: [],
+        security: { note: 'Les données de sécurité et demandes de confidentialité du serveur ne sont pas présentes dans ce navigateur.' },
+      };
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `nova-terra-donnees-personnelles-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    notify(english ? 'Your personal data export was downloaded.' : 'L’export de tes données personnelles a été téléchargé.');
+  } catch (_) {
+    notify(english ? 'Your personal data could not be exported.' : 'Tes données personnelles n’ont pas pu être exportées.');
+  } finally {
+    exportPersonalDataButton.disabled = false;
+  }
+}
 
 topProfileButton.setAttribute('aria-label', 'Personnaliser le profil');
 topProfileButton.title = 'Personnaliser le profil';
@@ -826,6 +915,7 @@ function openProfileDialog() {
 }
 
 topProfileButton.addEventListener('click', openProfileDialog);
+exportPersonalDataButton.addEventListener('click', exportPersonalData);
 document.querySelector('#logoutButton').addEventListener('click', () => {
   window.NovaTerraAuth.signOut();
   window.location.replace('connexion.html');

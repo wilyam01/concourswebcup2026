@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="theme.css" />
+  <link rel="stylesheet" href="theme.css?v=security-data-exports-1" />
   <link rel="stylesheet" href="accessibility.css" />
   <link rel="stylesheet" href="community.css?v=community-participation-1" />
   <link rel="stylesheet" href="styles.css" />
@@ -89,7 +89,7 @@
         <section class="panel personal-requests-panel" id="my-requests" aria-labelledby="myRequestsTitle">
           <div class="panel-heading personal-requests-heading">
             <div><div class="panel-kicker" id="myRequestsKicker">ESPACE PERSONNEL · DÉMARCHES LOCALES</div><h2 id="myRequestsTitle">Mes demandes &amp; mon historique</h2></div>
-            <button class="btn-primary" id="openReportForm" type="button">＋ Signaler un problème</button>
+            <div class="personal-request-heading-actions"><button class="profile-secondary-button" id="exportRequestSummary" type="button">Télécharger mon récapitulatif</button><button class="btn-primary" id="openReportForm" type="button">＋ Signaler un problème</button></div>
           </div>
           <p class="personal-requests-note" id="myRequestsNote">Suivez les signalements créés depuis ce compte. Ils restent enregistrés dans ce navigateur et ne sont pas transmis à la mairie dans cette version.</p>
           <div class="personal-request-filters" role="group" aria-label="Filtrer mes demandes">
@@ -207,7 +207,21 @@
       <p class="profile-form-error" id="profileFormError" role="alert" hidden></p>
       <div class="profile-dialog-actions"><button class="account-delete-button" id="deleteAccountButton" type="button">Supprimer mon compte</button><button class="profile-secondary-button" id="logoutButton" type="button">Se déconnecter</button><button class="profile-secondary-button" id="cancelProfileEdit" type="button">Annuler</button><button class="profile-save-button" type="submit">Enregistrer le profil <span>→</span></button></div>
     </form>
-    <button class="profile-secondary-button privacy-request-open" id="openPrivacyRequests" type="button">Mes demandes de confidentialit&eacute;</button>
+    <div class="profile-data-actions"><button class="profile-secondary-button" id="exportPersonalData" type="button">F55 · Télécharger mes données (RGPD)</button><button class="profile-secondary-button privacy-request-open" id="openPrivacyRequests" type="button">Mes demandes de confidentialit&eacute;</button></div>
+    <section class="citizen-security-settings" id="citizenSecuritySettings" aria-labelledby="citizenSecurityTitle">
+      <div class="panel-kicker">F53 · AUTHENTIFICATION RENFORCÉE</div><h3 id="citizenSecurityTitle">Double facteur de connexion</h3>
+      <p id="citizenSecurityIntro">Ajoute un code temporaire fourni par une application d’authentification.</p>
+      <p id="citizenSecurityState" role="status" aria-live="polite"></p>
+      <button class="profile-secondary-button" id="startTwoFactorSetup" type="button">Activer la double vérification</button>
+      <div id="twoFactorSetupPanel" hidden>
+        <p id="twoFactorSetupInstructions">Ajoute cette clé dans ton application d’authentification, puis saisis le code à 6 chiffres.</p>
+        <code id="twoFactorSecret" class="two-factor-secret"></code>
+        <form id="twoFactorConfirmForm" class="security-code-form"><label for="twoFactorSetupCode">Code de vérification<input id="twoFactorSetupCode" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required /></label><button class="profile-save-button" type="submit">Confirmer l’activation</button></form>
+      </div>
+      <div id="twoFactorRecoveryPanel" hidden><p id="twoFactorRecoveryIntro">Conserve ces codes à usage unique en lieu sûr. Ils ne seront plus affichés.</p><ul id="twoFactorRecoveryCodes" class="two-factor-recovery-codes"></ul><button class="profile-secondary-button" id="downloadRecoveryCodes" type="button">Télécharger les codes</button><button class="profile-save-button" id="finishRecoveryCodes" type="button">J’ai conservé mes codes</button></div>
+      <form id="disableTwoFactorForm" class="security-code-form" hidden><label for="disableTwoFactorCode" id="disableTwoFactorLabel">Code d’authentification ou code de secours<input id="disableTwoFactorCode" name="code" autocomplete="one-time-code" required /></label><button class="profile-secondary-button" type="submit">Désactiver le double facteur</button></form>
+      <p id="citizenSecurityFeedback" class="security-feedback" role="status" aria-live="polite"></p>
+    </section>
   </dialog>
   <dialog class="profile-dialog privacy-dialog" id="privacyRequestDialog" aria-labelledby="privacyRequestTitle" aria-describedby="privacyRequestAvailability">
     <div class="profile-dialog-heading"><div><div class="panel-kicker" id="privacyRequestKicker">F51 &middot; TES DONN&Eacute;ES</div><h2 id="privacyRequestTitle">Confidentialit&eacute; et donn&eacute;es personnelles</h2></div><button class="profile-dialog-close" id="closePrivacyRequests" type="button" aria-label="Fermer">&times;</button></div>
@@ -241,13 +255,14 @@
   <script src="config.js"></script>
   <script src="api-client.js"></script>
   <script src="nova-terra.js?v=demo-request-normalization-2"></script>
-  <script src="auth.js"></script>
+  <script src="auth.js?v=security-data-exports-1"></script>
   <script src="city-data.js"></script>
-  <script src="app.js?v=community-support-1"></script>
-  <script src="community.js?v=community-participation-1"></script>
+  <script src="app.js?v=security-data-exports-1"></script>
+  <script src="community.js?v=community-security-alerts-1"></script>
   <script src="appointments.js"></script>
   <script src="assistant.js"></script>
   <script src="accessibility.js"></script>
   <script src="onboarding.js"></script>
+  <script src="security.js?v=security-data-exports-1"></script>
 </body>
 </html>

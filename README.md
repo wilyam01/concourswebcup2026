@@ -75,6 +75,10 @@ Pour synchroniser les demandes officielles, configure aussi `TERRA_NOVA_API_URL`
 
 Le rôle Fullstack / logique métier / présentation, le déroulé de démonstration, le pitch, les scénarios de secours et les commandes de vérification et de déploiement sont détaillés dans [docs/demo-pitch.md](docs/demo-pitch.md).
 
+## Connexion sécurisée et exports personnels
+
+Les fonctions D02 (connexion par code e-mail), F53 (double facteur), F54 (avis de nouvel appareil), F55 (export JSON RGPD) et F56 (récapitulatif CSV des démarches) sont décrites dans le [guide de sécurité et d’exports](docs/security-and-exports.md). D02 et F53 nécessitent le backend; l’envoi des codes et des alertes par e-mail demande un fournisseur transactionnel configuré côté serveur. Les exports F55 et F56 restent disponibles en mode navigateur pour les données locales.
+
 ## API des signalements WebCup
 
 Le contrat, les reponses HTTP verifiees et l'import de tests Postman sont decrits dans [docs/webcup-api.md](docs/webcup-api.md). La collection partagee est `postman/terra-nova-api.postman_collection.json`; la cle doit rester dans une variable locale/secrete.

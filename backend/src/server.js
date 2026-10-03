@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomInt, randomUUID } from 'node:crypto';
+import jwt from 'jsonwebtoken';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -10,6 +11,8 @@ import { allowRoles, authenticate, issueToken, newId, optionalAuth, publicUser }
 import { getRequests, startPolling, syncRequests } from './terraNova.js';
 import { recordAudit } from './audit.js';
 import { logEvent } from './logger.js';
+import { emailDeliveryConfigured, sendTransactionalEmail } from './mailer.js';
+import { decryptTotpSecret, deviceFingerprint, deviceLabel, encryptTotpSecret, hashOneTimeCode, hasTotpEncryptionKey, makeDeviceId, makeTotpSecret, matchTotpCounter, safeHexEqual } from './security.js';
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) throw new Error('JWT_SECRET must contain at least 32 characters');
 const app = express();
@@ -23,6 +26,77 @@ const asyncRoute = (handler) => (req, res, next) => Promise.resolve(handler(req,
 const clean = (value, max) => typeof value === 'string' ? value.trim().slice(0, max) : '';
 const isoNow = () => new Date().toISOString();
 const requestSupportLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 60, standardHeaders: 'draft-7', legacyHeaders: false });
+const passwordlessRequestLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 5, standardHeaders: 'draft-7', legacyHeaders: false });
+const passwordlessVerifyLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: 'draft-7', legacyHeaders: false });
+const twoFactorLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: 'draft-7', legacyHeaders: false });
+
+function createTwoFactorChallenge(user) {
+  const challengeId = randomUUID();
+  const createdAt = isoNow();
+  const expiresAt = new Date(Date.now() + 5 * 60_000).toISOString();
+  db.prepare('DELETE FROM two_factor_login_challenges WHERE expires_at<?').run(createdAt);
+  db.prepare('INSERT INTO two_factor_login_challenges(id,user_id,created_at,expires_at) VALUES(?,?,?,?)')
+    .run(challengeId, user.id, createdAt, expiresAt);
+  const challengeToken = jwt.sign({
+    sub: user.id, role: user.role, purpose: 'two_factor_challenge', challengeId,
+  }, process.env.JWT_SECRET, { expiresIn: '5m', issuer: 'nova-terra-api' });
+  return { challengeToken, expiresAt };
+}
+
+function readTwoFactorChallenge(token) {
+  if (typeof token !== 'string' || token.length > 2048) return null;
+  try {
+    const claims = jwt.verify(token, process.env.JWT_SECRET, { issuer: 'nova-terra-api' });
+    if (claims.purpose !== 'two_factor_challenge' || !claims.challengeId) return null;
+    const challenge = db.prepare(`SELECT * FROM two_factor_login_challenges
+      WHERE id=? AND user_id=? AND consumed_at IS NULL AND attempts<5 AND expires_at>?`).get(claims.challengeId, claims.sub, isoNow());
+    const user = db.prepare('SELECT * FROM users WHERE id=? AND enabled=1').get(claims.sub);
+    if (!challenge || !user || user.role !== claims.role || !user.two_factor_enabled) return null;
+    return { challenge, user };
+  } catch { return null; }
+}
+
+function completeSignIn(user, req, suppliedDeviceId, method) {
+  const deviceId = /^[a-f\d]{32}$/i.test(suppliedDeviceId || '') ? suppliedDeviceId.toLowerCase() : makeDeviceId();
+  const fingerprint = deviceFingerprint(user.id, deviceId);
+  const label = deviceLabel(req.get('user-agent') || '');
+  const timestamp = isoNow();
+  const result = db.transaction(() => {
+    const existing = db.prepare('SELECT device_hash FROM security_devices WHERE user_id=? AND device_hash=?').get(user.id, fingerprint);
+    if (existing) {
+      db.prepare('UPDATE security_devices SET device_label=?,last_seen_at=? WHERE user_id=? AND device_hash=?').run(label, timestamp, user.id, fingerprint);
+    } else {
+      db.prepare(`INSERT INTO security_devices(user_id,device_hash,device_label,first_seen_at,last_seen_at)
+        VALUES(?,?,?,?,?)`).run(user.id, fingerprint, label, timestamp, timestamp);
+      db.prepare('INSERT INTO security_notifications(id,user_id,device_label,created_at) VALUES(?,?,?,?)').run(id('SEC'), user.id, label, timestamp);
+      recordAudit(req, { actor: user, action: 'auth.new_device', entityType: 'account', entityId: user.id, summary: 'Account accessed from a new device', metadata: { deviceLabel: label } });
+    }
+    db.prepare('DELETE FROM login_failures WHERE email=?').run(user.email);
+    recordAudit(req, { actor: user, action: 'auth.signin.succeeded', entityType: 'account', entityId: user.id, summary: 'Account signed in', metadata: { role: user.role, method } });
+    return { newDevice: !existing };
+  })();
+  if (result.newDevice && emailDeliveryConfigured()) {
+    sendTransactionalEmail({
+      to: user.email,
+      subject: 'Nouvelle connexion à ton compte Nova Terra',
+      text: `Une connexion à ton compte Nova Terra vient d’être détectée depuis ${label}, le ${new Date(timestamp).toLocaleString('fr-FR', { timeZone: 'UTC', timeZoneName: 'short' })}. Si tu n’es pas à l’origine de cette connexion, change ton mot de passe et contacte la mairie.`,
+    }).catch(() => logEvent('warn', 'auth.new_device_email.failed', { userId: user.id }));
+  }
+  return { token: issueToken(user), user: publicUser(user), newDevice: result.newDevice };
+}
+
+function useTwoFactorCode(user, code) {
+  let counter = null;
+  try { counter = matchTotpCounter(decryptTotpSecret(user.two_factor_secret), code, user.two_factor_last_counter); }
+  catch { return { valid: false }; }
+  if (counter !== null) return { valid: true, counter };
+  const normalizedRecoveryCode = typeof code === 'string' ? code.replace(/[\s-]/g, '').toLowerCase() : '';
+  if (!/^[a-f\d]{16}$/.test(normalizedRecoveryCode)) return { valid: false };
+  const codeHash = hashOneTimeCode(normalizedRecoveryCode);
+  const recovery = db.prepare(`SELECT code_hash FROM two_factor_recovery_codes
+    WHERE user_id=? AND code_hash=? AND consumed_at IS NULL`).get(user.id, codeHash);
+  return recovery ? { valid: true, recoveryHash: codeHash } : { valid: false };
+}
 
 app.disable('x-powered-by');
 app.use(helmet());
@@ -83,11 +157,226 @@ app.post('/api/auth/signin', asyncRoute(async (req, res) => {
     return res.status(401).json({ error: 'INVALID_CREDENTIALS' });
   }
   db.prepare('DELETE FROM login_failures WHERE email=?').run(email);
-  recordAudit(req, { actor: user, action: 'auth.signin.succeeded', entityType: 'account', entityId: user.id, summary: 'Account signed in', metadata: { role: user.role } });
-  res.json({ user: publicUser(user), token: issueToken(user) });
+  if (user.role === 'CITOYEN' && user.two_factor_enabled) {
+    if (!hasTotpEncryptionKey()) return res.status(503).json({ error: 'TWO_FACTOR_NOT_CONFIGURED' });
+    recordAudit(req, { actor: user, action: 'auth.signin.primary_succeeded', entityType: 'account', entityId: user.id, summary: 'Primary sign-in factor verified', metadata: { role: user.role } });
+    return res.json({ requiresTwoFactor: true, ...createTwoFactorChallenge(user), user: publicUser(user) });
+  }
+  res.json(completeSignIn(user, req, req.body?.deviceId, 'password'));
 }));
 
+const passwordlessMessage = 'Si un compte citoyen actif correspond à cette adresse, un code de connexion vient d’être envoyé.';
+app.post('/api/auth/passwordless/request', passwordlessRequestLimit, asyncRoute(async (req, res) => {
+  const email = clean(req.body?.email, 254).toLowerCase();
+  if (!/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ error: 'INVALID_EMAIL' });
+  if (!emailDeliveryConfigured()) return res.status(503).json({ error: 'EMAIL_DELIVERY_NOT_CONFIGURED' });
+  const responsePause = new Promise((resolve) => setTimeout(resolve, 180));
+  const user = db.prepare("SELECT id,email,display_name,sector,role,enabled,created_at,two_factor_enabled FROM users WHERE email=? AND role='CITOYEN' AND enabled=1").get(email);
+  if (!user) {
+    await responsePause;
+    return res.status(202).json({ message: passwordlessMessage });
+  }
+  const hourAgo = new Date(Date.now() - 60 * 60_000).toISOString();
+  const recent = db.prepare('SELECT COUNT(*) AS count FROM passwordless_challenges WHERE user_id=? AND created_at>=?').get(user.id, hourAgo).count;
+  if (recent >= 4) {
+    await responsePause;
+    return res.status(202).json({ message: passwordlessMessage });
+  }
+  const code = String(randomInt(0, 100_000_000)).padStart(8, '0');
+  const challengeId = randomUUID();
+  const createdAt = isoNow();
+  const expiresAt = new Date(Date.now() + 10 * 60_000).toISOString();
+  db.transaction(() => {
+    db.prepare("UPDATE passwordless_challenges SET consumed_at=? WHERE user_id=? AND consumed_at IS NULL").run(createdAt, user.id);
+    db.prepare('DELETE FROM passwordless_challenges WHERE expires_at<?').run(createdAt);
+    db.prepare(`INSERT INTO passwordless_challenges(id,user_id,code_hash,created_at,expires_at)
+      VALUES(?,?,?,?,?)`).run(challengeId, user.id, hashOneTimeCode(code), createdAt, expiresAt);
+  })();
+  sendTransactionalEmail({
+    to: user.email,
+    subject: 'Ton code de connexion Nova Terra',
+    text: `Ton code de connexion est ${code}. Il expire dans 10 minutes et ne peut être utilisé qu’une fois. Si tu n’as pas demandé ce code, ignore ce message.`,
+  }).catch(() => {
+    db.prepare('UPDATE passwordless_challenges SET consumed_at=? WHERE id=? AND consumed_at IS NULL').run(isoNow(), challengeId);
+    logEvent('warn', 'auth.passwordless.delivery_failed', { userId: user.id });
+  });
+  await responsePause;
+  res.status(202).json({ message: passwordlessMessage });
+}));
+
+app.post('/api/auth/passwordless/verify', passwordlessVerifyLimit, (req, res) => {
+  const email = clean(req.body?.email, 254).toLowerCase();
+  const code = typeof req.body?.code === 'string' ? req.body.code.replace(/\s/g, '') : '';
+  if (!/^\S+@\S+\.\S+$/.test(email) || !/^\d{8}$/.test(code)) return res.status(401).json({ error: 'INVALID_ONE_TIME_CODE' });
+  const challenge = db.prepare(`SELECT p.* FROM passwordless_challenges p JOIN users u ON u.id=p.user_id
+    WHERE u.email=? AND u.role='CITOYEN' AND u.enabled=1 AND p.consumed_at IS NULL AND p.expires_at>?
+    ORDER BY p.created_at DESC LIMIT 1`).get(email, isoNow());
+  if (!challenge || challenge.attempts >= 5) return res.status(401).json({ error: 'INVALID_ONE_TIME_CODE' });
+  if (!safeHexEqual(challenge.code_hash, hashOneTimeCode(code))) {
+    db.prepare(`UPDATE passwordless_challenges SET attempts=attempts+1,
+      consumed_at=CASE WHEN attempts+1>=5 THEN ? ELSE consumed_at END WHERE id=?`).run(isoNow(), challenge.id);
+    return res.status(401).json({ error: 'INVALID_ONE_TIME_CODE' });
+  }
+  const timestamp = isoNow();
+  const consumed = db.prepare('UPDATE passwordless_challenges SET consumed_at=? WHERE id=? AND consumed_at IS NULL AND attempts<5').run(timestamp, challenge.id);
+  if (!consumed.changes) return res.status(401).json({ error: 'INVALID_ONE_TIME_CODE' });
+  const user = db.prepare('SELECT * FROM users WHERE id=? AND enabled=1').get(challenge.user_id);
+  if (!user) return res.status(401).json({ error: 'INVALID_ONE_TIME_CODE' });
+  if (user.two_factor_enabled) {
+    if (!hasTotpEncryptionKey()) return res.status(503).json({ error: 'TWO_FACTOR_NOT_CONFIGURED' });
+    return res.json({ requiresTwoFactor: true, ...createTwoFactorChallenge(user), user: publicUser(user) });
+  }
+  res.json(completeSignIn(user, req, req.body?.deviceId, 'email_code'));
+});
+
+app.post('/api/auth/2fa/login', twoFactorLimit, (req, res) => {
+  const state = readTwoFactorChallenge(req.body?.challengeToken);
+  if (!state) return res.status(401).json({ error: 'TWO_FACTOR_CHALLENGE_EXPIRED' });
+  const verification = useTwoFactorCode(state.user, req.body?.code);
+  if (!verification.valid) {
+    db.prepare(`UPDATE two_factor_login_challenges SET attempts=attempts+1,
+      consumed_at=CASE WHEN attempts+1>=5 THEN ? ELSE consumed_at END WHERE id=? AND consumed_at IS NULL`).run(isoNow(), state.challenge.id);
+    return res.status(401).json({ error: 'INVALID_TWO_FACTOR_CODE' });
+  }
+  const timestamp = isoNow();
+  const finalized = db.transaction(() => {
+    const consumedChallenge = db.prepare(`UPDATE two_factor_login_challenges SET consumed_at=?
+      WHERE id=? AND consumed_at IS NULL AND attempts<5`).run(timestamp, state.challenge.id);
+    if (!consumedChallenge.changes) return false;
+    if (verification.counter !== undefined) {
+      const consumedCounter = db.prepare(`UPDATE users SET two_factor_last_counter=? WHERE id=? AND two_factor_last_counter<?`)
+        .run(verification.counter, state.user.id, verification.counter);
+      if (!consumedCounter.changes) throw new Error('TOTP_COUNTER_ALREADY_USED');
+    }
+    if (verification.recoveryHash) {
+      const consumedRecoveryCode = db.prepare(`UPDATE two_factor_recovery_codes SET consumed_at=?
+        WHERE user_id=? AND code_hash=? AND consumed_at IS NULL`).run(timestamp, state.user.id, verification.recoveryHash);
+      if (!consumedRecoveryCode.changes) throw new Error('RECOVERY_CODE_ALREADY_USED');
+    }
+    return true;
+  });
+  try {
+    if (!finalized()) return res.status(401).json({ error: 'TWO_FACTOR_CHALLENGE_EXPIRED' });
+  } catch {
+    return res.status(401).json({ error: 'INVALID_TWO_FACTOR_CODE' });
+  }
+  res.json(completeSignIn(state.user, req, req.body?.deviceId, verification.recoveryHash ? 'password+recovery_code' : 'two_factor'));
+});
+
+app.get('/api/security-notifications', authenticate, allowRoles('CITOYEN'), (req, res) => {
+  const notifications = db.prepare(`SELECT id,device_label AS deviceLabel,created_at AS createdAt,read_at AS readAt
+    FROM security_notifications WHERE user_id=? ORDER BY created_at DESC LIMIT 100`).all(req.user.id);
+  res.json({ notifications: notifications.map((item) => ({ ...item, read: Boolean(item.readAt) })) });
+});
+
+app.post('/api/security-notifications/read', authenticate, allowRoles('CITOYEN'), (req, res) => {
+  const ids = Array.isArray(req.body?.ids) ? [...new Set(req.body.ids.filter((value) => typeof value === 'string').slice(0, 100))] : [];
+  const markRead = db.prepare('UPDATE security_notifications SET read_at=? WHERE id=? AND user_id=? AND read_at IS NULL');
+  const timestamp = isoNow();
+  db.transaction(() => ids.forEach((notificationId) => markRead.run(timestamp, notificationId, req.user.id)))();
+  res.status(204).end();
+});
+
+app.get('/api/auth/2fa/status', authenticate, allowRoles('CITOYEN'), (req, res) => {
+  const status = db.prepare('SELECT two_factor_enabled FROM users WHERE id=?').get(req.user.id);
+  res.json({ enabled: Boolean(status?.two_factor_enabled) });
+});
+
+app.post('/api/auth/2fa/setup', authenticate, allowRoles('CITOYEN'), (req, res) => {
+  if (!hasTotpEncryptionKey()) return res.status(503).json({ error: 'TWO_FACTOR_NOT_CONFIGURED' });
+  const user = db.prepare('SELECT email,two_factor_enabled FROM users WHERE id=?').get(req.user.id);
+  if (user.two_factor_enabled) return res.status(409).json({ error: 'TWO_FACTOR_ALREADY_ENABLED' });
+  const secret = makeTotpSecret();
+  const expiresAt = new Date(Date.now() + 10 * 60_000).toISOString();
+  db.prepare('UPDATE users SET two_factor_pending_secret=?,two_factor_pending_expires_at=? WHERE id=?')
+    .run(encryptTotpSecret(secret), expiresAt, req.user.id);
+  const accountLabel = encodeURIComponent(`Nova Terra:${user.email}`);
+  const issuer = encodeURIComponent('Nova Terra');
+  const provisioningUri = `otpauth://totp/${accountLabel}?secret=${secret}&issuer=${issuer}&algorithm=SHA1&digits=6&period=30`;
+  res.json({ secret, provisioningUri, expiresAt });
+});
+
+app.post('/api/auth/2fa/confirm', authenticate, allowRoles('CITOYEN'), twoFactorLimit, (req, res) => {
+  if (!hasTotpEncryptionKey()) return res.status(503).json({ error: 'TWO_FACTOR_NOT_CONFIGURED' });
+  const user = db.prepare('SELECT email,two_factor_pending_secret,two_factor_pending_expires_at,two_factor_enabled FROM users WHERE id=?').get(req.user.id);
+  if (user.two_factor_enabled) return res.status(409).json({ error: 'TWO_FACTOR_ALREADY_ENABLED' });
+  if (!user.two_factor_pending_secret || user.two_factor_pending_expires_at <= isoNow()) return res.status(409).json({ error: 'TWO_FACTOR_SETUP_EXPIRED' });
+  let secret;
+  try { secret = decryptTotpSecret(user.two_factor_pending_secret); }
+  catch { return res.status(503).json({ error: 'TWO_FACTOR_NOT_CONFIGURED' }); }
+  const counter = matchTotpCounter(secret, req.body?.code);
+  if (counter === null) return res.status(400).json({ error: 'INVALID_TWO_FACTOR_CODE' });
+  const recoveryCodes = Array.from({ length: 10 }, () => randomBytes(8).toString('hex').toUpperCase());
+  const timestamp = isoNow();
+  db.transaction(() => {
+    db.prepare(`UPDATE users SET two_factor_secret=?,two_factor_pending_secret='',two_factor_pending_expires_at=NULL,
+      two_factor_enabled=1,two_factor_last_counter=? WHERE id=?`).run(encryptTotpSecret(secret), counter, req.user.id);
+    recoveryCodes.forEach((code) => db.prepare('INSERT INTO two_factor_recovery_codes(user_id,code_hash,created_at) VALUES(?,?,?)')
+      .run(req.user.id, hashOneTimeCode(code.toLowerCase()), timestamp));
+    recordAudit(req, { action: 'account.two_factor_enabled', entityType: 'account', entityId: req.user.id, summary: 'Citizen enabled two-factor authentication' });
+  })();
+  res.json({ enabled: true, recoveryCodes });
+});
+
+app.delete('/api/auth/2fa', authenticate, allowRoles('CITOYEN'), twoFactorLimit, (req, res) => {
+  const user = db.prepare('SELECT two_factor_secret,two_factor_enabled,two_factor_last_counter FROM users WHERE id=?').get(req.user.id);
+  if (!user.two_factor_enabled) return res.status(409).json({ error: 'TWO_FACTOR_NOT_ENABLED' });
+  const verification = useTwoFactorCode(user, req.body?.code);
+  if (!verification.valid) return res.status(401).json({ error: 'INVALID_TWO_FACTOR_CODE' });
+  const timestamp = isoNow();
+  db.transaction(() => {
+    if (verification.recoveryHash) db.prepare('UPDATE two_factor_recovery_codes SET consumed_at=? WHERE user_id=? AND code_hash=?').run(timestamp, req.user.id, verification.recoveryHash);
+    db.prepare(`UPDATE users SET two_factor_secret='',two_factor_pending_secret='',two_factor_pending_expires_at=NULL,
+      two_factor_enabled=0,two_factor_last_counter=-1 WHERE id=?`).run(req.user.id);
+    db.prepare('DELETE FROM two_factor_recovery_codes WHERE user_id=?').run(req.user.id);
+    recordAudit(req, { action: 'account.two_factor_disabled', entityType: 'account', entityId: req.user.id, summary: 'Citizen disabled two-factor authentication' });
+  })();
+  res.status(204).end();
+});
+
 app.get('/api/auth/me', authenticate, (req, res) => res.json({ user: publicUser(req.user) }));
+app.get('/api/auth/me/export', authenticate, allowRoles('CITOYEN'), (req, res) => {
+  const account = db.prepare(`SELECT id,email,display_name AS name,sector,avatar_data AS avatarDataUrl,
+      role,enabled,created_at AS createdAt,two_factor_enabled AS twoFactorEnabled
+    FROM users WHERE id=?`).get(req.user.id);
+  const requests = db.prepare(`SELECT id,title,district,type,service,priority,status,description,
+      created_at AS createdAt,updated_at AS updatedAt FROM citizen_requests WHERE owner_id=? ORDER BY created_at`).all(req.user.id);
+  const messages = db.prepare(`SELECT id,name,email,category,subject,message,created_at AS createdAt,unread
+    FROM messages WHERE lower(email)=lower(?) ORDER BY created_at`).all(req.user.email);
+  const appointments = db.prepare(`SELECT a.id,a.service,a.agent_name AS agentName,
+      a.sector,a.purpose,a.scheduled_at AS scheduledAt,a.status,a.reminder_sent_at AS reminderSentAt,
+      a.created_at AS createdAt,a.updated_at AS updatedAt
+    FROM appointments a WHERE a.owner_id=? ORDER BY a.scheduled_at`).all(req.user.id);
+  const privacyRequests = db.prepare(`SELECT id,request_type AS requestType,details,status,response_note AS responseNote,
+      created_at AS createdAt,updated_at AS updatedAt FROM privacy_requests WHERE owner_id=? ORDER BY created_at`).all(req.user.id);
+  const announcementReads = db.prepare(`SELECT ar.announcement_id AS announcementId,ar.read_at AS readAt,
+      a.kind,a.title,a.created_at AS announcementCreatedAt FROM announcement_reads ar
+      JOIN announcements a ON a.id=ar.announcement_id WHERE ar.user_id=? ORDER BY ar.read_at`).all(req.user.id);
+  const statusNotifications = db.prepare(`SELECT id,request_id AS requestId,from_status AS fromStatus,to_status AS toStatus,
+      created_at AS createdAt,read_at AS readAt FROM citizen_notifications WHERE user_id=? ORDER BY created_at`).all(req.user.id);
+  const communitySupports = db.prepare(`SELECT s.created_at AS supportedAt,r.id AS requestId,r.title,r.status
+      FROM citizen_request_supports s JOIN citizen_requests r ON r.id=s.request_id
+      WHERE s.user_id=? ORDER BY s.created_at`).all(req.user.id);
+  const auditTrail = db.prepare(`SELECT id,occurred_at AS occurredAt,action,entity_type AS entityType,
+      entity_id AS entityId,summary,metadata_json AS metadata FROM audit_events WHERE actor_user_id=? ORDER BY id`).all(req.user.id)
+    .map((event) => {
+      let metadata = {};
+      try { metadata = JSON.parse(event.metadata || '{}'); } catch { /* Keep the export readable if an old audit row is malformed. */ }
+      return { ...event, metadata };
+    });
+  const security = {
+    knownDevices: db.prepare(`SELECT device_label AS label,first_seen_at AS firstSeenAt,last_seen_at AS lastSeenAt
+      FROM security_devices WHERE user_id=? ORDER BY first_seen_at`).all(req.user.id),
+    newDeviceAlerts: db.prepare(`SELECT device_label AS deviceLabel,created_at AS createdAt,read_at AS readAt
+      FROM security_notifications WHERE user_id=? ORDER BY created_at`).all(req.user.id),
+    passwordSignInFailures: db.prepare('SELECT attempts,locked_until AS lockedUntil FROM login_failures WHERE email=?').get(req.user.email) || null,
+  };
+  res.json({
+    format: 'nova-terra-personal-data-v1', exportedAt: isoNow(), account,
+    requests, messages, appointments, privacyRequests, announcementReads,
+    statusNotifications, communitySupports, auditTrail, security,
+  });
+});
 app.get('/api/auth/me/avatar', authenticate, (req, res) => {
   const row = db.prepare('SELECT avatar_data FROM users WHERE id=?').get(req.user.id);
   res.json({ dataUrl: row?.avatar_data || '' });

@@ -11,7 +11,7 @@ export const publicUser = (user) => ({
 });
 
 export function issueToken(user) {
-  return jwt.sign({ sub: user.id, role: user.role }, process.env.JWT_SECRET, {
+  return jwt.sign({ sub: user.id, role: user.role, purpose: 'session' }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '8h', issuer: 'nova-terra-api',
   });
 }
@@ -21,6 +21,7 @@ export function authenticate(req, res, next) {
   if (!token) return res.status(401).json({ error: 'AUTH_REQUIRED' });
   try {
     const claims = jwt.verify(token, process.env.JWT_SECRET, { issuer: 'nova-terra-api' });
+    if (claims.purpose && claims.purpose !== 'session') return res.status(401).json({ error: 'INVALID_SESSION' });
     const user = db.prepare('SELECT id,email,display_name,sector,role,enabled,created_at FROM users WHERE id=?').get(claims.sub);
     if (!user || !roles.has(user.role) || !user.enabled || claims.role !== user.role) return res.status(401).json({ error: 'INVALID_SESSION' });
     req.user = user;

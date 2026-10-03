@@ -12,6 +12,17 @@ const signupPrompt = document.querySelector('#signupPrompt');
 const signupLink = document.querySelector('#signupLink');
 const profileKicker = credentialsStep.querySelector('.section-kicker');
 const loginLead = credentialsStep.querySelector('.signup-lead');
+const passwordlessToggle = document.querySelector('#passwordlessToggle');
+const passwordlessPanel = document.querySelector('#passwordlessPanel');
+const passwordlessEmail = document.querySelector('#passwordlessEmail');
+const passwordlessRequest = document.querySelector('#passwordlessRequest');
+const passwordlessVerifyForm = document.querySelector('#passwordlessVerifyForm');
+const passwordlessCode = document.querySelector('#passwordlessCode');
+const passwordlessMessage = document.querySelector('#passwordlessMessage');
+const twoFactorLoginForm = document.querySelector('#twoFactorLoginForm');
+const twoFactorLoginCode = document.querySelector('#twoFactorLoginCode');
+const twoFactorLoginMessage = document.querySelector('#twoFactorLoginMessage');
+let pendingTwoFactor = null;
 
 const notice = document.querySelector('.prototype-note span');
 const loginProfiles = {
@@ -61,6 +72,8 @@ const loginProfiles = {
 };
 let activeProfile = null;
 let loginMessageKey = '';
+let passwordlessMessageKey = '';
+let twoFactorMessageKey = '';
 const loginMessages = {
   profile_required: ['Choisis un profil avant de te connecter.', 'Choose a profile before signing in.'],
   verifying: ['Vérification des identifiants…', 'Checking your sign-in details…'],
@@ -75,6 +88,14 @@ const loginMessages = {
   failed: ['La connexion a échoué. Réessaie.', 'Sign-in failed. Please try again.'],
   api_unavailable: ['Le serveur Nova Terra ne répond pas. Vérifie qu’il est démarré.', 'The Nova Terra server is unavailable. Check that it is running.'],
   api_error: ['La connexion au serveur a échoué. Réessaie.', 'The server sign-in request failed. Please try again.'],
+  api_not_configured: ['La connexion sans mot de passe nécessite le serveur Nova Terra.', 'Passwordless sign-in requires the Nova Terra server.'],
+  email_delivery_not_configured: ['L’envoi d’e-mails n’est pas configuré sur le serveur. Réessaie plus tard.', 'Email delivery is not configured on the server. Try again later.'],
+  email_delivery_failed: ['Le code n’a pas pu être envoyé. Réessaie plus tard.', 'The code could not be sent. Try again later.'],
+  passwordless_code_sent: ['Si un compte citoyen actif correspond à cette adresse, un code vient d’être envoyé.', 'If an active citizen account matches this address, a code has been sent.'],
+  invalid_one_time_code: ['Le code est invalide ou expiré. Demande-en un nouveau.', 'The code is invalid or expired. Request a new one.'],
+  invalid_two_factor_code: ['Le code de vérification est invalide ou déjà utilisé.', 'The verification code is invalid or has already been used.'],
+  two_factor_challenge_expired: ['La vérification a expiré. Recommence la connexion.', 'The verification expired. Sign in again.'],
+  two_factor_not_configured: ['La configuration de sécurité du serveur est incomplète. Contacte la mairie.', 'The server security configuration is incomplete. Contact the city.'],
   forgot: ['Les comptes locaux ne peuvent pas être récupérés. Crée un nouveau compte avec une autre adresse e-mail.', 'Local demo accounts cannot be recovered. Create a new account with a different email address.'],
 };
 
@@ -86,8 +107,68 @@ function showLoginMessage(key) {
   loginMessage.textContent = loginMessages[key][isEnglish() ? 1 : 0];
 }
 
+function showPasswordlessMessage(key) {
+  passwordlessMessageKey = key;
+  passwordlessMessage.hidden = false;
+  passwordlessMessage.textContent = loginMessages[key]?.[isEnglish() ? 1 : 0] || loginMessages.failed[isEnglish() ? 1 : 0];
+}
+
+function showTwoFactorMessage(key) {
+  twoFactorMessageKey = key;
+  twoFactorLoginMessage.hidden = false;
+  twoFactorLoginMessage.textContent = loginMessages[key]?.[isEnglish() ? 1 : 0] || loginMessages.failed[isEnglish() ? 1 : 0];
+}
+
+function showTwoFactorStep(result, remember, profile) {
+  pendingTwoFactor = { challengeToken: result.challengeToken, remember, profile };
+  loginForm.hidden = true;
+  passwordlessToggle.hidden = true;
+  passwordlessPanel.hidden = true;
+  twoFactorLoginForm.hidden = false;
+  twoFactorLoginMessage.hidden = true;
+  twoFactorLoginCode.value = '';
+  twoFactorLoginCode.focus();
+}
+
+function resetLoginMethods() {
+  pendingTwoFactor = null;
+  loginButton.disabled = false;
+  loginForm.hidden = false;
+  passwordlessToggle.hidden = activeProfile !== 'citizen';
+  passwordlessPanel.hidden = true;
+  passwordlessVerifyForm.hidden = true;
+  passwordlessMessage.hidden = true;
+  twoFactorLoginForm.hidden = true;
+  twoFactorLoginMessage.hidden = true;
+}
+
+function updateLoginMethodsCopy() {
+  const en = isEnglish();
+  passwordlessToggle.textContent = en ? 'D02 · Sign in with an email code' : 'D02 · Se connecter avec un code e-mail';
+  document.querySelector('#passwordlessHeading').textContent = en ? 'Sign in with an email code' : 'Connexion par code e-mail';
+  passwordlessPanel.querySelector('p').textContent = en
+    ? 'Receive a one-time code valid for 10 minutes at your citizen account email address.'
+    : 'Reçois un code à usage unique valable 10 minutes sur l’adresse de ton compte citoyen.';
+  passwordlessPanel.querySelector('label[for="passwordlessEmail"]').textContent = en ? 'Email address' : 'Adresse e-mail';
+  passwordlessRequest.textContent = en ? 'Send a code' : 'Envoyer un code';
+  passwordlessVerifyForm.querySelector('label[for="passwordlessCode"]').textContent = en ? '8-digit code' : 'Code à 8 chiffres';
+  passwordlessVerifyForm.querySelector('label.remember-option span').textContent = en ? 'Stay signed in' : 'Rester connecté·e';
+  passwordlessVerifyForm.querySelector('[type="submit"]').textContent = en ? 'Verify code' : 'Vérifier le code';
+  document.querySelector('#passwordlessBack').textContent = en ? 'Back to password sign-in' : 'Retour à la connexion par mot de passe';
+  twoFactorLoginForm.querySelector('h2').textContent = en ? 'Two-step verification' : 'Vérification en deux étapes';
+  twoFactorLoginForm.querySelector('p').textContent = en
+    ? 'Enter the current code from your authenticator app or one of your recovery codes.'
+    : 'Saisis le code actuel de ton application d’authentification ou l’un de tes codes de secours.';
+  twoFactorLoginForm.querySelector('label').firstChild.textContent = en ? 'Verification code' : 'Code de vérification';
+  twoFactorLoginForm.querySelector('[type="submit"]').textContent = en ? 'Verify and continue' : 'Vérifier et continuer';
+  document.querySelector('#twoFactorLoginBack').textContent = en ? 'Cancel and return to sign-in' : 'Annuler et revenir à la connexion';
+  if (passwordlessMessageKey && !passwordlessMessage.hidden) showPasswordlessMessage(passwordlessMessageKey);
+  if (twoFactorMessageKey && !twoFactorLoginMessage.hidden) showTwoFactorMessage(twoFactorMessageKey);
+}
+
 window.addEventListener('nova:language-change', () => {
   if (loginMessageKey && !loginMessage.hidden) loginMessage.textContent = loginMessages[loginMessageKey][isEnglish() ? 1 : 0];
+  updateLoginMethodsCopy();
 });
 
 function chooseLoginProfile(profileId) {
@@ -113,6 +194,7 @@ function chooseLoginProfile(profileId) {
   signupLink.href = profile.signupHref;
   signupLink.innerHTML = `${signupLabelText[isEnglish() ? 1 : 0]} <span>↗</span>`;
   if (notice) notice.innerHTML = profile.notice;
+  resetLoginMethods();
   loginMessage.hidden = true;
   loginMessage.textContent = '';
   loginMessageKey = '';
@@ -128,6 +210,7 @@ document.querySelector('#changeLoginProfile').addEventListener('click', () => {
   credentialsStep.hidden = true;
   profileStep.hidden = false;
   passwordInput.value = '';
+  resetLoginMethods();
   loginMessage.hidden = true;
   loginMessage.textContent = '';
   loginMessageKey = '';
@@ -136,6 +219,7 @@ document.querySelector('#changeLoginProfile').addEventListener('click', () => {
 const requestedProfile = new URLSearchParams(window.location.search).get('profile');
 const requestedProfileId = requestedProfile === 'council' ? 'admin' : requestedProfile;
 if (loginProfiles[requestedProfileId]) chooseLoginProfile(requestedProfileId);
+updateLoginMethodsCopy();
 
 togglePassword.addEventListener('click', () => {
   const reveal = passwordInput.type === 'password';
@@ -165,6 +249,11 @@ loginForm.addEventListener('submit', async (event) => {
     profile: submittedProfile,
   });
 
+  if (result.twoFactorRequired) {
+    showTwoFactorStep(result, loginForm.elements.remember.checked, submittedProfile);
+    return;
+  }
+
   if (result.ok) {
     showLoginMessage('success');
     window.location.assign(loginProfiles[submittedProfile].destination);
@@ -173,6 +262,86 @@ loginForm.addEventListener('submit', async (event) => {
 
   showLoginMessage(loginMessages[result.error] ? result.error : 'failed');
   loginButton.disabled = false;
+});
+
+passwordlessToggle.addEventListener('click', () => {
+  passwordlessPanel.hidden = false;
+  loginForm.hidden = true;
+  passwordlessEmail.value = loginForm.elements.email.value;
+  passwordlessMessage.hidden = true;
+  passwordlessEmail.focus();
+});
+
+document.querySelector('#passwordlessBack').addEventListener('click', () => {
+  passwordlessPanel.hidden = true;
+  passwordlessVerifyForm.hidden = true;
+  loginForm.hidden = false;
+  passwordlessToggle.hidden = activeProfile !== 'citizen';
+  loginForm.elements.email.value = passwordlessEmail.value;
+  loginForm.elements.email.focus();
+});
+
+passwordlessRequest.addEventListener('click', async () => {
+  if (!passwordlessEmail.reportValidity()) return;
+  passwordlessRequest.disabled = true;
+  passwordlessMessage.hidden = true;
+  const result = await window.NovaTerraAuth.requestPasswordlessCode(passwordlessEmail.value);
+  passwordlessRequest.disabled = false;
+  if (!result.ok) {
+    showPasswordlessMessage(result.error);
+    return;
+  }
+  passwordlessVerifyForm.hidden = false;
+  showPasswordlessMessage('passwordless_code_sent');
+  passwordlessCode.focus();
+});
+
+passwordlessVerifyForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!passwordlessVerifyForm.reportValidity() || !activeProfile) return;
+  const button = passwordlessVerifyForm.querySelector('[type="submit"]');
+  button.disabled = true;
+  const result = await window.NovaTerraAuth.verifyPasswordlessCode({
+    email: passwordlessEmail.value,
+    code: passwordlessCode.value,
+    remember: document.querySelector('#passwordlessRemember').checked,
+  });
+  button.disabled = false;
+  if (result.twoFactorRequired) {
+    showTwoFactorStep(result, document.querySelector('#passwordlessRemember').checked, 'citizen');
+    return;
+  }
+  if (result.ok) {
+    window.location.assign(loginProfiles.citizen.destination);
+    return;
+  }
+  showPasswordlessMessage(result.error);
+});
+
+twoFactorLoginForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!pendingTwoFactor || !twoFactorLoginForm.reportValidity()) return;
+  const button = twoFactorLoginForm.querySelector('[type="submit"]');
+  button.disabled = true;
+  twoFactorLoginMessage.hidden = true;
+  const result = await window.NovaTerraAuth.verifySecondFactor({
+    ...pendingTwoFactor,
+    code: twoFactorLoginCode.value,
+  });
+  button.disabled = false;
+  if (result.ok) {
+    window.location.assign(loginProfiles[pendingTwoFactor.profile].destination);
+    return;
+  }
+  showTwoFactorMessage(result.error);
+});
+
+document.querySelector('#twoFactorLoginBack').addEventListener('click', () => {
+  resetLoginMethods();
+  pendingTwoFactor = null;
+  loginForm.elements.password.value = '';
+  loginMessage.hidden = true;
+  document.querySelector('#loginEmail').focus();
 });
 
 document.querySelector('#forgotPassword').addEventListener('click', () => {

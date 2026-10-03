@@ -6,6 +6,19 @@
   const maxLoginFailures = 5;
   const loginLockDurationMs = 15 * 60 * 1000;
   const apiEnabled = () => Boolean(window.NovaTerraApi?.enabled);
+  const deviceIdKey = 'novaTerraDeviceIdentity.v1';
+
+  function getDeviceIdentity() {
+    try {
+      let id = localStorage.getItem(deviceIdKey);
+      if (!/^[a-f\d]{32}$/.test(id || '')) {
+        const bytes = globalThis.crypto.getRandomValues(new Uint8Array(16));
+        id = bytesToHex(bytes);
+        localStorage.setItem(deviceIdKey, id);
+      }
+      return id;
+    } catch (_) { return ''; }
+  }
 
   function remoteError(error) {
     return ({
@@ -16,6 +29,13 @@
       INVALID_SESSION: 'not_authenticated', INVALID_OR_EXPIRED_TOKEN: 'not_authenticated',
       ACCOUNT_NOT_FOUND: 'account_not_found', CANNOT_CHANGE_SELF: 'cannot_change_self',
       INVALID_ROLE: 'invalid_role',
+      EMAIL_DELIVERY_NOT_CONFIGURED: 'email_delivery_not_configured',
+      EMAIL_DELIVERY_FAILED: 'email_delivery_failed',
+      INVALID_EMAIL: 'invalid_input',
+      INVALID_ONE_TIME_CODE: 'invalid_one_time_code',
+      INVALID_TWO_FACTOR_CODE: 'invalid_two_factor_code',
+      TWO_FACTOR_CHALLENGE_EXPIRED: 'two_factor_challenge_expired',
+      TWO_FACTOR_NOT_CONFIGURED: 'two_factor_not_configured',
     })[error?.message] || (error?.message === 'api_unavailable' ? 'api_unavailable' : 'api_error');
   }
 
@@ -157,12 +177,13 @@
       if (!['citizen', 'agent', 'admin'].includes(profile)) return { ok: false, error: 'invalid_profile' };
       try {
         const result = await window.NovaTerraApi.request('/auth/signin', {
-          method: 'POST', body: JSON.stringify({ email, password }),
+          method: 'POST', body: JSON.stringify({ email, password, deviceId: getDeviceIdentity() }),
         });
         const account = fromRemoteUser(result.user);
         if (account.profile !== profile) return { ok: false, error: 'profile_mismatch' };
+        if (result.requiresTwoFactor) return { ok: false, twoFactorRequired: true, challengeToken: result.challengeToken, user: account };
         setSession(account, remember, account.profile, result.token);
-        return { ok: true, user: account };
+        return { ok: true, user: account, newDevice: Boolean(result.newDevice) };
       } catch (error) { return { ok: false, error: remoteError(error) }; }
     }
     if (!globalThis.crypto?.subtle) return { ok: false, error: 'crypto_unavailable' };
@@ -197,6 +218,42 @@
     } catch (_) {
       return { ok: false, error: 'storage_unavailable' };
     }
+  }
+
+  async function requestPasswordlessCode(email) {
+    if (!apiEnabled()) return { ok: false, error: 'api_not_configured' };
+    try {
+      await window.NovaTerraApi.request('/auth/passwordless/request', {
+        method: 'POST', body: JSON.stringify({ email: String(email || '').trim().toLowerCase() }),
+      });
+      return { ok: true };
+    } catch (error) { return { ok: false, error: remoteError(error) }; }
+  }
+
+  async function verifyPasswordlessCode({ email, code, remember = false }) {
+    if (!apiEnabled()) return { ok: false, error: 'api_not_configured' };
+    try {
+      const result = await window.NovaTerraApi.request('/auth/passwordless/verify', {
+        method: 'POST', body: JSON.stringify({ email: String(email || '').trim().toLowerCase(), code, deviceId: getDeviceIdentity() }),
+      });
+      const account = fromRemoteUser(result.user);
+      if (result.requiresTwoFactor) return { ok: false, twoFactorRequired: true, challengeToken: result.challengeToken, user: account };
+      setSession(account, remember, 'citizen', result.token);
+      return { ok: true, user: account, newDevice: Boolean(result.newDevice) };
+    } catch (error) { return { ok: false, error: remoteError(error) }; }
+  }
+
+  async function verifySecondFactor({ challengeToken, code, remember = false, profile = 'citizen' }) {
+    if (!apiEnabled()) return { ok: false, error: 'api_not_configured' };
+    try {
+      const result = await window.NovaTerraApi.request('/auth/2fa/login', {
+        method: 'POST', body: JSON.stringify({ challengeToken, code, deviceId: getDeviceIdentity() }),
+      });
+      const account = fromRemoteUser(result.user);
+      if (account.profile !== profile) return { ok: false, error: 'profile_mismatch' };
+      setSession(account, remember, account.profile, result.token);
+      return { ok: true, user: account, newDevice: Boolean(result.newDevice) };
+    } catch (error) { return { ok: false, error: remoteError(error) }; }
   }
 
   function getSession() {
@@ -409,7 +466,7 @@
     }
   }
 
-  window.NovaTerraAuth = Object.freeze({ createAccount, signIn, getSession, updateProfile, getProfilePhoto, saveProfilePhoto, signOut, getToken, getAvailableAgents, getAccountsForStaff, setAccountAccess, setAccountRole, deleteCitizenAccount });
+  window.NovaTerraAuth = Object.freeze({ createAccount, signIn, requestPasswordlessCode, verifyPasswordlessCode, verifySecondFactor, getSession, updateProfile, getProfilePhoto, saveProfilePhoto, signOut, getToken, getAvailableAgents, getAccountsForStaff, setAccountAccess, setAccountRole, deleteCitizenAccount });
 
   window.addEventListener('storage', (event) => {
     if (event.key !== accountsKey) return;

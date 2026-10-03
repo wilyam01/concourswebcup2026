@@ -21,10 +21,16 @@ Express API with SQLite, bcrypt password hashing, JWT sessions, role checks, and
 - `GET /api/transit/schedules` for the current bilingual timetable catalog
 - `GET /api/audit-logs` (admin-only, paginated, category filter) for account, sign-in, request, announcement, service, appointment, and official-feed history
 - `GET/POST /api/privacy-requests`, `PATCH /api/privacy-requests/:id` for citizen privacy requests and admin-only processing
+- `POST /api/auth/passwordless/request`, `POST /api/auth/passwordless/verify` for email-code citizen sign-in; requires Resend configuration
+- `GET /api/auth/2fa/status`, `POST /api/auth/2fa/setup`, `POST /api/auth/2fa/confirm`, `POST /api/auth/2fa/login`, `DELETE /api/auth/2fa` for citizen TOTP and recovery-code management
+- `GET /api/security-notifications`, `POST /api/security-notifications/read` for the signed-in citizen's new-device alerts
+- `GET /api/auth/me/export` for a citizen-only JSON export of personal account data
 
 Use `Authorization: Bearer <token>` on protected routes. Citizen signup never accepts a role. Bootstrap the first administrator using temporary `ADMIN_EMAIL` and `ADMIN_PASSWORD` environment variables, then remove them. SQLite storage is suitable for local development or one persistent server instance; use a managed persistent database for multi-instance production.
 
 ## Security and data notes
+
+Citizen security and data export setup for D02/F53/F54/F55/F56 is documented in [the project security guide](../docs/security-and-exports.md). Passwordless email and new-device email require `RESEND_API_KEY` plus a verified `RESEND_FROM`; TOTP requires a persistent, private `TOTP_ENCRYPTION_KEY`.
 
 The server applies role checks on protected endpoints, rate-limits authentication, contact, and privacy requests, and temporarily locks an email after five failed sign-ins. Citizens can view only their own privacy requests; only administrators can list and process the register. Lockout events, privacy-request state changes, and successful sign-ins are recorded in the admin audit feed; routine failures and HTTP request outcomes are emitted as structured JSON to stdout/stderr for the hosting platform's log collector. Audit records keep actor snapshots so they remain attributable after account deletion. Audit metadata omits credentials, request details, response notes, and message bodies.
 
