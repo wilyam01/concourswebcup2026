@@ -1,3 +1,7 @@
+const currentUser = window.NovaTerraAuth.getSession();
+if (!currentUser) {
+  window.location.replace('connexion.html');
+} else {
 const toast = document.querySelector('#toast');
 let toastTimer;
 let publicReportsLoading = false;
@@ -195,6 +199,13 @@ document.querySelectorAll('.nav-item').forEach((link) => link.addEventListener('
 const profilePhotoInput = document.querySelector('#profilePhotoInput');
 const profilePhotoButtons = [...document.querySelectorAll('.profile-photo-trigger')];
 const profilePhotoStorageKey = 'novaTerraProfilePhoto';
+const profileName = document.querySelector('#profileName');
+const profileSector = document.querySelector('#profileSector');
+const initials = currentUser.name.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+
+profileName.textContent = currentUser.name;
+profileSector.textContent = `Citoyen · ${currentUser.sector}`;
+profilePhotoButtons.forEach((button) => { button.textContent = initials || 'NT'; });
 
 function showProfilePhoto(dataUrl) {
   profilePhotoButtons.forEach((button) => {
@@ -216,6 +227,10 @@ try {
 }
 
 profilePhotoButtons.forEach((button) => button.addEventListener('click', () => profilePhotoInput.click()));
+document.querySelector('#logoutButton').addEventListener('click', () => {
+  window.NovaTerraAuth.signOut();
+  window.location.replace('connexion.html');
+});
 profilePhotoInput.addEventListener('change', () => {
   const photo = profilePhotoInput.files?.[0];
   profilePhotoInput.value = '';
@@ -271,3 +286,4 @@ if (window.NovaTerra.usingDemoData()) {
   window.setInterval(loadPublicReports, 60_000);
 }
 loadPublicReports();
+}

@@ -33,7 +33,7 @@
       <div class="side-bottom">
         <div class="side-label">RÉSEAU</div>
         <div class="network"><span class="live-dot"></span><span><b>Réseau de démonstration</b><small>État illustratif · non connecté</small></span><span class="network-signal">▂▅▇</span></div>
-        <div class="profile"><button class="avatar profile-photo-trigger" type="button" aria-label="Ajouter une photo de profil" title="Ajouter une photo de profil">AM</button><div><b>Alex Morgan</b><small>Citoyen · Niveau 04</small></div><button aria-label="Options du profil">···</button></div>
+        <div class="profile"><button class="avatar profile-photo-trigger" type="button" aria-label="Ajouter une photo de profil" title="Ajouter une photo de profil">AM</button><div><b id="profileName">Alex Morgan</b><small id="profileSector">Citoyen · Niveau 04</small></div><button id="logoutButton" type="button" aria-label="Se déconnecter" title="Se déconnecter">Quitter</button></div>
       </div>
     </aside>
 
@@ -103,6 +103,7 @@
   <input id="profilePhotoInput" type="file" accept="image/*" hidden />
   <script src="config.js"></script>
   <script src="nova-terra.js"></script>
+  <script src="auth.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

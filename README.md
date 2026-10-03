@@ -35,8 +35,8 @@ git push origin main
 ## Pages disponibles
 
 - `index.html` : vitrine publique avec catalogue des services et actualités
-- `connexion.html` : maquette de connexion (authentification non activée)
-- `inscription.html` : maquette de préinscription citoyenne (aucune donnée envoyée)
+- `connexion.html` : connexion avec vérification des comptes locaux de démonstration
+- `inscription.html` : création de compte locale avec mot de passe et confirmation
 - `dashboard.html` : tableau de bord citoyen et état de la cité
 - `contact/index.html` : formulaire de contact citoyen
 - `agent/dashboard/index.html` : back-office agents, Kanban et messages reçus
@@ -73,6 +73,8 @@ La réponse des demandes doit être un tableau JSON, directement ou sous une pro
 ```
 
 En l'absence d'API, les donnees de demonstration restent actives. Les formulaires et deplacements de cartes Kanban sont alors memorises dans le navigateur avec `localStorage`. La photo de profil du tableau de bord est reduite puis conservee localement dans le navigateur; elle n'est pas envoyee au serveur.
+
+L'inscription conserve le compte dans le navigateur et le mot de passe sous forme de hash PBKDF2 sale (pas en clair). La connexion verifie ce hash. Les comptes ne sont pas partages entre appareils et ne constituent pas une authentification de production: sans serveur, les donnees et les controles du navigateur ne protegent pas un vrai service. Utilisez HTTPS ou localhost pour Web Crypto.
 
 ### Déployer sur Vercel
 
