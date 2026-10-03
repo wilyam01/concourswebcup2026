@@ -3,10 +3,58 @@ const signupMessage = document.querySelector('#formMessage');
 const passwordInput = document.querySelector('#signupPassword');
 const confirmPasswordInput = document.querySelector('#confirmPassword');
 const signupButton = signupForm.querySelector('[type="submit"]');
+const signupProfile = new URLSearchParams(window.location.search).get('profile');
+const selectedProfile = ['citizen', 'agent', 'admin'].includes(signupProfile) ? signupProfile : 'citizen';
+const existingAccountLink = document.querySelector('.signup-login');
+const roleAccessPanel = document.createElement('section');
+roleAccessPanel.className = 'prototype-note role-access-panel';
+roleAccessPanel.hidden = true;
+roleAccessPanel.setAttribute('aria-labelledby', 'roleAccessTitle');
+const roleAccessIcon = document.createElement('i');
+roleAccessIcon.setAttribute('aria-hidden', 'true');
+roleAccessIcon.textContent = 'i';
+const roleAccessContent = document.createElement('span');
+const roleAccessTitle = document.createElement('b');
+roleAccessTitle.id = 'roleAccessTitle';
+const roleAccessMessage = document.createElement('span');
+const roleContactLink = document.createElement('a');
+roleContactLink.className = 'button signup-submit';
+roleContactLink.href = 'contact/index.html';
+const roleLoginLink = document.createElement('a');
+roleLoginLink.className = 'signup-login';
+roleAccessContent.append(roleAccessTitle, document.createElement('br'), roleAccessMessage, document.createElement('br'), roleContactLink, document.createElement('br'), roleLoginLink);
+roleAccessPanel.append(roleAccessIcon, roleAccessContent);
+signupForm.after(roleAccessPanel);
 
 const notice = document.querySelector('.prototype-note span');
 let messageKey = '';
 let creatingAccount = false;
+
+const signupProfiles = {
+  citizen: {
+    kicker: ['ESPACE CITOYEN · NOUVELLE AURORE', 'CITIZEN SPACE · NEW DAWN'],
+    title: ['Votre place<br />est <em>ici.</em>', 'Your place<br />is <em>here.</em>'],
+    lead: ['Créez votre espace pour suivre la vie municipale et prendre part aux décisions de la cité.', 'Create your space to follow city services and take part in community life.'],
+  },
+  agent: {
+    kicker: ['ESPACE AGENT · ACCÈS SUR AUTORISATION', 'AGENT SPACE · ACCESS BY APPROVAL'],
+    title: ['Demander un<br />accès <em>agent.</em>', 'Request <em>agent</em><br />access.'],
+    lead: ['Les comptes agents sont attribués par un administrateur. Le choix du profil ne donne pas à lui seul un accès agent.', 'Agent accounts are assigned by an administrator. Selecting this profile alone does not grant agent access.'],
+    noticeTitle: ['Accès agent réservé', 'Agent access is restricted'],
+    notice: ['Les inscriptions publiques créent uniquement des comptes citoyens. Contacte l’administration pour demander un accès agent.', 'Public sign-up creates citizen accounts only. Contact an administrator to request agent access.'],
+    contact: ['Contacter l’administration', 'Contact an administrator'],
+    login: ['Retour à la connexion Agent', 'Back to agent sign-in'],
+  },
+  admin: {
+    kicker: ['HAUT CONSEIL · ACCÈS SUR AUTORISATION', 'HIGH COUNCIL · ACCESS BY APPROVAL'],
+    title: ['Demander un<br />accès <em>admin.</em>', 'Request <em>admin</em><br />access.'],
+    lead: ['Les comptes administrateur sont créés ou autorisés par un administrateur existant. Le choix du profil ne crée pas de privilèges.', 'Administrator accounts are created or approved by an existing administrator. Choosing this profile does not grant privileges.'],
+    noticeTitle: ['Accès administrateur réservé', 'Administrator access is restricted'],
+    notice: ['Les inscriptions publiques créent uniquement des comptes citoyens. Contacte un administrateur existant pour demander un accès Haut Conseil.', 'Public sign-up creates citizen accounts only. Contact an existing administrator to request High Council access.'],
+    contact: ['Demander un accès administrateur', 'Request administrator access'],
+    login: ['Retour à la connexion Admin', 'Back to administrator sign-in'],
+  },
+};
 
 const messages = {
   password_mismatch: ['Les deux mots de passe ne correspondent pas.', 'The passwords do not match.'],
@@ -31,6 +79,22 @@ function isEnglish() { return document.documentElement.lang === 'en'; }
 
 function updateSignupLanguage() {
   const english = isEnglish();
+  const languageIndex = english ? 1 : 0;
+  const profile = signupProfiles[selectedProfile];
+  document.querySelector('.section-kicker').textContent = profile.kicker[languageIndex];
+  document.querySelector('.signup-card h1').innerHTML = profile.title[languageIndex];
+  document.querySelector('.signup-lead').textContent = profile.lead[languageIndex];
+  const needsApproval = selectedProfile !== 'citizen';
+  signupForm.hidden = needsApproval;
+  existingAccountLink.hidden = needsApproval;
+  roleAccessPanel.hidden = !needsApproval;
+  if (needsApproval) {
+    roleAccessTitle.textContent = profile.noticeTitle[languageIndex];
+    roleAccessMessage.textContent = profile.notice[languageIndex];
+    roleContactLink.textContent = profile.contact[languageIndex];
+    roleLoginLink.href = `connexion.html?profile=${selectedProfile}`;
+    roleLoginLink.textContent = profile.login[languageIndex];
+  }
   passwordInput.minLength = window.NovaTerraApi?.enabled ? 12 : 8;
   if (notice) notice.innerHTML = window.NovaTerraApi?.enabled
     ? (english ? '<b>Server account</b><br />Your account is saved by the Nova Terra API and can be used on another device.' : '<b>Compte sur le serveur</b><br />Ton compte est enregistré par l’API Nova Terra et pourra être utilisé sur un autre appareil.')
@@ -52,6 +116,7 @@ window.addEventListener('nova:language-change', updateSignupLanguage);
 
 signupForm.addEventListener('submit', async (event) => {
   event.preventDefault();
+  if (selectedProfile !== 'citizen') return;
   if (!signupForm.reportValidity()) return;
   if (passwordInput.value !== confirmPasswordInput.value) {
     showSignupMessage('password_mismatch');

@@ -8,6 +8,8 @@ const credentialsStep = document.querySelector('#loginCredentialsStep');
 const selectedProfileName = document.querySelector('#selectedProfileName');
 const selectedProfileDescription = document.querySelector('#selectedProfileDescription');
 const selectedProfileSymbol = document.querySelector('#selectedProfileSymbol');
+const signupPrompt = document.querySelector('#signupPrompt');
+const signupLink = document.querySelector('#signupLink');
 const profileKicker = credentialsStep.querySelector('.section-kicker');
 const loginLead = credentialsStep.querySelector('.signup-lead');
 
@@ -22,6 +24,9 @@ const loginProfiles = {
     notice: window.NovaTerraApi?.enabled ? '<b>Connexion au serveur Nova Terra</b><br />Les comptes sont vérifiés par le serveur configuré.' : '<b>Connexion locale de démonstration</b><br />Les comptes sont disponibles uniquement dans ce navigateur. Cinq erreurs verrouillent cette adresse 15 minutes dans ce navigateur; ce verrouillage ne protège pas un serveur.',
     destination: 'dashboard.html',
     button: 'Se connecter',
+    signupHref: 'inscription.html?profile=citizen',
+    signupPrompt: ['Pas encore citoyen·ne ?', 'New to Nova Terra?'],
+    signupLabel: ['Créer un compte citoyen', 'Create a citizen account'],
   },
   agent: {
     name: 'Agent',
@@ -32,6 +37,9 @@ const loginProfiles = {
     notice: window.NovaTerraApi?.enabled ? '<b>Espace agent sécurisé</b><br />Seul un compte auquel un administrateur a attribué le rôle agent peut accéder à cet espace.' : '<b>Espace agent de démonstration</b><br />Le compte doit avoir reçu le rôle agent. Les rôles ne sont pas attribués par le choix sur cette page.',
     destination: 'agent/dashboard/index.html',
     button: 'Ouvrir mon espace agent',
+    signupHref: 'inscription.html?profile=agent',
+    signupPrompt: ['Pas encore de compte agent ?', 'Need an agent account?'],
+    signupLabel: ['Demander un accès agent', 'Request agent access'],
   },
   admin: {
     name: 'Administrateur',
@@ -42,6 +50,9 @@ const loginProfiles = {
     notice: window.NovaTerraApi?.enabled ? '<b>Haut Conseil sécurisé</b><br />L’accès administrateur est attribué uniquement depuis le serveur.' : '<b>Administration de démonstration</b><br />Le compte doit avoir reçu le rôle administrateur. Les rôles ne sont pas attribués par le choix sur cette page.',
     destination: 'dashboard.html?view=council',
     button: 'Ouvrir le Haut Conseil',
+    signupHref: 'inscription.html?profile=admin',
+    signupPrompt: ['Besoin d’un accès administrateur ?', 'Need administrator access?'],
+    signupLabel: ['Demander un accès admin', 'Request admin access'],
   },
 };
 let activeProfile = null;
@@ -88,6 +99,9 @@ function chooseLoginProfile(profileId) {
   profileKicker.innerHTML = `<span>${profile.kicker}</span> · NOUVELLE AURORE`;
   loginLead.textContent = profile.lead;
   loginButton.innerHTML = `${profile.button} <span>→</span>`;
+  signupPrompt.textContent = profile.signupPrompt[isEnglish() ? 1 : 0];
+  signupLink.href = profile.signupHref;
+  signupLink.innerHTML = `${profile.signupLabel[isEnglish() ? 1 : 0]} <span>↗</span>`;
   if (notice) notice.innerHTML = profile.notice;
   loginMessage.hidden = true;
   loginMessage.textContent = '';
