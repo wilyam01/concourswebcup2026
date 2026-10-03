@@ -6,3 +6,32 @@ main { max-width:1180px; margin:auto; padding:68px 28px 80px; }.intro { max-widt
 .form-card { position:relative; background:var(--white); border:1px solid var(--line); border-left:0; padding:38px; }.form-heading h2 { margin:0 0 28px; font-size:24px; }.form-card form { display:grid; gap:16px; }.form-card label { display:grid; gap:7px; color:#46524b; font-size:11px; font-weight:800; }.two-fields { display:grid; grid-template-columns:1fr 1fr; gap:14px; }.form-card input,.form-card select,.form-card textarea { width:100%; border:1px solid var(--line); border-radius:0; background:#fff; padding:12px; color:var(--ink); font-size:12px; }.form-card textarea { min-height:130px; resize:vertical; }.form-footer { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-top:4px; color:var(--muted); font-size:10px; }.form-footer button,.success button { border:0; border-radius:0; background:var(--green); color:#fff; padding:12px 18px; font-size:12px; font-weight:800; }.form-footer button:hover,.success button:hover { background:#075f59; }.form-footer button:disabled { opacity:.65; cursor:wait; }.form-error { margin:14px 0 0; color:#a94336; font-size:12px; }.success { min-height:420px; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; max-width:420px; }.success-mark { display:grid; place-items:center; width:44px; height:44px; background:var(--green-soft); color:var(--green); font:12px var(--mono); margin-bottom:22px; }.success h2 { max-width:350px; margin:0 0 12px; font-size:27px; line-height:1.2; }.success p:not(.kicker) { color:var(--muted); font-size:13px; line-height:1.65; }.success button { margin-top:12px; }
 @media (max-width:700px) { .site-header { padding:0 18px; }.site-header nav { gap:13px; font-size:10px; } main { padding:42px 18px 52px; }.contact-layout { grid-template-columns:1fr; }.service-note { padding:28px; }.service-note h2 { max-width:none; }.form-card { border-left:1px solid var(--line); padding:27px 20px; }.two-fields { grid-template-columns:1fr; }.form-footer { align-items:flex-start; flex-direction:column; }.form-footer button { width:100%; }.success { min-height:360px; } }
 .delivery-note { margin:0; padding:12px 14px; border-left:3px solid var(--amber); background:#faf7ee; color:#5d5747; font-size:12px; line-height:1.6; }
+@media(max-width:700px) {
+  .contact-page main { padding:22px 18px 80px; }
+  .contact-page .intro > p:last-child { margin:14px 0 16px; }
+  .contact-page .service-note { padding:16px; }
+  .contact-page .service-note .kicker { margin-top:12px; }
+  .contact-page .service-note > p:not(.kicker) { margin:10px 0 12px; }
+  .contact-page .service-note dl div { padding:8px 0; }
+  .contact-page .form-card { padding:12px 18px; }
+  .contact-page .form-heading h2 { margin-bottom:0; }
+  .contact-page .delivery-note { padding:10px 12px; font-size:11px; }
+  .contact-page .assistant-launcher,.contact-page .community-inbox-trigger,.contact-page .a11y-launcher { right:auto; bottom:0; width:40px; height:40px; min-height:40px; padding:0; justify-content:center; }
+  .contact-page .assistant-launcher { left:calc(50% - 68px); font-size:0; }
+  .contact-page .assistant-launcher::before { content:"✧"; font-size:16px; }
+  .contact-page .community-inbox-trigger { left:calc(50% - 20px); }
+  .contact-page .community-inbox-trigger .community-inbox-label { display:none; }
+  .contact-page .a11y-launcher { left:calc(50% + 28px); }
+  .contact-page .assistant-panel { right:10px; bottom:64px; height:min(500px,calc(100dvh - 92px)); }
+}
+@media(max-width:360px) and (max-height:740px) {
+  .contact-page main { padding-top:20px; }
+  .contact-page .intro > p:last-child { margin-bottom:14px; }
+  .contact-page .service-note { padding:16px; }
+  .contact-page .service-note dl { display:grid; grid-template-columns:1fr 1fr; gap:10px; border:0; }
+  .contact-page .service-note dl div { padding:10px 0; border-top:1px solid #ffffff22; border-bottom:0; }
+  .contact-page .form-card { margin-top:56px; }
+}
+@media(min-width:340px) and (max-width:360px) and (max-height:740px) {
+  .contact-page .form-card { margin-top:100px; }
+}
