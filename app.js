@@ -262,6 +262,89 @@ function personalRequestLabels() {
   };
 }
 
+let communitySupportLoad = 0;
+async function renderCommunitySupports() {
+  const list = document.querySelector('#communitySupportList');
+  const note = document.querySelector('#communitySupportNote');
+  const feedback = document.querySelector('#communitySupportFeedback');
+  const english = document.documentElement.lang === 'en';
+  if (!window.NovaTerraApi?.enabled) {
+    note.textContent = english
+      ? 'Community support needs the shared city service. Demo reports remain on this device.'
+      : 'Le soutien communautaire nécessite le service municipal partagé. En mode démo, les signalements restent sur cet appareil.';
+    list.replaceChildren();
+    feedback.textContent = '';
+    return;
+  }
+  note.textContent = english
+    ? 'Support open reports that matter to your area. Names, email addresses and descriptions are not shown here.'
+    : 'Soutiens les signalements ouverts qui concernent aussi ton quartier. Les noms, adresses e-mail et descriptions ne sont pas affichés ici.';
+  const load = ++communitySupportLoad;
+  try {
+    const result = await window.NovaTerraApi.request('/citizen-requests/community');
+    if (load !== communitySupportLoad) return;
+    const requests = Array.isArray(result.requests) ? result.requests : [];
+    feedback.textContent = '';
+    if (!requests.length) {
+      const empty = document.createElement('p');
+      empty.className = 'community-support-empty';
+      empty.textContent = english ? 'No open shared reports yet.' : 'Aucun signalement ouvert à soutenir pour le moment.';
+      list.replaceChildren(empty);
+      return;
+    }
+    const labels = personalRequestLabels();
+    const states = english ? { todo: 'Received', in_progress: 'In progress' } : { todo: 'Reçue', in_progress: 'En cours' };
+    const cards = requests.map((request) => {
+      const card = document.createElement('article');
+      card.className = 'community-support-card';
+      const copy = document.createElement('div');
+      copy.className = 'community-support-copy';
+      const title = document.createElement('h4');
+      title.textContent = request.title;
+      const meta = document.createElement('p');
+      meta.textContent = `${request.id} · ${request.district} · ${labels.service[request.service] || labels.service.other} · ${states[request.status] || request.status}`;
+      copy.append(title, meta);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'community-support-button';
+      button.setAttribute('aria-pressed', String(Boolean(request.supportedByMe)));
+      button.disabled = Boolean(request.isMine);
+      const setLabel = () => {
+        const count = Number(request.supportCount) || 0;
+        button.textContent = request.isMine
+          ? (english ? `Your report · ${count} support${count === 1 ? '' : 's'}` : `Ton signalement · ${count} soutien${count > 1 ? 's' : ''}`)
+          : request.supportedByMe
+            ? (english ? `Withdraw support · ${count}` : `Retirer mon soutien · ${count}`)
+            : (english ? `Support · ${count}` : `Soutenir · ${count}`);
+      };
+      setLabel();
+      button.addEventListener('click', async () => {
+        if (request.isMine || button.disabled) return;
+        button.disabled = true;
+        feedback.textContent = '';
+        try {
+          await window.NovaTerraApi.request(`/citizen-requests/${encodeURIComponent(request.id)}/support`, {
+            method: request.supportedByMe ? 'DELETE' : 'PUT',
+          });
+          await renderCommunitySupports();
+        } catch (error) {
+          feedback.textContent = error.message === 'REQUEST_CLOSED'
+            ? (english ? 'This report has been closed.' : 'Ce signalement est clôturé.')
+            : (english ? 'Your support could not be saved. Try again.' : 'Ton soutien n’a pas pu être enregistré. Réessaie.');
+          button.disabled = false;
+        }
+      });
+      card.append(copy, button);
+      return card;
+    });
+    list.replaceChildren(...cards);
+  } catch (_) {
+    if (load !== communitySupportLoad) return;
+    list.replaceChildren();
+    feedback.textContent = english ? 'Community requests could not be loaded.' : 'Les demandes de la communauté n’ont pas pu être chargées.';
+  }
+}
+
 async function renderPersonalRequests() {
   if (!personalRequestsPanel || personalRequestsPanel.hidden) return;
   const english = document.documentElement.lang === "en";
@@ -330,6 +413,7 @@ async function renderPersonalRequests() {
   }));
   document.querySelector("#personalRequestEmpty").textContent = requests.length ? labels.emptyFilter : labels.empty;
   document.querySelector("#personalRequestEmpty").hidden = visibleRequests.length > 0;
+  renderCommunitySupports();
 }
 
 function openCitizenReportForm(trigger) {
@@ -656,6 +740,13 @@ const deleteAccountForm = document.querySelector('#deleteAccountForm');
 const deleteAccountPassword = document.querySelector('#deleteAccountPassword');
 const deleteAccountError = document.querySelector('#deleteAccountError');
 deleteAccountButton.hidden = currentUser.profile !== 'citizen';
+const privacyRequestButton = document.querySelector('#openPrivacyRequests');
+const privacyRequestDialog = document.querySelector('#privacyRequestDialog');
+const privacyRequestForm = document.querySelector('#privacyRequestForm');
+const privacyRequestFields = document.querySelector('#privacyRequestFields');
+const privacyRequestList = document.querySelector('#privacyRequestList');
+const privacyRequestFeedback = document.querySelector('#privacyRequestFeedback');
+privacyRequestButton.hidden = currentUser.profile !== 'citizen';
 const profileRole = document.querySelector('#profileRole');
 
 topProfileButton.setAttribute('aria-label', 'Personnaliser le profil');
@@ -747,6 +838,122 @@ deleteAccountButton.addEventListener('click', () => {
 document.querySelector('#closeDeleteAccount').addEventListener('click', () => deleteAccountDialog.close());
 document.querySelector('#cancelDeleteAccount').addEventListener('click', () => deleteAccountDialog.close());
 deleteAccountDialog.addEventListener('close', () => topProfileButton.focus());
+
+const privacyRequestTypeLabels = () => document.documentElement.lang === 'en'
+  ? { access: 'Access my personal data', copy: 'Receive a copy of my data', rectification: 'Correct my data', restriction: 'Limit how my data is used', opposition: 'Object to a use of my data' }
+  : { access: 'Accès à mes données', copy: 'Recevoir une copie de mes données', rectification: 'Correction de mes données', restriction: 'Limitation de leur utilisation', opposition: 'Opposition à un traitement' };
+const privacyRequestStatusLabels = () => document.documentElement.lang === 'en'
+  ? { received: 'Received', in_review: 'Under review', completed: 'Completed', declined: 'Declined' }
+  : { received: 'Reçue', in_review: 'En cours d’examen', completed: 'Traitée', declined: 'Refusée' };
+
+function updatePrivacyRequestLanguage() {
+  const english = document.documentElement.lang === 'en';
+  document.querySelector('#privacyRequestKicker').textContent = english ? 'F51 · YOUR DATA' : 'F51 · TES DONNÉES';
+  document.querySelector('#privacyRequestTitle').textContent = english ? 'Privacy and personal data' : 'Confidentialité et données personnelles';
+  document.querySelector('#privacyRequestAvailability').textContent = !window.NovaTerraApi?.enabled
+    ? (english ? 'The privacy register requires the city service to be online. This browser will not store your request.' : 'Le registre de confidentialité nécessite le service municipal en ligne. Ta demande ne sera pas enregistrée dans ce navigateur.')
+    : (english ? 'Submit and follow privacy requests linked to your city account.' : 'Dépose et consulte tes demandes de confidentialité liées à ton compte municipal.');
+  document.querySelector('#privacyRequestFormTitle').textContent = english ? 'New request' : 'Nouvelle demande';
+  document.querySelector('#privacyRequestTypeLabel').firstChild.textContent = english ? 'Request type' : 'Type de demande';
+  document.querySelector('#privacyRequestDetailsLabel').firstChild.textContent = english ? 'Details' : 'Précisions';
+  document.querySelector('#privacyRequestDetails').placeholder = english ? 'Describe the data concerned and what you are asking for.' : 'Indique les données concernées et ce que tu demandes.';
+  document.querySelector('#privacyRequestHint').textContent = english ? 'Do not include your password or unnecessary sensitive information.' : 'N’indique pas ton mot de passe ni d’informations sensibles inutiles.';
+  document.querySelector('#submitPrivacyRequest').textContent = english ? 'Submit my request' : 'Envoyer ma demande';
+  document.querySelector('#privacyRequestHistoryTitle').textContent = english ? 'My submitted requests' : 'Mes demandes envoyées';
+  privacyRequestFields.disabled = !window.NovaTerraApi?.enabled;
+  [...document.querySelector('#privacyRequestType').options].forEach((option) => { option.textContent = privacyRequestTypeLabels()[option.value]; });
+  if (privacyRequestDialog.open) renderPrivacyRequests();
+}
+
+function renderPrivacyRequests(requests = []) {
+  const english = document.documentElement.lang === 'en';
+  if (!requests.length) {
+    const empty = document.createElement('p');
+    empty.className = 'privacy-request-empty';
+    empty.textContent = english ? 'You have not submitted a privacy request.' : 'Tu n’as pas encore envoyé de demande de confidentialité.';
+    privacyRequestList.replaceChildren(empty);
+    return;
+  }
+  privacyRequestList.replaceChildren(...requests.map((request) => {
+    const card = document.createElement('article');
+    card.className = 'privacy-request-entry';
+    const heading = document.createElement('div');
+    heading.className = 'privacy-request-entry-heading';
+    const title = document.createElement('b');
+    title.textContent = privacyRequestTypeLabels()[request.requestType] || request.requestType;
+    const state = document.createElement('span');
+    state.textContent = privacyRequestStatusLabels()[request.status] || request.status;
+    heading.append(title, state);
+    const details = document.createElement('p');
+    details.textContent = request.details;
+    const meta = document.createElement('small');
+    meta.textContent = `${request.id} · ${new Intl.DateTimeFormat(english ? 'en' : 'fr', { dateStyle: 'medium' }).format(new Date(request.createdAt))}`;
+    card.append(heading, details, meta);
+    if (request.responseNote) {
+      const response = document.createElement('p');
+      response.className = 'privacy-request-response';
+      response.textContent = `${english ? 'City response' : 'Réponse de la mairie'}: ${request.responseNote}`;
+      card.append(response);
+    }
+    return card;
+  }));
+}
+
+async function loadPrivacyRequests() {
+  if (!window.NovaTerraApi?.enabled) {
+    privacyRequestList.replaceChildren();
+    return;
+  }
+  privacyRequestList.textContent = document.documentElement.lang === 'en' ? 'Loading requests…' : 'Chargement des demandes…';
+  try {
+    const result = await window.NovaTerraApi.request('/privacy-requests');
+    if (!Array.isArray(result.requests)) throw new Error('invalid_privacy_request_response');
+    renderPrivacyRequests(result.requests);
+  } catch (_) {
+    privacyRequestList.textContent = document.documentElement.lang === 'en' ? 'Your requests could not be loaded.' : 'Tes demandes n’ont pas pu être chargées.';
+  }
+}
+
+privacyRequestButton.addEventListener('click', () => {
+  profileDialog.close();
+  privacyRequestFeedback.hidden = true;
+  privacyRequestFeedback.textContent = '';
+  updatePrivacyRequestLanguage();
+  privacyRequestDialog.showModal();
+  loadPrivacyRequests();
+});
+document.querySelector('#closePrivacyRequests').addEventListener('click', () => privacyRequestDialog.close());
+privacyRequestDialog.addEventListener('close', () => {
+  profileDialog.showModal();
+  privacyRequestButton.focus();
+});
+privacyRequestForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  privacyRequestFeedback.hidden = true;
+  const submitButton = document.querySelector('#submitPrivacyRequest');
+  submitButton.disabled = true;
+  try {
+    await window.NovaTerraApi.request('/privacy-requests', {
+      method: 'POST',
+      body: JSON.stringify({ requestType: privacyRequestForm.elements.requestType.value, details: privacyRequestForm.elements.details.value }),
+    });
+    privacyRequestForm.reset();
+    privacyRequestFeedback.classList.remove('is-error');
+    privacyRequestFeedback.textContent = document.documentElement.lang === 'en' ? 'Your request has been recorded.' : 'Ta demande a été enregistrée.';
+    await loadPrivacyRequests();
+  } catch (error) {
+    privacyRequestFeedback.classList.add('is-error');
+    privacyRequestFeedback.textContent = error.message === 'INVALID_PRIVACY_REQUEST'
+      ? (document.documentElement.lang === 'en' ? 'Choose a request type and add a short description.' : 'Choisis un type et ajoute quelques précisions.')
+      : (document.documentElement.lang === 'en' ? 'The request could not be recorded. Try again later.' : 'La demande n’a pas pu être enregistrée. Réessaie plus tard.');
+  } finally {
+    privacyRequestFeedback.hidden = false;
+    submitButton.disabled = false;
+  }
+});
+window.addEventListener('nova:language-change', updatePrivacyRequestLanguage);
+window.setTimeout(updatePrivacyRequestLanguage, 0);
+
 deleteAccountForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   deleteAccountError.hidden = true;

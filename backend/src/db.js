@@ -56,6 +56,26 @@ db.exec(`
     action TEXT NOT NULL, entity_type TEXT NOT NULL, entity_id TEXT NOT NULL DEFAULT '',
     summary TEXT NOT NULL, metadata_json TEXT NOT NULL DEFAULT '{}'
   );
+  CREATE TABLE IF NOT EXISTS privacy_requests (
+    id TEXT PRIMARY KEY, owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    request_type TEXT NOT NULL CHECK(request_type IN ('access','copy','rectification','restriction','opposition')),
+    details TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'received'
+      CHECK(status IN ('received','in_review','completed','declined')),
+    response_note TEXT NOT NULL DEFAULT '', processed_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS citizen_notifications (
+    id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    request_id TEXT NOT NULL REFERENCES citizen_requests(id) ON DELETE CASCADE,
+    from_status TEXT NOT NULL, to_status TEXT NOT NULL,
+    created_at TEXT NOT NULL, read_at TEXT
+  );
+  CREATE TABLE IF NOT EXISTS citizen_request_supports (
+    request_id TEXT NOT NULL REFERENCES citizen_requests(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY(request_id,user_id)
+  );
   CREATE TABLE IF NOT EXISTS transit_schedules (
     id TEXT PRIMARY KEY, line_code TEXT NOT NULL, line_name TEXT NOT NULL, line_name_en TEXT NOT NULL,
     origin TEXT NOT NULL, origin_en TEXT NOT NULL, destination TEXT NOT NULL, destination_en TEXT NOT NULL,
@@ -67,6 +87,10 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS appointments_agent_slot ON appointments(agent_id, scheduled_at, status);
   CREATE INDEX IF NOT EXISTS audit_events_recent ON audit_events(id DESC);
   CREATE INDEX IF NOT EXISTS audit_events_action ON audit_events(action, id DESC);
+  CREATE INDEX IF NOT EXISTS privacy_requests_owner ON privacy_requests(owner_id, created_at DESC);
+  CREATE INDEX IF NOT EXISTS privacy_requests_status ON privacy_requests(status, created_at DESC);
+  CREATE INDEX IF NOT EXISTS citizen_notifications_user ON citizen_notifications(user_id, created_at DESC);
+  CREATE INDEX IF NOT EXISTS citizen_request_supports_user ON citizen_request_supports(user_id, created_at DESC);
 `);
 
 const userColumns = new Set(db.prepare('PRAGMA table_info(users)').all().map((column) => column.name));

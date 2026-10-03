@@ -17,9 +17,12 @@ const id = (prefix) => `${prefix}-${newId().slice(0, 8).toUpperCase()}`;
 const services = new Set(['water', 'health', 'energy', 'mobility', 'civic', 'solidarity', 'other']);
 const kinds = new Set(['general', 'news', 'flood', 'health', 'service_status']);
 const states = new Set(['operational', 'maintenance', 'unavailable']);
+const privacyRequestTypes = new Set(['access', 'copy', 'rectification', 'restriction', 'opposition']);
+const privacyRequestStates = new Set(['received', 'in_review', 'completed', 'declined']);
 const asyncRoute = (handler) => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
 const clean = (value, max) => typeof value === 'string' ? value.trim().slice(0, max) : '';
 const isoNow = () => new Date().toISOString();
+const requestSupportLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 60, standardHeaders: 'draft-7', legacyHeaders: false });
 
 app.disable('x-powered-by');
 app.use(helmet());
@@ -38,6 +41,7 @@ app.use(express.json({ limit: '512kb' }));
 app.use('/api', (_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
 app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: 'draft-7', legacyHeaders: false }));
 app.use('/api/citizen-messages', rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: 'draft-7', legacyHeaders: false }));
+const privacySubmissionLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 12, standardHeaders: 'draft-7', legacyHeaders: false });
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
@@ -147,6 +151,43 @@ app.get('/api/citizen-requests', authenticate, (req, res) => {
     : db.prepare(`${requestColumns} WHERE r.owner_id=? ORDER BY r.created_at DESC`).all(req.user.id);
   res.json({ requests: rows.map(citizenRequest) });
 });
+app.get('/api/citizen-requests/community', authenticate, allowRoles('CITOYEN'), (req, res) => {
+  const rows = db.prepare(`SELECT r.id,r.title,r.district,r.type,r.service,r.priority,r.status,r.created_at,
+      (SELECT COUNT(*) FROM citizen_request_supports s WHERE s.request_id=r.id) AS support_count,
+      EXISTS(SELECT 1 FROM citizen_request_supports s WHERE s.request_id=r.id AND s.user_id=?) AS supported_by_me,
+      CASE WHEN r.owner_id=? THEN 1 ELSE 0 END AS is_mine
+    FROM citizen_requests r WHERE r.status IN ('todo','in_progress')
+    ORDER BY support_count DESC,r.created_at DESC LIMIT 100`).all(req.user.id, req.user.id);
+  res.json({ requests: rows.map((row) => ({
+    id: row.id, title: row.title, district: row.district, type: row.type, service: row.service,
+    priority: row.priority, status: row.status, createdAt: row.created_at,
+    supportCount: row.support_count, supportedByMe: Boolean(row.supported_by_me), isMine: Boolean(row.is_mine),
+  })) });
+});
+app.put('/api/citizen-requests/:id/support', authenticate, allowRoles('CITOYEN'), requestSupportLimit, (req, res) => {
+  const target = db.prepare('SELECT owner_id,status FROM citizen_requests WHERE id=?').get(req.params.id);
+  if (!target) return res.status(404).json({ error: 'REQUEST_NOT_FOUND' });
+  if (target.owner_id === req.user.id) return res.status(409).json({ error: 'CANNOT_SUPPORT_OWN_REQUEST' });
+  if (target.status === 'done') return res.status(409).json({ error: 'REQUEST_CLOSED' });
+  const timestamp = isoNow();
+  const support = db.transaction(() => {
+    const result = db.prepare('INSERT OR IGNORE INTO citizen_request_supports(request_id,user_id,created_at) VALUES(?,?,?)').run(req.params.id, req.user.id, timestamp);
+    if (result.changes) recordAudit(req, { action: 'citizen_request.supported', entityType: 'citizen_request', entityId: req.params.id, summary: 'Citizen supported a community request' });
+    return db.prepare('SELECT COUNT(*) AS count FROM citizen_request_supports WHERE request_id=?').get(req.params.id).count;
+  });
+  res.json({ requestId: req.params.id, supported: true, supportCount: support() });
+});
+app.delete('/api/citizen-requests/:id/support', authenticate, allowRoles('CITOYEN'), requestSupportLimit, (req, res) => {
+  const target = db.prepare('SELECT id,owner_id FROM citizen_requests WHERE id=?').get(req.params.id);
+  if (!target) return res.status(404).json({ error: 'REQUEST_NOT_FOUND' });
+  if (target.owner_id === req.user.id) return res.status(409).json({ error: 'CANNOT_SUPPORT_OWN_REQUEST' });
+  const withdraw = db.transaction(() => {
+    const result = db.prepare('DELETE FROM citizen_request_supports WHERE request_id=? AND user_id=?').run(req.params.id, req.user.id);
+    if (result.changes) recordAudit(req, { action: 'citizen_request.support_withdrawn', entityType: 'citizen_request', entityId: req.params.id, summary: 'Citizen withdrew community request support' });
+    return db.prepare('SELECT COUNT(*) AS count FROM citizen_request_supports WHERE request_id=?').get(req.params.id).count;
+  });
+  res.json({ requestId: req.params.id, supported: false, supportCount: withdraw() });
+});
 app.post('/api/citizen-requests', authenticate, allowRoles('CITOYEN'), (req, res) => {
   const body = req.body || {};
   const title = clean(body.title, 100), district = clean(body.district, 120), type = clean(body.type, 80), description = clean(body.description, 1000);
@@ -166,9 +207,27 @@ app.patch('/api/citizen-requests/:id', authenticate, allowRoles('AGENT', 'ADMIN'
   if (!current) return res.status(404).json({ error: 'REQUEST_NOT_FOUND' });
   db.transaction(() => {
     db.prepare('UPDATE citizen_requests SET status=?,updated_at=? WHERE id=?').run(status, isoNow(), req.params.id);
-    if (current.status !== status) recordAudit(req, { action: 'citizen_request.status_changed', entityType: 'citizen_request', entityId: req.params.id, summary: 'Citizen report status changed', metadata: { from: current.status, to: status } });
+    if (current.status !== status) {
+      const owner = db.prepare('SELECT owner_id FROM citizen_requests WHERE id=?').get(req.params.id);
+      db.prepare(`INSERT INTO citizen_notifications(id,user_id,request_id,from_status,to_status,created_at)
+        VALUES(?,?,?,?,?,?)`).run(id('NTF'), owner.owner_id, req.params.id, current.status, status, isoNow());
+      recordAudit(req, { action: 'citizen_request.status_changed', entityType: 'citizen_request', entityId: req.params.id, summary: 'Citizen report status changed', metadata: { from: current.status, to: status } });
+    }
   })();
   res.json({ request: citizenRequest(db.prepare(`${requestColumns} WHERE r.id=?`).get(req.params.id)) });
+});
+app.get('/api/notifications', authenticate, allowRoles('CITOYEN'), (req, res) => {
+  const notifications = db.prepare(`SELECT n.id,n.request_id AS requestId,n.from_status AS fromStatus,
+      n.to_status AS toStatus,n.created_at AS createdAt,n.read_at AS readAt
+    FROM citizen_notifications n WHERE n.user_id=? ORDER BY n.created_at DESC LIMIT 100`).all(req.user.id);
+  res.json({ notifications: notifications.map((item) => ({ ...item, read: Boolean(item.readAt) })) });
+});
+app.post('/api/notifications/read', authenticate, allowRoles('CITOYEN'), (req, res) => {
+  const ids = Array.isArray(req.body?.ids) ? [...new Set(req.body.ids.filter((value) => typeof value === 'string').slice(0, 100))] : [];
+  const markRead = db.prepare('UPDATE citizen_notifications SET read_at=? WHERE id=? AND user_id=? AND read_at IS NULL');
+  const timestamp = isoNow();
+  db.transaction(() => ids.forEach((notificationId) => markRead.run(timestamp, notificationId, req.user.id)))();
+  res.status(204).end();
 });
 
 app.get('/api/citizen-messages', authenticate, allowRoles('AGENT', 'ADMIN'), (_req, res) => {
@@ -251,6 +310,30 @@ app.get('/api/service-popularity', (_req, res) => {
   const services = db.prepare(`SELECT service,COUNT(*) AS count FROM citizen_requests
     GROUP BY service ORDER BY count DESC,service ASC LIMIT 3`).all();
   res.json({ services });
+});
+
+app.get('/api/activity-summary', authenticate, allowRoles('ADMIN'), (_req, res) => {
+  const users = db.prepare(`SELECT COUNT(*) AS total,
+      SUM(CASE WHEN role='CITOYEN' AND enabled=1 THEN 1 ELSE 0 END) AS citizens,
+      SUM(CASE WHEN role='AGENT' AND enabled=1 THEN 1 ELSE 0 END) AS agents,
+      SUM(CASE WHEN enabled=0 THEN 1 ELSE 0 END) AS suspended
+    FROM users`).get();
+  const since = new Date(Date.now() - 7 * 86400000).toISOString();
+  const requestSummary = db.prepare(`SELECT COUNT(*) AS total,
+      SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) AS resolved,
+      SUM(CASE WHEN created_at>=? THEN 1 ELSE 0 END) AS submittedLast7Days
+    FROM citizen_requests`).get(since);
+  const summary = {
+    users: Object.fromEntries(Object.entries(users).map(([key, value]) => [key, value || 0])),
+    requests: Object.fromEntries(Object.entries(requestSummary).map(([key, value]) => [key, value || 0])),
+    upcomingAppointments: db.prepare("SELECT COUNT(*) AS count FROM appointments WHERE status='booked' AND scheduled_at>=?").get(isoNow()).count,
+    unreadMessages: db.prepare('SELECT COUNT(*) AS count FROM messages WHERE unread=1').get().count,
+    pendingPrivacyRequests: db.prepare("SELECT COUNT(*) AS count FROM privacy_requests WHERE status IN ('received','in_review')").get().count,
+    activeAnnouncements: db.prepare('SELECT COUNT(*) AS count FROM announcements WHERE active=1 AND (expires_at IS NULL OR expires_at>?)').get(isoNow()).count,
+    actionsLast7Days: db.prepare('SELECT COUNT(*) AS count FROM audit_events WHERE occurred_at>=?').get(since).count,
+    generatedAt: isoNow(),
+  };
+  res.json({ summary });
 });
 
 app.get('/api/transit/schedules', (_req, res) => {
@@ -342,6 +425,59 @@ app.post('/api/appointments/:id/reminder', authenticate, allowRoles('CITOYEN'), 
   res.status(204).end();
 });
 
+function privacyRequest(row, includeRequester = false) {
+  return {
+    id: row.id, requestType: row.request_type, details: row.details, status: row.status,
+    responseNote: row.response_note, createdAt: row.created_at, updatedAt: row.updated_at,
+    ...(includeRequester ? { requesterName: row.requester_name || 'Compte supprimé', requesterEmail: row.requester_email || '' } : {}),
+  };
+}
+const privacyRequestColumns = `SELECT p.*,u.display_name AS requester_name,u.email AS requester_email
+  FROM privacy_requests p LEFT JOIN users u ON u.id=p.owner_id`;
+app.get('/api/privacy-requests', authenticate, (req, res) => {
+  if (!['CITOYEN', 'ADMIN'].includes(req.user.role)) return res.status(403).json({ error: 'FORBIDDEN' });
+  const rows = req.user.role === 'ADMIN'
+    ? db.prepare(`${privacyRequestColumns} ORDER BY p.created_at DESC LIMIT 200`).all()
+    : db.prepare(`${privacyRequestColumns} WHERE p.owner_id=? ORDER BY p.created_at DESC LIMIT 50`).all(req.user.id);
+  res.json({ requests: rows.map((row) => privacyRequest(row, req.user.role === 'ADMIN')) });
+});
+app.post('/api/privacy-requests', authenticate, allowRoles('CITOYEN'), privacySubmissionLimit, (req, res) => {
+  const requestType = req.body?.requestType;
+  const details = clean(req.body?.details, 1200);
+  if (!privacyRequestTypes.has(requestType) || details.length < 8) return res.status(400).json({ error: 'INVALID_PRIVACY_REQUEST' });
+  const requestId = id('PRV'), timestamp = isoNow();
+  const create = db.transaction(() => {
+    db.prepare(`INSERT INTO privacy_requests(id,owner_id,request_type,details,created_at,updated_at)
+      VALUES(?,?,?,?,?,?)`).run(requestId, req.user.id, requestType, details, timestamp, timestamp);
+    recordAudit(req, { action: 'privacy_request.created', entityType: 'privacy_request', entityId: requestId, summary: 'Citizen privacy request submitted', metadata: { requestType } });
+  });
+  create();
+  const row = db.prepare(`${privacyRequestColumns} WHERE p.id=?`).get(requestId);
+  res.status(201).json({ request: privacyRequest(row) });
+});
+app.patch('/api/privacy-requests/:id', authenticate, allowRoles('ADMIN'), (req, res) => {
+  const status = req.body?.status;
+  const responseNote = clean(req.body?.responseNote, 600);
+  if (!privacyRequestStates.has(status)) return res.status(400).json({ error: 'INVALID_PRIVACY_STATUS' });
+  if (['completed', 'declined'].includes(status) && responseNote.length < 3) return res.status(400).json({ error: 'PRIVACY_RESPONSE_REQUIRED' });
+  const current = db.prepare('SELECT status,response_note FROM privacy_requests WHERE id=?').get(req.params.id);
+  if (!current) return res.status(404).json({ error: 'PRIVACY_REQUEST_NOT_FOUND' });
+  if (current.status === status && current.response_note === responseNote) {
+    return res.json({ request: privacyRequest(db.prepare(`${privacyRequestColumns} WHERE p.id=?`).get(req.params.id)) });
+  }
+  const timestamp = isoNow();
+  db.transaction(() => {
+    db.prepare('UPDATE privacy_requests SET status=?,response_note=?,processed_by=?,updated_at=? WHERE id=?')
+      .run(status, responseNote, req.user.id, timestamp, req.params.id);
+    recordAudit(req, {
+      action: 'privacy_request.updated', entityType: 'privacy_request', entityId: req.params.id,
+      summary: 'Privacy request status or response updated',
+      metadata: { from: current.status, to: status, responseUpdated: current.response_note !== responseNote },
+    });
+  })();
+  res.json({ request: privacyRequest(db.prepare(`${privacyRequestColumns} WHERE p.id=?`).get(req.params.id)) });
+});
+
 app.get('/api/accounts', authenticate, allowRoles('AGENT', 'ADMIN'), (req, res) => {
   const rows = req.user.role === 'ADMIN'
     ? db.prepare('SELECT id,email,display_name AS name,sector,role,enabled,created_at AS createdAt FROM users ORDER BY created_at DESC').all()
@@ -381,7 +517,7 @@ app.patch('/api/accounts/:id/role', authenticate, allowRoles('ADMIN'), (req, res
 app.get('/api/audit-logs', authenticate, allowRoles('ADMIN'), (req, res) => {
   const categories = {
     auth: 'auth.%', account: 'account.%', report: 'citizen_request.%', contact: 'contact_message.%',
-    announcement: 'announcement.%', service: 'service.%', appointment: 'appointment.%', official: 'official_requests.%',
+    announcement: 'announcement.%', service: 'service.%', appointment: 'appointment.%', privacy: 'privacy_request.%', official: 'official_requests.%',
   };
   const conditions = [];
   const parameters = [];

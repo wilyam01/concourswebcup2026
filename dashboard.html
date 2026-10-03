@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="theme.css" />
   <link rel="stylesheet" href="accessibility.css" />
-  <link rel="stylesheet" href="community.css" />
+  <link rel="stylesheet" href="community.css?v=community-participation-1" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="dashboard-template.css" />
 </head>
@@ -100,6 +100,12 @@
           <p class="personal-request-feedback" id="personalRequestFeedback" role="status" aria-live="polite" hidden></p>
           <div class="personal-request-list" id="personalRequestList" aria-live="polite"></div>
           <p class="personal-request-empty" id="personalRequestEmpty" role="status" hidden></p>
+          <section class="community-support-section" aria-labelledby="communitySupportTitle">
+            <div><div class="panel-kicker">F52 · PARTICIPATION CITOYENNE</div><h3 id="communitySupportTitle">Demandes de la communauté</h3></div>
+            <p id="communitySupportNote">Soutiens les signalements ouverts qui concernent aussi ton quartier.</p>
+            <div class="community-support-list" id="communitySupportList" aria-live="polite"></div>
+            <p class="community-support-feedback" id="communitySupportFeedback" role="status" aria-live="polite"></p>
+          </section>
         </section>
 
         <section class="panel appointments-panel" id="appointments" aria-labelledby="appointmentsTitle">
@@ -201,6 +207,21 @@
       <p class="profile-form-error" id="profileFormError" role="alert" hidden></p>
       <div class="profile-dialog-actions"><button class="account-delete-button" id="deleteAccountButton" type="button">Supprimer mon compte</button><button class="profile-secondary-button" id="logoutButton" type="button">Se déconnecter</button><button class="profile-secondary-button" id="cancelProfileEdit" type="button">Annuler</button><button class="profile-save-button" type="submit">Enregistrer le profil <span>→</span></button></div>
     </form>
+    <button class="profile-secondary-button privacy-request-open" id="openPrivacyRequests" type="button">Mes demandes de confidentialit&eacute;</button>
+  </dialog>
+  <dialog class="profile-dialog privacy-dialog" id="privacyRequestDialog" aria-labelledby="privacyRequestTitle" aria-describedby="privacyRequestAvailability">
+    <div class="profile-dialog-heading"><div><div class="panel-kicker" id="privacyRequestKicker">F51 &middot; TES DONN&Eacute;ES</div><h2 id="privacyRequestTitle">Confidentialit&eacute; et donn&eacute;es personnelles</h2></div><button class="profile-dialog-close" id="closePrivacyRequests" type="button" aria-label="Fermer">&times;</button></div>
+    <p class="profile-dialog-intro" id="privacyRequestAvailability">D&eacute;pose et consulte tes demandes de confidentialit&eacute;.</p>
+    <form class="profile-form" id="privacyRequestForm">
+      <fieldset id="privacyRequestFields"><legend id="privacyRequestFormTitle">Nouvelle demande</legend>
+        <label for="privacyRequestType" id="privacyRequestTypeLabel">Type de demande<select id="privacyRequestType" name="requestType" required><option value="access">Acc&egrave;s &agrave; mes donn&eacute;es</option><option value="copy">Recevoir une copie de mes donn&eacute;es</option><option value="rectification">Correction de mes donn&eacute;es</option><option value="restriction">Limitation de leur utilisation</option><option value="opposition">Opposition &agrave; un traitement</option></select></label>
+        <label for="privacyRequestDetails" id="privacyRequestDetailsLabel">Pr&eacute;cisions<textarea id="privacyRequestDetails" name="details" rows="3" maxlength="1200" minlength="8" required placeholder="Indique les donn&eacute;es concern&eacute;es et ce que tu demandes."></textarea></label>
+        <p class="privacy-request-hint" id="privacyRequestHint">N'indique pas ton mot de passe ni d'informations sensibles inutiles.</p>
+        <button class="profile-save-button" id="submitPrivacyRequest" type="submit">Envoyer ma demande</button>
+      </fieldset>
+      <p class="privacy-request-feedback" id="privacyRequestFeedback" role="status" aria-live="polite" hidden></p>
+    </form>
+    <section class="privacy-request-history" aria-labelledby="privacyRequestHistoryTitle"><h3 id="privacyRequestHistoryTitle">Mes demandes envoy&eacute;es</h3><div id="privacyRequestList" aria-live="polite"></div></section>
   </dialog>
   <dialog class="profile-dialog" id="deleteAccountDialog" aria-labelledby="deleteAccountTitle" aria-describedby="deleteAccountNote">
     <div class="profile-dialog-heading"><div><div class="panel-kicker">SUPPRESSION DU COMPTE</div><h2 id="deleteAccountTitle">Supprimer mon compte citoyen</h2></div><button class="profile-dialog-close" id="closeDeleteAccount" type="button" aria-label="Fermer">×</button></div>
@@ -222,8 +243,8 @@
   <script src="nova-terra.js"></script>
   <script src="auth.js"></script>
   <script src="city-data.js"></script>
-  <script src="app.js"></script>
-  <script src="community.js"></script>
+  <script src="app.js?v=community-support-1"></script>
+  <script src="community.js?v=community-participation-1"></script>
   <script src="appointments.js"></script>
   <script src="assistant.js"></script>
   <script src="accessibility.js"></script>

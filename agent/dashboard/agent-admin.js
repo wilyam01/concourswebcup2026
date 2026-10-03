@@ -5,6 +5,12 @@
   const accountHost = document.querySelector('#managedAccounts');
   const announcementHost = document.querySelector('#managedAnnouncements');
   const auditCard = document.querySelector('#auditTrailCard');
+  const privacyCard = document.querySelector('#privacyRequestsCard');
+  const privacyHost = document.querySelector('#privacyRequestsList');
+  const privacyFeedback = document.querySelector('#privacyRequestsFeedback');
+  const activityCard = document.querySelector('#activitySummaryCard');
+  const activityHost = document.querySelector('#activitySummaryList');
+  const activityFeedback = document.querySelector('#activitySummaryFeedback');
   const auditHost = document.querySelector('#auditLogList');
   const auditFeedback = document.querySelector('#auditFeedback');
   const auditCategory = document.querySelector('#auditCategory');
@@ -40,18 +46,38 @@
     return node;
   }
 
-  function updateManagementCopy() {
+  function updatePrivacyCopy() {
     const english = document.documentElement.lang === 'en';
+    privacyCard.hidden = user.profile !== 'admin';
+    document.querySelector('#privacyRequestsTitle').textContent = english ? 'Privacy requests' : 'Demandes de confidentialit\u00e9';
+    document.querySelector('#privacyRequestsIntro').textContent = english
+      ? 'Administrator-only register. Request details are excluded from the audit log.'
+      : 'Registre r\u00e9serv\u00e9 aux administrateurs. Le contenu des demandes n\u2019est pas inscrit au journal d\u2019audit.';
+  }
+
+  function updateManagementCopy() {
+    updatePrivacyCopy();
+    const english = document.documentElement.lang === 'en';
+    activityCard.hidden = user.profile !== 'admin';
+    document.querySelector('#activitySummaryTitle').textContent = english ? 'Management activity overview' : 'Vue d’activité de la direction';
+    document.querySelector('#activitySummaryIntro').textContent = window.NovaTerraApi?.enabled
+      ? (english ? 'Citywide aggregate indicators. No personal request content is included.' : 'Indicateurs agrégés de la cité, sans contenu personnel.')
+      : (english ? 'Connect the Nova Terra API to load current citywide indicators.' : 'Connecte l’API Nova Terra pour afficher les indicateurs globaux à jour.');
+    if (!window.NovaTerraApi?.enabled && user.profile === 'admin') {
+      activityHost.replaceChildren();
+      activityFeedback.textContent = english ? 'The global overview is available in server mode.' : 'La vue globale est disponible en mode serveur.';
+    }
     if (window.NovaTerraApi?.enabled) {
       document.querySelector('#city-management .section-heading>span').textContent = english ? 'Nova Terra API · synchronized' : 'API Nova Terra · synchronisée';
-      document.querySelector('#city-management .management-card:nth-child(1)>p:not(.kicker)').textContent = english
+      document.querySelector('#announcementForm').closest('.management-card').querySelector(':scope > p:not(.kicker)').textContent = english
         ? 'Residents will see this notice in the alert centre; new announcements also appear in the public news feed.'
         : 'Les habitants verront cette information dans le centre des alertes; les annonces seront aussi publiées dans le fil d’actualités.';
-      document.querySelector('#city-management .management-card:nth-child(2)>p:not(.kicker)').textContent = english
+      document.querySelector('#managedAccounts').closest('.management-card').querySelector(':scope > p:not(.kicker)').textContent = english
         ? 'Suspend or restore resident access. Administrators can also assign agent and administrator roles.'
         : 'Suspends ou rétablis un accès citoyen. Les administrateurs peuvent aussi attribuer les rôles agent et administrateur.';
     }
     if (user.profile === 'admin') {
+      if (!auditCategory.querySelector('option[value="privacy"]')) auditCategory.add(new Option('Confidentialit\u00e9', 'privacy'));
       auditCard.hidden = false;
       auditCard.querySelector('.kicker').textContent = english ? 'F47 · F48 · ACTION TRACE' : 'F47 · F48 · TRACE DES ACTIONS';
       auditCard.querySelector('h3').textContent = english ? 'Security and audit log' : 'Journal de sécurité et d’audit';
@@ -64,13 +90,50 @@
         const labels = english
           ? { '': 'All actions', auth: 'Sign-ins', account: 'Accounts and roles', report: 'Requests', contact: 'Citizen messages', announcement: 'Announcements', service: 'Service status', appointment: 'Appointments', official: 'API sync' }
           : { '': 'Toutes les actions', auth: 'Connexions', account: 'Comptes et rôles', report: 'Demandes', contact: 'Messages citoyens', announcement: 'Annonces', service: 'Statuts des services', appointment: 'Rendez-vous', official: 'Synchronisation API' };
-        option.textContent = labels[option.value];
+        option.textContent = labels[option.value] || (option.value === 'privacy' ? (english ? 'Privacy requests' : 'Confidentialit\u00e9') : '');
       });
       document.querySelector('#refreshAudit').textContent = english ? 'Refresh' : 'Actualiser';
       auditLoadMore.textContent = english ? 'Load more' : 'Charger plus';
       auditCategory.disabled = !window.NovaTerraApi?.enabled;
       document.querySelector('#refreshAudit').disabled = !window.NovaTerraApi?.enabled;
       if (!window.NovaTerraApi?.enabled) auditFeedback.textContent = english ? 'Audit storage is available in server mode.' : 'Le journal d’audit est disponible en mode serveur.';
+    }
+  }
+
+  async function renderActivitySummary() {
+    if (user.profile !== 'admin' || !window.NovaTerraApi?.enabled) return;
+    activityFeedback.textContent = english() ? 'Loading citywide indicators…' : 'Chargement des indicateurs globaux…';
+    try {
+      const result = await window.NovaTerraApi.request('/activity-summary');
+      const summary = result.summary;
+      if (!summary?.users || !summary?.requests) throw new Error('invalid_activity_summary');
+      const values = english()
+        ? [
+          ['Registered accounts', summary.users.total], ['Active citizens', summary.users.citizens],
+          ['Active agents', summary.users.agents], ['Reports recorded', summary.requests.total],
+          ['Resolved reports', summary.requests.resolved], ['Reports in 7 days', summary.requests.submittedLast7Days],
+          ['Upcoming appointments', summary.upcomingAppointments], ['Unread contact messages', summary.unreadMessages],
+          ['Open privacy requests', summary.pendingPrivacyRequests], ['Active announcements', summary.activeAnnouncements],
+          ['Audit events · 7 days', summary.actionsLast7Days],
+        ]
+        : [
+          ['Comptes enregistrés', summary.users.total], ['Citoyens actifs', summary.users.citizens],
+          ['Agents actifs', summary.users.agents], ['Signalements enregistrés', summary.requests.total],
+          ['Signalements résolus', summary.requests.resolved], ['Signalements · 7 jours', summary.requests.submittedLast7Days],
+          ['Rendez-vous à venir', summary.upcomingAppointments], ['Messages de contact non lus', summary.unreadMessages],
+          ['Demandes RGPD ouvertes', summary.pendingPrivacyRequests], ['Annonces actives', summary.activeAnnouncements],
+          ['Actions auditées · 7 jours', summary.actionsLast7Days],
+        ];
+      activityHost.replaceChildren(...values.map(([label, value]) => {
+        const item = element('div', 'activity-summary-item');
+        item.append(element('dt', '', label), element('dd', '', new Intl.NumberFormat(english() ? 'en' : 'fr').format(Number(value) || 0)));
+        return item;
+      }));
+      activityFeedback.textContent = english()
+        ? `Updated ${new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(summary.generatedAt))}`
+        : `Mis à jour · ${new Intl.DateTimeFormat('fr', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(summary.generatedAt))}`;
+    } catch (_) {
+      activityFeedback.textContent = english() ? 'The global activity summary could not be loaded.' : 'La synthèse d’activité globale n’a pas pu être chargée.';
     }
   }
 
@@ -192,6 +255,8 @@
         'appointment.completed': 'Rendez-vous terminé', 'appointment.reminder_marked': 'Rappel de rendez-vous noté',
         'appointment.agent_bookings_cancelled': 'Rendez-vous de l’agent annulés', 'official_requests.sync_completed': 'Demandes officielles synchronisées',
       };
+    if (event.action === 'privacy_request.created') return english() ? 'Privacy request submitted' : 'Demande de confidentialit\u00e9 envoy\u00e9e';
+    if (event.action === 'privacy_request.updated') return english() ? 'Privacy request processed' : 'Demande de confidentialit\u00e9 trait\u00e9e';
     if (event.action === 'official_requests.feed_changed') return english() ? 'Official request feed changed' : 'Flux des demandes officielles mis à jour';
     return labels[event.action] || event.summary || event.action;
   }
@@ -240,6 +305,87 @@
       auditFeedback.textContent = english() ? 'Audit history could not be loaded.' : 'Le journal d’audit n’a pas pu être chargé.';
     } finally {
       auditLoading = false;
+    }
+  }
+
+  const privacyTypeLabels = () => english()
+    ? { access: 'Access my data', copy: 'Receive a data copy', rectification: 'Correct my data', restriction: 'Limit data use', opposition: 'Object to data use' }
+    : { access: 'Acc\u00e8s aux donn\u00e9es', copy: 'Copie des donn\u00e9es', rectification: 'Rectification', restriction: 'Limitation', opposition: 'Opposition' };
+  const privacyStatusLabels = () => english()
+    ? { received: 'Received', in_review: 'Under review', completed: 'Completed', declined: 'Declined' }
+    : { received: 'Re\u00e7ue', in_review: 'En cours d\u2019examen', completed: 'Trait\u00e9e', declined: 'Refus\u00e9e' };
+
+  async function renderPrivacyRequests() {
+    if (user.profile !== 'admin') return;
+    if (!window.NovaTerraApi?.enabled) {
+      privacyHost.textContent = english()
+        ? 'Connect the city API to receive and process privacy requests.'
+        : 'Connecte l\u2019API municipale pour recevoir et traiter les demandes de confidentialit\u00e9.';
+      return;
+    }
+    privacyFeedback.textContent = english() ? 'Loading privacy requests...' : 'Chargement des demandes de confidentialit\u00e9...';
+    try {
+      const result = await window.NovaTerraApi.request('/privacy-requests');
+      if (!Array.isArray(result.requests)) throw new Error('invalid_privacy_request_response');
+      if (!result.requests.length) {
+        privacyHost.replaceChildren(element('p', 'appointment-empty', english() ? 'No privacy requests to process.' : 'Aucune demande de confidentialit\u00e9 \u00e0 traiter.'));
+        privacyFeedback.textContent = '';
+        return;
+      }
+      privacyHost.replaceChildren(...result.requests.map((request) => {
+        const card = element('article', 'privacy-admin-entry');
+        const heading = element('div', 'privacy-admin-heading');
+        heading.append(element('b', '', `${privacyTypeLabels()[request.requestType] || request.requestType} \u00b7 ${request.id}`));
+        heading.append(element('span', '', privacyStatusLabels()[request.status] || request.status));
+        const person = element('small', 'privacy-admin-person', `${request.requesterName || (english() ? 'Deleted account' : 'Compte supprim\u00e9')}${request.requesterEmail ? ` \u00b7 ${request.requesterEmail}` : ''}`);
+        const details = element('p', 'privacy-admin-details', request.details || (english() ? 'No additional details.' : 'Aucune pr\u00e9cision suppl\u00e9mentaire.'));
+        const date = element('time', 'privacy-admin-date', new Intl.DateTimeFormat(english() ? 'en' : 'fr', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(request.createdAt)));
+        date.dateTime = request.createdAt;
+        const form = document.createElement('form');
+        form.className = 'privacy-admin-form';
+        const statusLabel = element('label', '', english() ? 'Status' : 'Statut');
+        const statusSelect = document.createElement('select');
+        statusSelect.setAttribute('aria-label', english() ? `Status for ${request.id}` : `Statut de ${request.id}`);
+        Object.entries(privacyStatusLabels()).forEach(([value, label]) => statusSelect.add(new Option(label, value)));
+        statusSelect.value = request.status;
+        statusLabel.append(statusSelect);
+        const responseLabel = element('label', '', english() ? 'Response to citizen' : 'R\u00e9ponse au citoyen');
+        const responseInput = document.createElement('textarea');
+        responseInput.maxLength = 600;
+        responseInput.rows = 2;
+        responseInput.value = request.responseNote || '';
+        responseInput.setAttribute('aria-label', english() ? `Response to ${request.id}` : `R\u00e9ponse pour ${request.id}`);
+        responseLabel.append(responseInput);
+        const save = element('button', '', english() ? 'Save update' : 'Enregistrer le suivi');
+        save.type = 'submit';
+        form.append(statusLabel, responseLabel, save);
+        form.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          save.disabled = true;
+          try {
+            await window.NovaTerraApi.request(`/privacy-requests/${encodeURIComponent(request.id)}`, {
+              method: 'PATCH', body: JSON.stringify({ status: statusSelect.value, responseNote: responseInput.value }),
+            });
+            auditCursor = null;
+            auditEvents = [];
+            await renderPrivacyRequests();
+            privacyFeedback.textContent = english() ? 'Privacy request updated.' : 'Demande de confidentialit\u00e9 mise \u00e0 jour.';
+            renderAuditLogs();
+          } catch (error) {
+            privacyFeedback.textContent = error.message === 'PRIVACY_RESPONSE_REQUIRED'
+              ? (english() ? 'Add a response before closing a request.' : 'Ajoute une r\u00e9ponse avant de cl\u00f4turer la demande.')
+              : (english() ? 'The privacy request could not be updated.' : 'La demande de confidentialit\u00e9 n\u2019a pas pu \u00eatre mise \u00e0 jour.');
+            save.disabled = false;
+          }
+        });
+        card.append(heading, person, details, date);
+        if (request.responseNote) card.append(element('p', 'privacy-admin-previous-response', `${english() ? 'Current response' : 'R\u00e9ponse actuelle'}: ${request.responseNote}`));
+        card.append(form);
+        return card;
+      }));
+      privacyFeedback.textContent = '';
+    } catch (_) {
+      privacyFeedback.textContent = english() ? 'Privacy requests could not be loaded.' : 'Les demandes de confidentialit\u00e9 n\u2019ont pas pu \u00eatre charg\u00e9es.';
     }
   }
 
@@ -318,8 +464,10 @@
   });
   window.addEventListener('nova:language-change', () => {
     updateManagementCopy();
+    renderActivitySummary();
     renderAccounts();
     renderAnnouncements();
+    renderPrivacyRequests();
     renderAuditRows();
     renderAuditLogs();
     kindSelect.dispatchEvent(new Event('change'));
@@ -328,11 +476,19 @@
     if (!document.hidden && window.NovaTerraApi?.enabled) {
       renderAnnouncements();
       renderAccounts();
+      if (user.profile === 'admin') {
+        renderPrivacyRequests();
+        renderActivitySummary();
+      }
       renderAuditLogs();
     }
   }, 60_000);
   updateManagementCopy();
   renderAnnouncements();
   renderAccounts();
+  if (user.profile === 'admin') {
+    renderPrivacyRequests();
+    renderActivitySummary();
+  }
   renderAuditLogs();
 })();

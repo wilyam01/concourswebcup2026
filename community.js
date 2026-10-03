@@ -55,8 +55,8 @@
 
   function localized(kind) {
     const labels = english()
-      ? { general: 'PRIORITY MESSAGE', news: 'CITY ANNOUNCEMENT', flood: 'FLOOD WARNING', health: 'HEALTH ALERT', service_status: 'SERVICE STATUS' }
-      : { general: 'MESSAGE PRIORITAIRE', news: 'ANNONCE MUNICIPALE', flood: 'ALERTE INONDATION', health: 'ALERTE SANITAIRE', service_status: 'ÉTAT DU SERVICE' };
+      ? { general: 'PRIORITY MESSAGE', news: 'CITY ANNOUNCEMENT', flood: 'FLOOD WARNING', health: 'HEALTH ALERT', service_status: 'SERVICE STATUS', request_status: 'REQUEST UPDATE' }
+      : { general: 'MESSAGE PRIORITAIRE', news: 'ANNONCE MUNICIPALE', flood: 'ALERTE INONDATION', health: 'ALERTE SANITAIRE', service_status: 'ÉTAT DU SERVICE', request_status: 'MISE À JOUR DE DEMANDE' };
     return labels[kind] || labels.general;
   }
 
@@ -84,6 +84,26 @@
 
   async function announcementItems() {
     return window.NovaTerraCity.getAnnouncements({ sector });
+  }
+
+  function requestStatusName(status) {
+    const names = english()
+      ? { todo: 'Received', in_progress: 'In progress', done: 'Resolved' }
+      : { todo: 'Reçue', in_progress: 'En cours', done: 'Résolue' };
+    return names[status] || status;
+  }
+
+  async function citizenNotificationItems() {
+    if (!user || user.profile !== 'citizen' || !window.NovaTerraApi?.enabled) return [];
+    const result = await window.NovaTerraApi.request('/notifications');
+    return (Array.isArray(result.notifications) ? result.notifications : []).map((item) => ({
+      id: item.id,
+      kind: 'request_status',
+      title: english() ? `Request ${item.requestId} has changed` : `La demande ${item.requestId} a changé d’état`,
+      body: `${requestStatusName(item.fromStatus)} → ${requestStatusName(item.toStatus)}`,
+      createdAt: item.createdAt,
+      read: item.read,
+    }));
   }
 
   async function renderServiceStates() {
@@ -151,12 +171,13 @@
   }
 
   async function renderInbox() {
-    const items = await announcementItems();
+    const [announcements, notifications] = await Promise.all([announcementItems(), citizenNotificationItems()]);
+    const items = [...announcements, ...notifications].sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt));
     list.replaceChildren(...items.map(makeNotice));
     if (!items.length) {
       const empty = document.createElement('p');
       empty.className = 'community-empty';
-      empty.textContent = english() ? 'There are no current announcements for your area.' : 'Aucune annonce active pour ton secteur.';
+      empty.textContent = english() ? 'There are no new notices or request updates.' : 'Aucune nouvelle annonce ni mise à jour de demande.';
       list.append(empty);
     }
     updateUnread(items);
@@ -244,9 +265,12 @@
     dialog.showModal();
     trigger.setAttribute('aria-expanded', 'true');
     await renderInbox();
-    const items = await announcementItems();
+    const [items, notifications] = await Promise.all([announcementItems(), citizenNotificationItems()]);
     if (window.NovaTerraApi?.enabled && user) {
       try { await window.NovaTerraApi.request('/announcements/read', { method: 'POST', body: JSON.stringify({ ids: items.map((item) => item.id) }) }); } catch (_) { /* The inbox remains readable when receipts cannot sync. */ }
+      if (user.profile === 'citizen' && notifications.length) {
+        try { await window.NovaTerraApi.request('/notifications/read', { method: 'POST', body: JSON.stringify({ ids: notifications.map((item) => item.id) }) }); } catch (_) { /* Status updates remain visible if read receipts cannot sync. */ }
+      }
     } else {
       try { localStorage.setItem(readKey, JSON.stringify([...new Set([...readIds(), ...items.map((item) => item.id)])].slice(-200))); } catch (_) { /* Reading notices does not depend on persistence. */ }
     }

@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="agent.css" />
     <link rel="stylesheet" href="../../theme.css" />
     <link rel="stylesheet" href="../../accessibility.css" />
-    <link rel="stylesheet" href="../../community.css" />
+    <link rel="stylesheet" href="../../community.css?v=community-participation-1" />
   </head>
   <body class="agent-page">
     <a class="skip-link" href="#dashboard">Aller au contenu principal</a>
@@ -45,6 +45,8 @@
       <section class="management-section" id="city-management">
         <div class="section-heading"><div><p class="kicker">INFORMATION &amp; ACCÈS</p><h2>Gestion de la cité</h2></div><span>Enregistrement local · démonstration</span></div>
         <div class="management-grid">
+          <article class="management-card activity-summary-card" id="activitySummaryCard" hidden><p class="kicker">F50 · ACTIVITÉ GLOBALE</p><h3 id="activitySummaryTitle">Vue d’activité de la direction</h3><p id="activitySummaryIntro">Indicateurs agrégés de la cité, sans contenu personnel.</p><dl class="activity-summary-grid" id="activitySummaryList" aria-live="polite"></dl><p class="management-feedback" id="activitySummaryFeedback" role="status" aria-live="polite"></p></article>
+          <article class="management-card privacy-admin-card" id="privacyRequestsCard" hidden><p class="kicker">F51 · DEMANDES DE CONFIDENTIALITÉ</p><h3 id="privacyRequestsTitle">Demandes de confidentialité</h3><p id="privacyRequestsIntro">Registre réservé aux administrateurs. Les détails des demandes ne sont pas inscrits dans le journal d’audit.</p><div id="privacyRequestsList" class="privacy-admin-list" aria-live="polite"></div><p class="management-feedback" id="privacyRequestsFeedback" role="status" aria-live="polite"></p></article>
           <article class="management-card"><p class="kicker">D18 · ALERTES CITOYENNES</p><h3>Diffuser une information</h3><p>Les habitants de ce navigateur la verront dans le bandeau et le centre de notifications.</p>
             <form id="announcementForm" class="management-form">
               <label>Type d’information<select name="kind" id="announcementKind"><option value="general">Message général prioritaire</option><option value="news">Annonce municipale</option><option value="flood">Alerte inondation / crue</option><option value="health">Alerte sanitaire / canicule</option><option value="service_status">Statut d’un service</option></select></label>
@@ -70,9 +72,9 @@
     <script src="../../auth.js"></script>
     <script src="../../city-data.js"></script>
     <script src="agent.js"></script>
-    <script src="../../community.js"></script>
+    <script src="../../community.js?v=community-participation-1"></script>
     <script src="../../appointments.js"></script>
-    <script src="agent-admin.js"></script>
+    <script src="agent-admin.js?v=activity-summary-1"></script>
     <script src="../../assistant.js"></script>
     <script src="../../accessibility.js"></script>
   </body>
