@@ -858,6 +858,10 @@ app.get('/api/audit-logs', authenticate, allowRoles('ADMIN', 'AGENT'), (req, res
 });
 
 app.use((error, req, res, _next) => {
+  if (error instanceof SyntaxError && error.status === 400 && Object.hasOwn(error, 'body')) {
+    logEvent('warn', 'http.request.invalid_json', { requestId: req.requestId, path: req.path });
+    return res.status(400).json({ error: 'INVALID_JSON' });
+  }
   logEvent('error', 'http.request.failed', { requestId: req.requestId, errorType: error?.name || 'Error' });
   res.status(500).json({ error: 'INTERNAL_SERVER_ERROR' });
 });

@@ -81,7 +81,7 @@ Pour synchroniser les demandes officielles, configure aussi `TERRA_NOVA_API_URL`
 
 `npm test` execute le controle de structure et les tests du proxy WebCup avec le runner integre a Node.js ; aucune dependance npm n'est necessaire pour ces tests. Sous Windows PowerShell, si la politique d'execution bloque `npm.ps1`, utiliser `npm.cmd test`. Ces tests ne remplacent pas encore une suite de tests navigateur automatisee.
 
-Le rôle Fullstack / logique métier / présentation, le déroulé de démonstration, le pitch, les scénarios de secours et les commandes de vérification et de déploiement sont détaillés dans [docs/demo-pitch.md](docs/demo-pitch.md).
+Le rôle Fullstack / logique métier / présentation, le MVP, les responsabilités d’intégration, les commandes de vérification et le déploiement sont détaillés dans [docs/personne-3-runbook.md](docs/personne-3-runbook.md). Le déroulé de démonstration, le pitch et les scénarios de secours sont dans [docs/demo-pitch.md](docs/demo-pitch.md).
 
 ## Connexion sécurisée et exports personnels
 

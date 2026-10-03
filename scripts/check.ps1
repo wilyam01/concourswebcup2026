@@ -9,6 +9,7 @@ $requiredFiles = @(
   "api/requests.js",
   "docs/webcup-api.md",
   "docs/demo-pitch.md",
+  "docs/personne-3-runbook.md",
   "presentation.html",
   "presentation.css",
   "presentation-a11y.css",
@@ -32,6 +33,18 @@ foreach ($sourceFile in $sourceFiles) {
   $content = Get-Content -LiteralPath $sourceFile.FullName -Raw
   if ($content -match $mergeMarkerPattern) {
     throw "Marqueur de conflit Git detecte : $($sourceFile.FullName)"
+  }
+}
+
+$node = Get-Command node -ErrorAction SilentlyContinue
+if ($node) {
+  $javaScriptFiles = Get-ChildItem -LiteralPath $projectRoot -Recurse -File -Filter *.js |
+    Where-Object { $_.FullName -notmatch '[\\/](node_modules|concourswebcup2026-main)[\\/]' }
+  foreach ($javaScriptFile in $javaScriptFiles) {
+    & $node.Source --check $javaScriptFile.FullName
+    if ($LASTEXITCODE -ne 0) {
+      throw "Syntaxe JavaScript invalide : $($javaScriptFile.FullName)"
+    }
   }
 }
 
