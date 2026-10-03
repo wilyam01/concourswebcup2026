@@ -158,7 +158,8 @@ document.querySelectorAll("#priority-filter, #status-filter, #type-filter").forE
 document.querySelector("#refresh-data").addEventListener("click", loadDashboard);
 window.addEventListener("online", loadDashboard);
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && Date.now() - lastSuccessfulSyncAt >= 60_000) loadDashboard();
+  const staleAfter = window.NovaTerraEco.isLowBandwidth() ? 300_000 : 60_000;
+  if (!document.hidden && Date.now() - lastSuccessfulSyncAt >= staleAfter) loadDashboard();
 });
 document.querySelector("#clear-filters").addEventListener("click", () => {
   document.querySelector("#request-search").value = "";
@@ -195,9 +196,7 @@ renderTypeOptions();
 render();
 loadDashboard();
 if (!window.NovaTerra.usingDemoData()) {
-  window.setInterval(() => {
-    if (!document.hidden) loadDashboard();
-  }, 60_000);
+  window.NovaTerraEco.schedulePolling(loadDashboard);
 }
 document.querySelector('#agentLogout').addEventListener('click', () => {
   window.NovaTerraAuth.signOut();

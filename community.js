@@ -119,30 +119,78 @@
     }));
   }
 
-  async function renderServiceStates() {
-    const statuses = await window.NovaTerraCity.getServiceStatuses();
+  function serviceStatusNotice() {
+    let notice = document.querySelector('#serviceStatusUpdated');
+    if (!notice) {
+      notice = document.createElement('p');
+      notice.id = 'serviceStatusUpdated';
+      notice.className = 'service-status-updated';
+      notice.setAttribute('role', 'status');
+      notice.setAttribute('aria-live', 'polite');
+      document.querySelector('.service-tools')?.insertAdjacentElement('afterend', notice);
+    }
+    return notice;
+  }
+
+  function renderServiceStatesUnavailable() {
     document.querySelectorAll('.service-card[data-service-id]').forEach((card) => {
       let badge = card.querySelector('.service-live-state');
-      const status = statuses[card.dataset.serviceId];
-      if (!status) {
-        badge?.remove();
-        return;
-      }
       if (!badge) {
         badge = document.createElement('span');
         badge.className = 'service-live-state';
         card.querySelector('.service-info')?.insertAdjacentElement('afterend', badge);
       }
-      badge.classList.toggle('unavailable', status.serviceStatus === 'unavailable');
-      badge.classList.toggle('operational', status.serviceStatus === 'operational');
-      const stateLabel = status.serviceStatus === 'unavailable'
-        ? (english() ? 'Unavailable' : 'Indisponible')
-        : status.serviceStatus === 'maintenance'
-          ? (english() ? 'Maintenance' : 'En maintenance')
-          : (english() ? 'Available' : 'Disponible');
-      badge.textContent = `${status.serviceStatus === 'unavailable' ? '●' : status.serviceStatus === 'maintenance' ? '◷' : '✓'} ${stateLabel}`;
-      badge.title = status.title;
+      badge.classList.remove('unavailable', 'operational');
+      badge.classList.add('unknown');
+      badge.textContent = english() ? 'Status check failed' : 'Vérification indisponible';
+      badge.removeAttribute('title');
     });
+    serviceStatusNotice().textContent = english()
+      ? 'Live service status could not be checked. Contact the city before starting an urgent request.'
+      : 'Impossible de vérifier les services en direct. Contacte la mairie avant une démarche urgente.';
+  }
+
+  async function renderServiceStates() {
+    try {
+      const statuses = await window.NovaTerraCity.getServiceStatuses();
+      document.querySelectorAll('.service-card[data-service-id]').forEach((card) => {
+        let badge = card.querySelector('.service-live-state');
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'service-live-state';
+          card.querySelector('.service-info')?.insertAdjacentElement('afterend', badge);
+        }
+        const status = statuses[card.dataset.serviceId];
+        badge.classList.remove('unknown', 'unavailable', 'operational');
+        if (!status) {
+          badge.classList.add('unknown');
+          badge.textContent = english() ? 'Status not reported' : 'Statut non communiqué';
+          badge.removeAttribute('title');
+          return;
+        }
+        if (!['operational', 'maintenance', 'unavailable'].includes(status.serviceStatus)) {
+          badge.classList.add('unknown');
+          badge.textContent = english() ? 'Status not recognized' : 'Statut non reconnu';
+          badge.removeAttribute('title');
+          return;
+        }
+        badge.classList.toggle('unavailable', status.serviceStatus === 'unavailable');
+        badge.classList.toggle('operational', status.serviceStatus === 'operational');
+        const stateLabel = status.serviceStatus === 'unavailable'
+          ? (english() ? 'Unavailable' : 'Indisponible')
+          : status.serviceStatus === 'maintenance'
+            ? (english() ? 'Maintenance' : 'Maintenance')
+            : (english() ? 'Available' : 'Disponible');
+        badge.textContent = `${status.serviceStatus === 'unavailable' ? '●' : status.serviceStatus === 'maintenance' ? '◷' : '✓'} ${stateLabel}`;
+        badge.title = status.title || stateLabel;
+      });
+      const checkedAt = new Intl.DateTimeFormat(english() ? 'en' : 'fr', { timeStyle: 'short' }).format(new Date());
+      serviceStatusNotice().textContent = window.NovaTerraApi?.enabled
+        ? (english() ? `Service status checked at ${checkedAt}.` : `Statuts des services vérifiés à ${checkedAt}.`)
+        : (english() ? `Demo statuses checked at ${checkedAt}; live city status is not connected.` : `États de démonstration consultés à ${checkedAt} ; le statut municipal en direct n’est pas connecté.`);
+    } catch (_) {
+      renderServiceStatesUnavailable();
+    }
   }
 
   function updateUnread(items) {
@@ -303,6 +351,6 @@
     if (event.key === window.NovaTerraCity.announcementStorageKey) refresh();
   });
   window.addEventListener('nova:language-change', refresh);
-  window.setInterval(() => { if (!document.hidden) refresh(); }, 60_000);
+  window.NovaTerraEco.schedulePolling(refresh);
   refresh();
 })();

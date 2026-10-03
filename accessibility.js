@@ -22,6 +22,8 @@
     <label class="a11y-contrast-setting" for="highContrast"><span><b>Contraste élevé</b><small>Renforce les contours et la lisibilité.</small></span><input id="highContrast" type="checkbox" /></label>
     <label class="a11y-setting a11y-color-setting" for="colorVisionMode"><span><b>Palette de couleurs</b><small>Choisis des repères mieux différenciés pour le daltonisme.</small></span><select id="colorVisionMode"><option value="normal">Standard</option><option value="safe">Daltonisme · contrastée</option></select></label>
     <label class="a11y-contrast-setting" for="simplifiedInterface"><span><b>Interface simplifiée</b><small>Allège les décors et facilite le repérage.</small></span><input id="simplifiedInterface" type="checkbox" /></label>
+    <label class="a11y-setting" for="lowBandwidthMode"><span><b>Mode connexion lente</b><small>Réduit les effets visuels et espace les vérifications. Le réseau peut l’activer automatiquement.</small></span><select id="lowBandwidthMode"><option value="auto">Automatique</option><option value="on">Activé</option><option value="off">Désactivé</option></select></label>
+    <section class="eco-impact" aria-labelledby="ecoImpactTitle"><h3 id="ecoImpactTitle">F57 · Bilan environnemental</h3><p id="ecoImpactMeasurement" role="status" aria-live="polite">Mesure du transfert de cette page…</p><small id="ecoImpactMethod">Mesure partielle du navigateur; cache et ressources tierces peuvent être exclus. Ce n’est pas une estimation d’énergie ou de CO₂.</small></section>
     <fieldset class="a11y-size-setting"><legend>Taille du texte</legend><div role="group" aria-label="Taille du texte"><button type="button" data-text-size="normal" aria-pressed="false">A</button><button type="button" data-text-size="large" aria-pressed="false">A+</button><button type="button" data-text-size="largest" aria-pressed="false">A++</button></div></fieldset>
     <button class="a11y-glossary-button" type="button" id="openGlossary">Ouvrir le glossaire facile à lire</button>
   `;
@@ -52,6 +54,8 @@
   const contrastToggle = dialog.querySelector('#highContrast');
   const colorVisionSelect = dialog.querySelector('#colorVisionMode');
   const simplifiedToggle = dialog.querySelector('#simplifiedInterface');
+  const lowBandwidthSelect = dialog.querySelector('#lowBandwidthMode');
+  const ecoImpactMeasurement = dialog.querySelector('#ecoImpactMeasurement');
   const glossaryButton = dialog.querySelector('#openGlossary');
   let colorVision = safeRead(storageKeys.colorVision, 'normal');
   let simplified = safeRead(storageKeys.simplified, 'off') === 'on';
@@ -374,8 +378,8 @@
       });
     }
     const labels = language === 'en'
-      ? { title: 'Language and accessibility', kicker: 'NOVA TERRA · READING COMFORT', language: 'Interface language', languageHint: 'Choose the language for controls and navigation.', contrast: 'High contrast', contrastHint: 'Strengthen outlines and improve readability.', size: 'Text size', close: 'Close preferences', launcher: 'Open language and accessibility preferences', colors: 'Colour palette', colorsHint: 'Choose clearer colour cues for colour vision deficiency.', colorOptionNormal: 'Standard', colorOptionSafe: 'Colour vision friendly', simple: 'Simplified interface', simpleHint: 'Reduce decoration and make content easier to scan.', glossary: 'Open the plain language glossary', glossaryTitle: 'Quick glossary', glossaryKicker: 'NOVA TERRA · PLAIN LANGUAGE', glossaryClose: 'Close glossary' }
-      : { title: 'Langue et accessibilité', kicker: 'NOVA TERRA · CONFORT DE LECTURE', language: 'Langue de l’interface', languageHint: 'Choisis la langue des commandes et repères.', contrast: 'Contraste élevé', contrastHint: 'Renforce les contours et la lisibilité.', size: 'Taille du texte', close: 'Fermer les préférences', launcher: 'Ouvrir les préférences de langue et d’accessibilité', colors: 'Palette de couleurs', colorsHint: 'Choisis des repères mieux différenciés pour le daltonisme.', colorOptionNormal: 'Standard', colorOptionSafe: 'Palette adaptée', simple: 'Interface simplifiée', simpleHint: 'Allège les décors et facilite le repérage.', glossary: 'Ouvrir le glossaire facile à lire', glossaryTitle: 'Petit glossaire', glossaryKicker: 'NOVA TERRA · MOTS SIMPLES', glossaryClose: 'Fermer le glossaire' };
+      ? { title: 'Language and accessibility', kicker: 'NOVA TERRA · READING COMFORT', language: 'Interface language', languageHint: 'Choose the language for controls and navigation.', contrast: 'High contrast', contrastHint: 'Strengthen outlines and improve readability.', size: 'Text size', close: 'Close preferences', launcher: 'Open language and accessibility preferences', colors: 'Colour palette', colorsHint: 'Choose clearer colour cues for colour vision deficiency.', colorOptionNormal: 'Standard', colorOptionSafe: 'Colour vision friendly', simple: 'Simplified interface', simpleHint: 'Reduce decoration and make content easier to scan.', lowBandwidth: 'Low-bandwidth mode', lowBandwidthHint: 'Reduce visual effects and space out checks. The network can enable it automatically.', lowAuto: 'Automatic', lowOn: 'Enabled', lowOff: 'Disabled', ecoTitle: 'F57 · Environmental report', ecoMethod: 'Partial browser measurement; cached and third-party resources may be excluded. This is not an estimate of energy use or CO₂.', glossary: 'Open the plain language glossary', glossaryTitle: 'Quick glossary', glossaryKicker: 'NOVA TERRA · PLAIN LANGUAGE', glossaryClose: 'Close glossary' }
+      : { title: 'Langue et accessibilité', kicker: 'NOVA TERRA · CONFORT DE LECTURE', language: 'Langue de l’interface', languageHint: 'Choisis la langue des commandes et repères.', contrast: 'Contraste élevé', contrastHint: 'Renforce les contours et la lisibilité.', size: 'Taille du texte', close: 'Fermer les préférences', launcher: 'Ouvrir les préférences de langue et d’accessibilité', colors: 'Palette de couleurs', colorsHint: 'Choisis des repères mieux différenciés pour le daltonisme.', colorOptionNormal: 'Standard', colorOptionSafe: 'Palette adaptée', simple: 'Interface simplifiée', simpleHint: 'Allège les décors et facilite le repérage.', lowBandwidth: 'Mode connexion lente', lowBandwidthHint: 'Réduit les effets visuels et espace les vérifications. Le réseau peut l’activer automatiquement.', lowAuto: 'Automatique', lowOn: 'Activé', lowOff: 'Désactivé', ecoTitle: 'F57 · Bilan environnemental', ecoMethod: 'Mesure partielle du navigateur; cache et ressources tierces peuvent être exclus. Ce n’est pas une estimation d’énergie ou de CO₂.', glossary: 'Ouvrir le glossaire facile à lire', glossaryTitle: 'Petit glossaire', glossaryKicker: 'NOVA TERRA · MOTS SIMPLES', glossaryClose: 'Fermer le glossaire' };
     dialog.querySelector('#a11yTitle').textContent = labels.title;
     dialog.querySelector('.a11y-kicker').textContent = labels.kicker;
     dialog.querySelector('.a11y-setting b').textContent = labels.language;
@@ -388,12 +392,20 @@
     colorVisionSelect.options[1].textContent = labels.colorOptionSafe;
     dialog.querySelector('label[for="simplifiedInterface"] b').textContent = labels.simple;
     dialog.querySelector('label[for="simplifiedInterface"] small').textContent = labels.simpleHint;
+    dialog.querySelector('label[for="lowBandwidthMode"] b').textContent = labels.lowBandwidth;
+    dialog.querySelector('label[for="lowBandwidthMode"] small').textContent = labels.lowBandwidthHint;
+    lowBandwidthSelect.options[0].textContent = labels.lowAuto;
+    lowBandwidthSelect.options[1].textContent = labels.lowOn;
+    lowBandwidthSelect.options[2].textContent = labels.lowOff;
+    dialog.querySelector('#ecoImpactTitle').textContent = labels.ecoTitle;
+    dialog.querySelector('#ecoImpactMethod').textContent = labels.ecoMethod;
     dialog.querySelector('.a11y-size-setting legend').textContent = labels.size;
     glossaryButton.textContent = labels.glossary;
     glossary.querySelector('#glossaryTitle').textContent = labels.glossaryTitle;
     glossary.querySelector('#glossaryKicker').textContent = labels.glossaryKicker;
     glossary.querySelector('#closeGlossary').setAttribute('aria-label', labels.glossaryClose);
     renderGlossary();
+    refreshEcoReport();
     closeButton.setAttribute('aria-label', labels.close);
     launcher.setAttribute('aria-label', labels.launcher);
     window.dispatchEvent(new Event('nova:language-change'));
@@ -483,6 +495,27 @@
     simplifiedToggle.checked = simplified;
   }
 
+  function refreshEcoReport() {
+    if (!window.NovaTerraEco) return;
+    lowBandwidthSelect.value = window.NovaTerraEco.getPreference();
+    const report = window.NovaTerraEco.measureTransfer();
+    const megabytes = (report.bytes / 1_000_000).toLocaleString(language === 'en' ? 'en' : 'fr', {
+      maximumFractionDigits: 2,
+    });
+    const measuredResources = language === 'en'
+      ? `${report.measuredCount} measured resource${report.measuredCount === 1 ? '' : 's'}`
+      : `${report.measuredCount} ressource${report.measuredCount === 1 ? '' : 's'} mesurée${report.measuredCount === 1 ? '' : 's'}`;
+    const externalResources = language === 'en'
+      ? `${report.externalResources} third-party resource${report.externalResources === 1 ? '' : 's'}`
+      : `${report.externalResources} ressource${report.externalResources === 1 ? '' : 's'} tierce${report.externalResources === 1 ? '' : 's'}`;
+    const mediaCount = language === 'en'
+      ? `${report.mediaCount} images/videos`
+      : `${report.mediaCount} image(s)/vidéo(s)`;
+    ecoImpactMeasurement.textContent = language === 'en'
+      ? `Observed transfer: ${megabytes} MB from this site (${measuredResources}); ${mediaCount} on this page. ${externalResources} are not included.`
+      : `Transfert observé : ${megabytes} Mo depuis ce site (${measuredResources}) ; ${mediaCount} sur cette page. ${externalResources} ne sont pas incluses.`;
+  }
+
   function renderGlossary() {
     const terms = language === 'en'
       ? [['City request', 'A message asking the city to help or fix something.'], ['Incident report', 'A report about a problem in a street or neighbourhood.'], ['City service', 'A team or service provided by the municipality.'], ['District', 'A named area of the city.'], ['High Council', 'The city team that reviews priorities and decisions.'], ['Alert', 'Important information that may need quick attention.']]
@@ -497,7 +530,10 @@
     }));
   }
 
-  launcher.addEventListener('click', () => dialog.showModal());
+  launcher.addEventListener('click', () => {
+    refreshEcoReport();
+    dialog.showModal();
+  });
   closeButton.addEventListener('click', () => dialog.close());
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) dialog.close();
@@ -527,6 +563,11 @@
     safeWrite(storageKeys.simplified, simplified ? 'on' : 'off');
     applySimplified();
   });
+  lowBandwidthSelect.addEventListener('change', () => {
+    window.NovaTerraEco?.setPreference(lowBandwidthSelect.value);
+    refreshEcoReport();
+  });
+  window.addEventListener('nova:eco-mode-change', refreshEcoReport);
   dialog.querySelectorAll('[data-text-size]').forEach((button) => {
     button.addEventListener('click', () => {
       textSize = button.dataset.textSize;
@@ -540,6 +581,7 @@
   applyTextSize();
   applyColorVision();
   applySimplified();
+  refreshEcoReport();
   window.addEventListener('nova:profile-change', () => {
     if (page === 'login') applyLoginLanguage();
   });

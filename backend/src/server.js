@@ -556,10 +556,17 @@ app.post('/api/announcements', authenticate, allowRoles('AGENT', 'ADMIN'), (req,
   if (!kinds.has(kind) || !title || !body) return res.status(400).json({ error: 'INVALID_TEXT' });
   if (expiresAt && (Number.isNaN(expiresAt.getTime()) || expiresAt <= new Date())) return res.status(400).json({ error: 'INVALID_EXPIRY' });
   if (kind === 'service_status' && (!services.has(service) || !states.has(serviceStatus))) return res.status(400).json({ error: 'INVALID_SERVICE_STATUS' });
+  if (kind === 'service_status' && serviceStatus === 'unavailable' && req.user.role !== 'ADMIN') {
+    return res.status(403).json({ error: 'ADMIN_REQUIRED_FOR_KILL_SWITCH' });
+  }
   const announcementId = id('INFO'), createdAt = isoNow();
   const publish = db.transaction(() => {
     if (kind === 'service_status') {
-      const previous = db.prepare("SELECT service_status FROM announcements WHERE kind='service_status' AND service=? AND active=1 ORDER BY created_at DESC LIMIT 1").get(service);
+      const previous = db.prepare(`SELECT service_status FROM announcements WHERE kind='service_status' AND service=? AND active=1
+        AND (expires_at IS NULL OR expires_at>?) ORDER BY created_at DESC LIMIT 1`).get(service, isoNow());
+      if (previous?.service_status === 'unavailable' && serviceStatus !== 'unavailable' && req.user.role !== 'ADMIN') {
+        throw new Error('ADMIN_REQUIRED_FOR_KILL_SWITCH');
+      }
       db.prepare("UPDATE announcements SET active=0 WHERE kind='service_status' AND service=?").run(service);
       recordAudit(req, { action: 'service.status_changed', entityType: 'service', entityId: service, summary: 'Municipal service status changed', metadata: { from: previous?.service_status || 'unknown', to: serviceStatus } });
     } else {
@@ -568,12 +575,19 @@ app.post('/api/announcements', authenticate, allowRoles('AGENT', 'ADMIN'), (req,
     db.prepare(`INSERT INTO announcements(id,kind,title,body,target_sector,service,service_status,author_id,created_at,expires_at)
       VALUES(?,?,?,?,?,?,?,?,?,?)`).run(announcementId, kind, title, body, kind === 'service_status' ? '' : targetSector, kind === 'service_status' ? service : '', kind === 'service_status' ? serviceStatus : '', req.user.id, createdAt, expiresAt?.toISOString() || null);
   });
-  publish();
+  try { publish(); }
+  catch (error) {
+    if (error.message === 'ADMIN_REQUIRED_FOR_KILL_SWITCH') return res.status(403).json({ error: error.message });
+    throw error;
+  }
   res.status(201).json({ announcement: { id: announcementId, kind, title, body, targetSector: kind === 'service_status' ? '' : targetSector, service: kind === 'service_status' ? service : '', serviceStatus: kind === 'service_status' ? serviceStatus : '', createdAt, expiresAt: expiresAt?.toISOString() || '', active: true } });
 });
 app.patch('/api/announcements/:id/close', authenticate, allowRoles('AGENT', 'ADMIN'), (req, res) => {
   const current = db.prepare('SELECT id,kind,service,service_status FROM announcements WHERE id=? AND active=1').get(req.params.id);
   if (!current) return res.status(404).json({ error: 'ANNOUNCEMENT_NOT_FOUND' });
+  if (current.kind === 'service_status' && current.service_status === 'unavailable' && req.user.role !== 'ADMIN') {
+    return res.status(403).json({ error: 'ADMIN_REQUIRED_FOR_KILL_SWITCH' });
+  }
   db.transaction(() => {
     db.prepare('UPDATE announcements SET active=0 WHERE id=? AND active=1').run(req.params.id);
     recordAudit(req, { action: current.kind === 'service_status' ? 'service.status_closed' : 'announcement.closed', entityType: current.kind === 'service_status' ? 'service' : 'announcement', entityId: current.kind === 'service_status' ? current.service : current.id, summary: current.kind === 'service_status' ? 'Municipal service status cleared' : 'City information closed', metadata: { kind: current.kind, previousStatus: current.service_status } });

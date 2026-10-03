@@ -18,6 +18,11 @@
   const auditLoadMore = document.querySelector('#auditLoadMore');
   const kindSelect = document.querySelector('#announcementKind');
   const serviceFields = document.querySelector('#announcementServiceFields');
+  const killSwitchCard = document.querySelector('#serviceKillSwitchCard');
+  const killSwitchForm = document.querySelector('#serviceKillSwitchForm');
+  const killSwitchService = document.querySelector('#serviceKillSwitchService');
+  const killSwitchReason = document.querySelector('#serviceKillSwitchReason');
+  const killSwitchFeedback = document.querySelector('#serviceKillSwitchFeedback');
   const targetSelect = form.elements.targetSector;
   const bodyInput = form.elements.body;
   let auditCursor = null;
@@ -78,6 +83,23 @@
         : 'Suspends ou rétablis un accès citoyen. Les administrateurs peuvent aussi attribuer les rôles agent et administrateur.';
     }
     const isAdmin = user.profile === 'admin';
+    killSwitchCard.hidden = !isAdmin;
+    const unavailableOption = form.querySelector('#announcementServiceFields [name="serviceStatus"] option[value="unavailable"]');
+    unavailableOption.disabled = !isAdmin;
+    unavailableOption.hidden = !isAdmin;
+    const killSwitchCopy = english()
+      ? { kicker: 'F63 · RAPID SERVICE SHUTDOWN', title: 'Stop an unavailable service', intro: window.NovaTerraApi?.enabled ? 'Administrator-only. This change is published immediately to the citizen site and recorded in the audit log.' : 'Administrator-only demonstration: this status is saved only in this browser.', service: 'Service', reason: 'Reason or instruction (optional)', button: 'Mark unavailable' }
+      : { kicker: 'F63 · INTERRUPTION RAPIDE', title: 'Couper un service indisponible', intro: window.NovaTerraApi?.enabled ? 'Réservé aux administrateurs. La modification est publiée immédiatement sur le site citoyen et journalisée.' : 'Démonstration administrateur : ce statut est enregistré uniquement dans ce navigateur.', service: 'Service', reason: 'Motif ou consigne (facultatif)', button: 'Déclarer indisponible' };
+    killSwitchCard.querySelector('.kicker').textContent = killSwitchCopy.kicker;
+    document.querySelector('#serviceKillSwitchTitle').textContent = killSwitchCopy.title;
+    document.querySelector('#serviceKillSwitchIntro').textContent = killSwitchCopy.intro;
+    killSwitchForm.querySelector('label[for="serviceKillSwitchService"]').firstChild.textContent = `${killSwitchCopy.service}`;
+    document.querySelector('#serviceKillSwitchReasonLabel').firstChild.textContent = `${killSwitchCopy.reason}`;
+    document.querySelector('#serviceKillSwitchButton').textContent = killSwitchCopy.button;
+    Object.entries(serviceLabels()).forEach(([value, label]) => {
+      const option = killSwitchService.querySelector(`option[value="${value}"]`);
+      if (option) option.textContent = label;
+    });
   if (isAdmin && !auditCategory.querySelector('option[value="privacy"]')) auditCategory.add(new Option('Confidentialité', 'privacy'));
     if (isAdmin || user.profile === 'agent') {
       auditCard.hidden = false;
@@ -170,6 +192,10 @@
       copy.append(element('b', '', item.title), element('small', '', `${type}${area}${status} · ${new Intl.DateTimeFormat(english() ? 'en' : 'fr', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(item.createdAt))}`));
       const close = element('button', '', english() ? 'Close' : 'Retirer');
       close.type = 'button';
+      if (item.kind === 'service_status' && item.serviceStatus === 'unavailable' && user.profile !== 'admin') {
+        close.disabled = true;
+        close.title = english() ? 'Only an administrator can restore this service.' : 'Seul un administrateur peut rétablir ce service.';
+      }
       close.addEventListener('click', async () => {
         try {
           await window.NovaTerraCity.closeAnnouncement(item.id);
@@ -452,10 +478,46 @@
       renderAuditLogs();
     } catch (error) {
       const messages = english()
-        ? { invalid_text: 'Add a title and message within the field limits.', invalid_expiry: 'Choose an expiration time in the future.', invalid_service_status: 'Choose a service and its status.' }
-        : { invalid_text: 'Ajoute un titre et un message dans les limites indiquées.', invalid_expiry: 'Choisis une date d’expiration future.', invalid_service_status: 'Choisis un service et son statut.' };
+        ? { invalid_text: 'Add a title and message within the field limits.', invalid_expiry: 'Choose an expiration time in the future.', invalid_service_status: 'Choose a service and its status.', admin_required_for_kill_switch: 'Only an administrator can stop or restore an unavailable service.' }
+        : { invalid_text: 'Ajoute un titre et un message dans les limites indiquées.', invalid_expiry: 'Choisis une date d’expiration future.', invalid_service_status: 'Choisis un service et son statut.', admin_required_for_kill_switch: 'Seul un administrateur peut couper ou rétablir un service indisponible.' };
       feedback.textContent = messages[error.message] || (english() ? 'The information could not be saved in this browser.' : 'L’information n’a pas pu être enregistrée dans ce navigateur.');
       feedback.hidden = false;
+    }
+  });
+  killSwitchForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (user.profile !== 'admin') return;
+    const serviceName = serviceLabels()[killSwitchService.value] || killSwitchService.value;
+    const english = document.documentElement.lang === 'en';
+    const reason = killSwitchReason.value.trim();
+    const button = document.querySelector('#serviceKillSwitchButton');
+    if (!window.confirm(english
+      ? `Mark ${serviceName} unavailable and publish the notice now?`
+      : `Déclarer ${serviceName} indisponible et publier l’information maintenant ?`)) return;
+    button.disabled = true;
+    killSwitchFeedback.textContent = '';
+    try {
+      const item = await window.NovaTerraCity.publishAnnouncement({
+        kind: 'service_status',
+        service: killSwitchService.value,
+        serviceStatus: 'unavailable',
+        title: `${english ? 'Service unavailable' : 'Service indisponible'} · ${serviceName}`,
+        body: reason || (english
+          ? 'This service is temporarily unavailable. Please check the city service status before starting a request.'
+          : 'Ce service est temporairement indisponible. Consulte le statut du service avant d’entamer une démarche.'),
+      });
+      killSwitchFeedback.textContent = english
+        ? `${serviceName} marked unavailable. Notice ${item.id} published.`
+        : `${serviceName} déclaré indisponible. Information ${item.id} publiée.`;
+      killSwitchReason.value = '';
+      await renderAnnouncements();
+      renderAuditLogs();
+    } catch (error) {
+      killSwitchFeedback.textContent = error.message === 'admin_required_for_kill_switch'
+        ? (english ? 'Only an administrator can stop or restore an unavailable service.' : 'Seul un administrateur peut couper ou rétablir un service indisponible.')
+        : (english ? 'The service status could not be changed.' : 'Le statut du service n’a pas pu être modifié.');
+    } finally {
+      button.disabled = false;
     }
   });
 

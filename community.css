@@ -33,6 +33,8 @@
 .service-live-state { display:inline-flex; align-items:center; gap:5px; width:max-content; margin-top:8px; padding:4px 7px; border:1px solid #d7b96c66; border-radius:99px; color:#f2d58e; background:#d7b96c14; font:7px var(--mono,monospace); }
 .service-live-state.unavailable { border-color:#ff718366; color:#ff9daf; background:#ff718315; }
 .service-live-state.operational { border-color:#62dea566; color:#8be0b5; background:#62dea512; }
+.service-live-state.unknown { border-color:#95a3b555; color:#9eabba; background:#95a3b510; }
+.service-status-updated { margin:0 0 12px; color:#8795a7; font-size:9px; line-height:1.5; }
 .service-live-state[hidden] { display:none; }
 .management-section { margin-top:48px; }
 .management-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }

@@ -163,7 +163,7 @@
       }
     });
     renderCitizenAppointments();
-    window.setInterval(renderCitizenAppointments, 60_000);
+    window.NovaTerraEco.schedulePolling(renderCitizenAppointments);
     window.addEventListener('terra-nova:appointments-updated', renderCitizenAppointments);
     window.addEventListener('nova:language-change', () => { updateAppointmentCopy(); renderCitizenAppointments(); });
     window.addEventListener('storage', (event) => {

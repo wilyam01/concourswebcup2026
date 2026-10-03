@@ -5,10 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#17201e" />
     <title>Terra Nova | Espace agent</title>
+    <script src="../../eco-mode.js"></script>
     <script src="../../theme.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="agent.css" />
     <link rel="stylesheet" href="../../theme.css" />
     <link rel="stylesheet" href="../../accessibility.css" />
@@ -59,6 +57,7 @@
             </form>
             <div class="managed-announcements" id="managedAnnouncements" aria-live="polite"></div>
           </article>
+          <article class="management-card service-kill-switch" id="serviceKillSwitchCard" hidden><p class="kicker">F63 · INTERRUPTION RAPIDE</p><h3 id="serviceKillSwitchTitle">Couper un service indisponible</h3><p id="serviceKillSwitchIntro">Réservé aux administrateurs. La modification est publiée immédiatement sur le site citoyen et journalisée.</p><form class="management-form" id="serviceKillSwitchForm"><label for="serviceKillSwitchService">Service<select id="serviceKillSwitchService" name="service" required><option value="water">Eau et environnement</option><option value="health">Santé et bien-être</option><option value="energy">Énergie et habitat</option><option value="mobility">Mobilité</option><option value="civic">Vie citoyenne</option><option value="solidarity">Aide et accompagnement</option><option value="other">Autre service</option></select></label><label for="serviceKillSwitchReason" id="serviceKillSwitchReasonLabel">Motif ou consigne (facultatif)<input id="serviceKillSwitchReason" name="reason" maxlength="500" /></label><button class="refresh-button" id="serviceKillSwitchButton" type="submit">Déclarer indisponible</button></form><p class="management-feedback" id="serviceKillSwitchFeedback" role="status" aria-live="polite"></p></article>
           <article class="management-card"><p class="kicker">F34 · ACCÈS AUX COMPTES</p><h3>Comptes habitants</h3><p>Suspends ou rétablis un accès citoyen. Les mots de passe ne sont jamais affichés.</p><div class="managed-accounts" id="managedAccounts" aria-live="polite"></div><p class="management-feedback" id="accountsFeedback" role="status" aria-live="polite"></p></article>
           <article class="management-card audit-trail-card" id="auditTrailCard" hidden><p class="kicker">F47 · F48 · TRACE DES ACTIONS</p><h3>Journal de sécurité et d’audit</h3><p id="auditIntro">Qui a changé quoi : demandes, accès, annonces, services et rendez-vous.</p><div class="audit-tools"><label for="auditCategory">Filtrer le journal<select id="auditCategory"><option value="">Toutes les actions</option><option value="auth">Connexions</option><option value="account">Comptes et rôles</option><option value="access" hidden>Accès et rôles</option><option value="report">Demandes</option><option value="contact">Messages citoyens</option><option value="announcement">Annonces</option><option value="service">Statuts des services</option><option value="appointment">Rendez-vous</option><option value="official">Synchronisation API</option></select></label><button class="refresh-button" id="refreshAudit" type="button">Actualiser</button></div><div class="audit-log-list" id="auditLogList" role="log" aria-live="polite"></div><button class="refresh-button audit-load-more" id="auditLoadMore" type="button" hidden>Charger plus</button><p class="management-feedback" id="auditFeedback" role="status" aria-live="polite"></p></article>
         </div>

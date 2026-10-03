@@ -547,9 +547,7 @@ window.addEventListener("nova:language-change", () => {
       : 'Cette action supprime définitivement ton compte, tes signalements, messages de contact et rendez-vous du serveur municipal.';
   }
 });
-if (window.NovaTerraApi?.enabled && !personalRequestsPanel.hidden) window.setInterval(() => {
-  if (!document.hidden) renderPersonalRequests();
-}, 60_000);
+if (window.NovaTerraApi?.enabled && !personalRequestsPanel.hidden) window.NovaTerraEco.schedulePolling(renderPersonalRequests);
 
 const reportDialog = document.querySelector("#reportDialog");
 const reportDialogStatusLabels = { todo: "À traiter", urgent: "Urgent", progress: "En cours", resolved: "Résolu" };
@@ -742,7 +740,8 @@ document.querySelector("#reviewUrgentReports").addEventListener("click", () => {
 document.querySelector("#refreshReports").addEventListener("click", loadPublicReports);
 window.addEventListener("online", loadPublicReports);
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && Date.now() - lastPublicReportsSuccessAt >= 60_000) loadPublicReports();
+  const staleAfter = window.NovaTerraEco.isLowBandwidth() ? 300_000 : 60_000;
+  if (!document.hidden && Date.now() - lastPublicReportsSuccessAt >= staleAfter) loadPublicReports();
 });
 const menuButton = document.querySelector('#menuButton');
 const sidebar = document.querySelector('#sidebar');
@@ -1192,9 +1191,7 @@ if (window.NovaTerra.usingDemoData()) {
   apiStatus.classList.add("demo");
   apiStatus.querySelector("span:last-child").textContent = "Mode démonstration · signalements fictifs";
 } else {
-  window.setInterval(() => {
-    if (!document.hidden) loadPublicReports();
-  }, 60_000);
+  window.NovaTerraEco.schedulePolling(loadPublicReports);
 }
 loadPublicReports();
 }

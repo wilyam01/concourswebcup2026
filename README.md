@@ -48,6 +48,14 @@ Le bouton « Aa » regroupe les préférences déjà présentes : navigation cla
 
 La section **Urgences** de l’accueil ajoute la carte filtrable des hôpitaux, postes de secours et lieux frais (F45/F46). Ses emplacements et horaires sont illustratifs, non officiels; appeler le 112 en cas d’urgence réelle. Une source cartographique municipale pourra remplacer ces exemples si elle est fournie.
 
+## Éco-conception et faible débit
+
+Le bilan F57, dans les préférences « Aa », affiche le transfert mesuré par le navigateur pour les ressources de même origine. Les entrées en cache et les ressources tierces peuvent être absentes de cette mesure : ce chiffre n'est ni un score environnemental complet ni une estimation d'énergie ou de CO₂. Les pages principales n'intègrent pas de photos/vidéos et n'appellent plus de fournisseur de polices externe.
+
+F58/F61 réduisent le travail de rendu sur les pages longues et désactivent automatiquement animations, filtres et décors coûteux sur les appareils déclarés peu puissants. F59 détecte Save-Data et les réseaux 2G, avec un réglage manuel/automatique dans « Aa »; en mode bas débit, les vérifications périodiques des services, demandes et rendez-vous passent d'une à cinq minutes. F62 complète ces options par l'interface simplifiée existante. Les médias ajoutés à l'avenir doivent rester compressés et définir `loading="lazy"`, `decoding="async"`, des dimensions explicites et `data-critical` uniquement pour les médias indispensables au premier écran; pour les médias créés par script, appeler `NovaTerraEco.optimizeMedia(element)` avant de leur assigner une source.
+
+F63 propose aux administrateurs un arrêt rapide par service. Le changement et le rétablissement d'un service déclaré indisponible sont contrôlés côté serveur et consignés dans le journal; un agent ne peut ni déclencher cet arrêt ni le lever. F64 publie un état par service dans le catalogue : « Statut non communiqué » n'est jamais présenté comme une disponibilité, et une erreur de vérification est signalée explicitement.
+
 ## Relier l’application au backend Nova Terra
 
 Un backend Express/SQLite optionnel est fourni dans `backend/`. Il permet de partager les comptes, les rôles, les signalements citoyens, les messages de contact, les annonces/alertes, les états des services et les rendez-vous entre appareils. Le mode local du navigateur reste disponible pour la démonstration hors ligne.

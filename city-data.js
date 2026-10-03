@@ -83,7 +83,7 @@
         });
         return result.announcement;
       } catch (error) {
-        const messages = { INVALID_TEXT: 'invalid_text', INVALID_EXPIRY: 'invalid_expiry', INVALID_SERVICE_STATUS: 'invalid_service_status', FORBIDDEN: 'forbidden' };
+        const messages = { INVALID_TEXT: 'invalid_text', INVALID_EXPIRY: 'invalid_expiry', INVALID_SERVICE_STATUS: 'invalid_service_status', ADMIN_REQUIRED_FOR_KILL_SWITCH: 'admin_required_for_kill_switch', FORBIDDEN: 'forbidden' };
         throw new Error(messages[error.message] || error.message);
       }
     }
@@ -94,6 +94,7 @@
     };
     if (input.kind === 'service_status') {
       if (!serviceIds.has(input.service) || !serviceStates.has(input.serviceStatus)) throw new Error('invalid_service_status');
+      if (input.serviceStatus === 'unavailable' && staff.profile !== 'admin') throw new Error('admin_required_for_kill_switch');
       item.service = input.service;
       item.serviceStatus = input.serviceStatus;
       item.targetSector = '';
@@ -105,6 +106,12 @@
     }
     const announcements = readList(announcementKey);
     if (item.kind === 'service_status') {
+      const current = announcements.find((entry) => entry.kind === 'service_status'
+        && entry.service === item.service && entry.active
+        && (!entry.expiresAt || new Date(entry.expiresAt).getTime() > Date.now()));
+      if (current?.serviceStatus === 'unavailable' && item.serviceStatus !== 'unavailable' && staff.profile !== 'admin') {
+        throw new Error('admin_required_for_kill_switch');
+      }
       announcements.forEach((entry) => {
         if (entry.kind === 'service_status' && entry.service === item.service) entry.active = false;
       });
@@ -115,14 +122,22 @@
   }
 
   async function closeAnnouncement(announcementId) {
-    requireStaff();
+    const staff = requireStaff();
     if (apiEnabled()) {
-      await window.NovaTerraApi.request(`/announcements/${encodeURIComponent(announcementId)}/close`, { method: 'PATCH' });
+      try {
+        await window.NovaTerraApi.request(`/announcements/${encodeURIComponent(announcementId)}/close`, { method: 'PATCH' });
+      } catch (error) {
+        if (error.message === 'ADMIN_REQUIRED_FOR_KILL_SWITCH') throw new Error('admin_required_for_kill_switch');
+        throw error;
+      }
       return { id: announcementId, active: false };
     }
     const announcements = readList(announcementKey);
     const entry = announcements.find((item) => item.id === announcementId);
     if (!entry) throw new Error('announcement_not_found');
+    if (entry.kind === 'service_status' && entry.serviceStatus === 'unavailable' && staff.profile !== 'admin') {
+      throw new Error('admin_required_for_kill_switch');
+    }
     entry.active = false;
     writeList(announcementKey, announcements, 'terra-nova:announcements-updated');
     return entry;

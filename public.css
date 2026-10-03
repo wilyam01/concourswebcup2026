@@ -147,6 +147,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .mobility-route-meta b { color:#c5b8ff; font-weight:600; }
 .mobility-route>p { margin:10px 0 0; color:#818da0; font-size:8px; line-height:1.6; }
 .mobility-demo-note { margin:13px 0 0; color:#788597; font-size:8px; line-height:1.6; }
+.mobility-section,.news-section,.join-section { content-visibility:auto; contain-intrinsic-size:auto 680px; }
 html[data-theme="light"] .service-search input { border-color:#c9d3df; color:#233247; background:#fff; }
 html[data-theme="light"] #serviceSearchFeedback,html[data-theme="light"] .service-popularity-note,html[data-theme="light"] .mobility-demo-note { color:#65768a; }
 html[data-theme="light"] .mobility-section { border-color:#d5dde5; background:radial-gradient(ellipse at 85% 10%,#cbd8ed77,transparent 48%),#f3f6f9; }

@@ -3,6 +3,7 @@ $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $requiredFiles = @(
   "index.html",
+  "eco-mode.js",
   "config.js",
   "nova-terra.js",
   "api/requests.js",
@@ -46,6 +47,9 @@ $contactStyles = Get-Content -LiteralPath (Join-Path $projectRoot "contact/conta
 $dashboardTemplateStyles = Get-Content -LiteralPath (Join-Path $projectRoot "dashboard-template.css") -Raw
 $homeMarkup = Get-Content -LiteralPath (Join-Path $projectRoot "index.html") -Raw
 $homeScript = Get-Content -LiteralPath (Join-Path $projectRoot "public.js") -Raw
+$ecoModeScript = Get-Content -LiteralPath (Join-Path $projectRoot "eco-mode.js") -Raw
+$communityScript = Get-Content -LiteralPath (Join-Path $projectRoot "community.js") -Raw
+$cityDataScript = Get-Content -LiteralPath (Join-Path $projectRoot "city-data.js") -Raw
 $publicStyles = Get-Content -LiteralPath (Join-Path $projectRoot "public.css") -Raw
 $presentationMarkup = Get-Content -LiteralPath (Join-Path $projectRoot "presentation.html") -Raw
 $presentationA11yStyles = Get-Content -LiteralPath (Join-Path $projectRoot "presentation-a11y.css") -Raw
@@ -73,7 +77,7 @@ if ($apiProxy -notmatch "normalizeRequest") { throw "Le proxy doit filtrer les c
 if ($apiProxy -notmatch "normalizeRequests") { throw "Le proxy doit tolerer et compter les demandes corrompues." }
 if ($apiAdapter -notmatch "NOVA_TERRA_REQUESTS_CACHE_KEY" -or $apiAdapter -notmatch "AbortController") { throw "Le client API doit limiter les attentes et conserver un instantane local." }
 if ($apiCollection.item.Count -lt 5 -or $apiCollectionRaw -notmatch '"apiKey"') { throw "La collection Postman doit couvrir les routes officielles et le proxy." }
-if ($publicScript -notmatch 'visibilitychange' -or $publicScript -notmatch 'setInterval') { throw "Le tableau public doit reprendre le polling apres un onglet inactif." }
+if ($publicScript -notmatch 'visibilitychange' -or $publicScript -notmatch 'schedulePolling') { throw "Le tableau public doit reprendre le polling apres un onglet inactif." }
 if ($agentScript -notmatch 'visibilitychange' -or $agentScript -notmatch 'Promise.allSettled') { throw "Le tableau agent doit reprendre le polling et preserver les sources disponibles." }
 foreach ($filterId in @("request-search", "status-filter", "priority-filter", "type-filter", "clear-filters", "request-count")) {
   if ($agentMarkup -notmatch "id=`"$filterId`"") { throw "Filtre ou indicateur agent absent : $filterId." }
@@ -106,5 +110,24 @@ if ($homeScript -notmatch "IntersectionObserver" -or $homeScript -notmatch "is-v
 if ($presentationMarkup -notmatch 'href="#main-content"' -or $presentationMarkup -notmatch 'id="main-content"') { throw "La présentation doit offrir un lien clavier vers le contenu principal." }
 if ($presentationA11yStyles -notmatch 'font-size:\s*clamp\(36px,\s*11vw,\s*52px\)' -or $presentationA11yStyles -notmatch 'html\s*\{[^}]*scroll-behavior:\s*auto[^}]*scroll-snap-type:\s*y mandatory' -or $presentationA11yStyles -notmatch '(?s)prefers-reduced-motion:\s*reduce.*?html,\s*\.deck-body\s*\{[^}]*scroll-snap-type:\s*none') { throw "La présentation doit naviguer entre diapositives et respecter la réduction des animations." }
 if ($dashboardMarkup -notmatch '<body class="dashboard-page">' -or $dashboardStyles -notmatch '@scope \(html\[data-theme="light"\] \.dashboard-page\)') { throw "Le thème clair du tableau de bord doit rester isolé des autres pages." }
+$sitePages = @(
+  @{ Path = "index.html"; Script = "eco-mode.js" },
+  @{ Path = "connexion.html"; Script = "eco-mode.js" },
+  @{ Path = "inscription.html"; Script = "eco-mode.js" },
+  @{ Path = "dashboard.html"; Script = "eco-mode.js" },
+  @{ Path = "contact/index.html"; Script = "../eco-mode.js" },
+  @{ Path = "agent/dashboard/index.html"; Script = "../../eco-mode.js" },
+  @{ Path = "presentation.html"; Script = "eco-mode.js" }
+)
+foreach ($page in $sitePages) {
+  $markup = Get-Content -LiteralPath (Join-Path $projectRoot $page.Path) -Raw
+  if ($markup -notmatch [regex]::Escape($page.Script)) { throw "Le mode éco-conçu doit être chargé sur $($page.Path)." }
+  if ($markup -match "fonts\.googleapis\.com|fonts\.gstatic\.com") { throw "La page $($page.Path) ne doit pas charger de polices tierces." }
+}
+if ($ecoModeScript -notmatch "effectiveType" -or $ecoModeScript -notmatch "saveData" -or $ecoModeScript -notmatch "deviceMemory" -or $ecoModeScript -notmatch "measureTransfer" -or $ecoModeScript -notmatch "loading = critical \? 'eager' : 'lazy'") { throw "La détection bas débit, le bilan mesuré et les médias différés sont requis." }
+if ($homeMarkup -notmatch 'data-service-id="water"' -or $communityScript -notmatch "Status not reported" -or $communityScript -notmatch "classList.add\('unknown'\)") { throw "Les états de service publics doivent distinguer une absence de statut d'une panne de vérification." }
+if ($ecoModeScript -notmatch "300_000" -or $ecoModeScript -notmatch "schedulePolling" -or $communityScript -notmatch "schedulePolling") { throw "Les rafraîchissements doivent ralentir explicitement en mode bas débit." }
+if ($agentMarkup -notmatch 'id="serviceKillSwitchCard"' -or $agentAdminScript -notmatch "user.profile !== 'admin'" -or $backendServer -notmatch "ADMIN_REQUIRED_FOR_KILL_SWITCH") { throw "L’arrêt rapide d’un service doit être réservé aux administrateurs côté interface et serveur." }
+if ($cityDataScript -notmatch "admin_required_for_kill_switch" -or $backendServer -notmatch "current\.service_status === 'unavailable'") { throw "Seul un administrateur peut rétablir un service arrêté." }
 
 Write-Host "Verification Terra Nova reussie : structure et routes attendues presentes."

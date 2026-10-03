@@ -211,6 +211,4 @@ window.addEventListener('storage', (event) => {
 renderServiceSearch();
 renderServicePopularity();
 void loadServicePopularity();
-if (window.NovaTerraApi?.enabled) window.setInterval(() => {
-  if (!document.hidden) void loadServicePopularity();
-}, 60_000);
+if (window.NovaTerraApi?.enabled) window.NovaTerraEco.schedulePolling(loadServicePopularity);
