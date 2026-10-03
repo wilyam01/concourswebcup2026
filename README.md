@@ -44,6 +44,8 @@ git push origin main
 
 `npm test` execute le controle de structure et de presence des filtres de signalements. Il ne remplace pas encore une suite de tests navigateur automatisee.
 
+Le rôle Fullstack / logique métier / présentation, le déroulé de démonstration, le pitch, les scénarios de secours et les commandes de vérification et de déploiement sont détaillés dans [docs/demo-pitch.md](docs/demo-pitch.md).
+
 ## API des signalements WebCup
 
 Le contrat, les reponses HTTP verifiees et l'import de tests Postman sont decrits dans [docs/webcup-api.md](docs/webcup-api.md). La collection partagee est `postman/terra-nova-api.postman_collection.json`; la cle doit rester dans une variable locale/secrete.
@@ -56,7 +58,7 @@ GET   {API_BASE_URL}/citizen-messages
 POST  {API_BASE_URL}/citizen-messages       body: { name, email, category, subject, message }
 ```
 
-L'API WebCup fournie expose actuellement la lecture des demandes. Le proxy n'envoie au navigateur qu'une liste de champs autorisés et ne relaie pas les autres propriétés reçues. Le changement de statut est désactivé pour ces données jusqu'à ce que l'équipe API fournisse et documente un endpoint d'écriture. Les messages citoyens restent en mode démonstration tant qu'un endpoint de messages n'est pas configuré ; dans ce mode, le formulaire précise que les messages sont seulement conservés dans le navigateur et ne sont pas transmis aux services. Les tableaux actualisent les demandes à l'ouverture, toutes les minutes et sur demande. La recherche publique et celle de l'espace agent acceptent le titre, la référence, le secteur, la catégorie et la description, sans tenir compte des accents ; les espaces agents offrent aussi des filtres par statut, priorité et catégorie. Les autres intégrations Nova Terra peuvent toujours utiliser `apiBaseUrl`.
+L'API WebCup fournie expose actuellement la lecture des demandes. Le proxy n'envoie au navigateur qu'une liste de champs autorisés et ne relaie pas les autres propriétés reçues. Le changement de statut est désactivé pour ces données jusqu'à ce que l'équipe API fournisse et documente un endpoint d'écriture. Le Haut Conseil exploite les mêmes demandes pour faire ressortir les urgences ouvertes et les renvoie vers le filtre correspondant, sans simuler de vote ou d'écriture. Les messages citoyens restent en mode démonstration tant qu'un endpoint de messages n'est pas configuré ; dans ce mode, le formulaire précise que les messages sont seulement conservés dans le navigateur et ne sont pas transmis aux services. Les tableaux actualisent les demandes à l'ouverture, toutes les minutes et sur demande. La recherche publique et celle de l'espace agent acceptent le titre, la référence, le secteur, la catégorie et la description, sans tenir compte des accents ; les espaces agents offrent aussi des filtres par statut, priorité et catégorie. Les autres intégrations Nova Terra peuvent toujours utiliser `apiBaseUrl`.
 
 Les ressources CSS et JavaScript de la page de contact utilisent un identifiant de cache dans `contact/index.html`. Incrémentez-le lorsque vous modifiez ces ressources pour que les navigateurs récupèrent bien la version publiée.
 

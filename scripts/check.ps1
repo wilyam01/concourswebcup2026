@@ -7,6 +7,7 @@ $requiredFiles = @(
   "nova-terra.js",
   "api/requests.js",
   "docs/webcup-api.md",
+  "docs/demo-pitch.md",
   "postman/terra-nova-api.postman_collection.json",
   "postman/terra-nova.postman_environment.template.json",
   "contact/index.html",
@@ -36,6 +37,8 @@ $agentScript = Get-Content -LiteralPath (Join-Path $projectRoot "agent/dashboard
 $publicScript = Get-Content -LiteralPath (Join-Path $projectRoot "app.js") -Raw
 $contactMarkup = Get-Content -LiteralPath (Join-Path $projectRoot "contact/index.html") -Raw
 $contactScript = Get-Content -LiteralPath (Join-Path $projectRoot "contact/contact.js") -Raw
+$homeMarkup = Get-Content -LiteralPath (Join-Path $projectRoot "index.html") -Raw
+$homeScript = Get-Content -LiteralPath (Join-Path $projectRoot "public.js") -Raw
 $apiAdapter = Get-Content -LiteralPath (Join-Path $projectRoot "nova-terra.js") -Raw
 $apiProxy = Get-Content -LiteralPath (Join-Path $projectRoot "api/requests.js") -Raw
 $apiCollectionPath = Join-Path $projectRoot "postman/terra-nova-api.postman_collection.json"
@@ -63,5 +66,12 @@ foreach ($reportId in @("api-status", "reports-search", "loadMoreReports", "repo
 }
 if ($agentScript -notmatch "description") { throw "La recherche agent doit inclure la description des demandes." }
 if ($publicScript -notmatch "normalizePublicSearch") { throw "La recherche publique normalisee est absente." }
+foreach ($councilId in @("council-source", "council-priority-title", "council-priority-meta", "council-urgent-count", "council-open-summary", "reviewUrgentReports")) {
+  if ($dashboardMarkup -notmatch "id=`"$councilId`"") { throw "Indicateur ou action du Haut Conseil absent : $councilId." }
+}
+if ($publicScript -notmatch "updateCouncilSummary" -or $publicScript -notmatch "reviewUrgentReports") { throw "Le Haut Conseil doit etre alimente par les demandes et ouvrir le filtre urgent." }
+if ($dashboardMarkup -notmatch "LECTURE SEULE" -or $dashboardMarkup -notmatch "Statuts non modifiables via l’API actuelle") { throw "Le Haut Conseil doit expliquer les limites d'ecriture de l'API." }
+if ($homeMarkup -notmatch 'aria-controls="publicNav"' -or $homeMarkup -notmatch 'aria-expanded="false"') { throw "Le menu mobile public doit exposer son etat et son controle." }
+if ($homeScript -notmatch "event.key === 'Escape'" -or $homeScript -notmatch "Fermer le menu") { throw "Le menu public doit etre accessible au clavier et annoncer son etat." }
 
 Write-Host "Verification Terra Nova reussie : structure et routes attendues presentes."

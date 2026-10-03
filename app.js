@@ -8,6 +8,7 @@ let publicReportsLoading = false;
 let publicRequests = [];
 let lastPublicReportsSuccessAt = 0;
 let displayedReportCount = 5;
+let reportDataSourceLabel = "Chargement des signalements…";
 const reportsPageSize = 5;
 function notify(message) {
   toast.textContent = message;
@@ -57,6 +58,39 @@ function createReportRow(request) {
   return row;
 }
 
+function updateCouncilSummary(requests) {
+  const urgentRequests = requests.filter((request) => request.priority === "high" && request.status !== "done");
+  const openCount = requests.filter((request) => request.status !== "done").length;
+  const highlightedRequest = urgentRequests[0];
+  const urgentCount = document.querySelector("#council-urgent-count");
+  const title = document.querySelector("#council-priority-title");
+  const metadata = document.querySelector("#council-priority-meta");
+  const description = document.querySelector("#council-priority-description");
+  const meter = document.querySelector("#council-urgent-meter");
+  const progress = meter.parentElement;
+
+  document.querySelector("#council-source").textContent = reportDataSourceLabel;
+  urgentCount.textContent = urgentRequests.length;
+  document.querySelector("#council-open-summary").textContent = `${openCount} demande${openCount === 1 ? "" : "s"} ouverte${openCount === 1 ? "" : "s"} sur ${requests.length}`;
+
+  const priorityShare = openCount ? Math.round((urgentRequests.length / openCount) * 100) : 0;
+  meter.style.width = `${priorityShare}%`;
+  progress.setAttribute("aria-valuenow", String(priorityShare));
+
+  if (!highlightedRequest) {
+    title.textContent = requests.length ? "Aucune urgence ouverte" : "Aucun signalement disponible";
+    metadata.textContent = requests.length ? "Les demandes haute priorité sont résolues." : "Les données apparaîtront après leur chargement.";
+    description.hidden = true;
+    description.textContent = "";
+    return;
+  }
+
+  title.textContent = highlightedRequest.title;
+  metadata.textContent = `${highlightedRequest.id} · ${highlightedRequest.district} · ${highlightedRequest.type}`;
+  description.textContent = highlightedRequest.description;
+  description.hidden = !highlightedRequest.description || highlightedRequest.description === "Aucune description fournie.";
+}
+
 function updateReportCounts(requests) {
   const openCount = requests.filter((request) => request.status !== "done").length;
   const counts = {
@@ -71,6 +105,7 @@ function updateReportCounts(requests) {
   Object.entries(counts).forEach(([filter, count]) => {
     document.querySelector(`#report-count-${filter}`).textContent = count;
   });
+  updateCouncilSummary(requests);
 }
 
 function matchesReportFilter(request, filter) {
@@ -105,6 +140,7 @@ async function loadPublicReports() {
     const cachedRequests = window.NovaTerra.getCachedRequests();
     if (cachedRequests.length) {
       publicRequests = cachedRequests;
+      reportDataSourceLabel = "Instantané local · actualisation en cours";
       updateReportCounts(publicRequests);
       renderPublicReports();
     }
@@ -125,6 +161,9 @@ async function loadPublicReports() {
   try {
     publicRequests = await window.NovaTerra.getRequests();
     lastPublicReportsSuccessAt = Date.now();
+    reportDataSourceLabel = window.NovaTerra.usingDemoData()
+      ? "Mode démonstration · données fictives"
+      : window.NovaTerra.getDataSourceLabel();
     updateReportCounts(publicRequests);
     renderPublicReports();
     if (window.NovaTerra.usingDemoData()) {
@@ -136,9 +175,16 @@ async function loadPublicReports() {
     error.hidden = true;
   } catch {
     const cachedRequests = window.NovaTerra.getCachedRequests();
-    if (cachedRequests.length) publicRequests = cachedRequests;
-    else if (!publicRequests.length && window.NovaTerra.usingDemoData()) {
+    if (cachedRequests.length) {
+      publicRequests = cachedRequests;
+      reportDataSourceLabel = window.NovaTerra.usingDemoData()
+        ? "Instantané local · mode démonstration"
+        : "Instantané local · API indisponible";
+    } else if (!publicRequests.length && window.NovaTerra.usingDemoData()) {
       publicRequests = window.NovaTerra.getDemoRequests();
+      reportDataSourceLabel = "Mode démonstration · données fictives";
+    } else if (!publicRequests.length) {
+      reportDataSourceLabel = "Données indisponibles · API inaccessible";
     }
     updateReportCounts(publicRequests);
     renderPublicReports();
@@ -178,7 +224,7 @@ document.querySelectorAll('.view-btn').forEach((button) => {
       ? 'La cité, sous <span>contrôle.</span>'
       : 'Le pouls de <span>Terra Nova.</span>';
     document.querySelector('.subheading').textContent = councilView
-      ? 'Vue stratégique du Haut Conseil · données consolidées en temps réel.'
+      ? 'Signalements disponibles et priorités à examiner par le Haut Conseil.'
       : 'Chaque signal compte. Voici ce qui se passe dans votre cité.';
     document.querySelector('.nav-item.active').classList.remove('active');
     const destination = document.querySelector(councilView ? '.nav-item[href="#council"]' : '.nav-item[href="#overview"]');
@@ -187,8 +233,7 @@ document.querySelectorAll('.view-btn').forEach((button) => {
   });
 });
 
-document.querySelector('#voteButton').addEventListener('click', () => notify('Maquette de vote : aucune décision ni aucun vote ne sont enregistrés.'));
-document.querySelectorAll('.map-point').forEach((point) => point.addEventListener('click', () => notify(`${point.getAttribute('aria-label')} · Secteur connecté.`)));
+document.querySelectorAll('.map-point').forEach((point) => point.addEventListener('click', () => notify(`${point.getAttribute('aria-label')} · Point de la carte de démonstration sélectionné.`)));
 document.querySelectorAll('.map-controls button').forEach((button, index) => button.addEventListener('click', () => notify(['Carte agrandie.', 'Carte réduite.', 'Carte recentrée.'][index])));
 document.querySelector('#allReports').addEventListener('click', () => {
   document.querySelector('[data-filter="all"]').click();
@@ -210,16 +255,36 @@ document.querySelector("#loadMoreReports").addEventListener("click", () => {
   displayedReportCount += reportsPageSize;
   renderPublicReports();
 });
+document.querySelector("#reviewUrgentReports").addEventListener("click", () => {
+  document.querySelector('[data-filter="urgent"]').click();
+  document.querySelector("#reports").scrollIntoView({ behavior: "smooth", block: "start" });
+  document.querySelector("#reports-search").focus({ preventScroll: true });
+});
 document.querySelector("#refreshReports").addEventListener("click", loadPublicReports);
 window.addEventListener("online", loadPublicReports);
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden && Date.now() - lastPublicReportsSuccessAt >= 60_000) loadPublicReports();
 });
-document.querySelector('#menuButton').addEventListener('click', () => document.querySelector('#sidebar').classList.toggle('open'));
+const menuButton = document.querySelector('#menuButton');
+const sidebar = document.querySelector('#sidebar');
+
+function setSidebarOpen(isOpen) {
+  sidebar.classList.toggle('open', isOpen);
+  menuButton.setAttribute('aria-expanded', String(isOpen));
+  menuButton.setAttribute('aria-label', isOpen ? 'Fermer le menu' : 'Ouvrir le menu');
+}
+
+menuButton.addEventListener('click', () => setSidebarOpen(!sidebar.classList.contains('open')));
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && sidebar.classList.contains('open')) {
+    setSidebarOpen(false);
+    menuButton.focus();
+  }
+});
 document.querySelectorAll('.nav-item').forEach((link) => link.addEventListener('click', () => {
   document.querySelectorAll('.nav-item').forEach((item) => item.classList.remove('active'));
   link.classList.add('active');
-  document.querySelector('#sidebar').classList.remove('open');
+  setSidebarOpen(false);
 }));
 
 const profilePhotoInput = document.querySelector('#profilePhotoInput');
