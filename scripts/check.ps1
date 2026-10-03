@@ -44,6 +44,7 @@ $homeMarkup = Get-Content -LiteralPath (Join-Path $projectRoot "index.html") -Ra
 $homeScript = Get-Content -LiteralPath (Join-Path $projectRoot "public.js") -Raw
 $presentationMarkup = Get-Content -LiteralPath (Join-Path $projectRoot "presentation.html") -Raw
 $presentationA11yStyles = Get-Content -LiteralPath (Join-Path $projectRoot "presentation-a11y.css") -Raw
+$dashboardStyles = Get-Content -LiteralPath (Join-Path $projectRoot "styles.css") -Raw
 $apiAdapter = Get-Content -LiteralPath (Join-Path $projectRoot "nova-terra.js") -Raw
 $apiProxy = Get-Content -LiteralPath (Join-Path $projectRoot "api/requests.js") -Raw
 $apiCollectionPath = Join-Path $projectRoot "postman/terra-nova-api.postman_collection.json"
@@ -77,6 +78,7 @@ if ($publicScript -notmatch "normalizePublicSearch") { throw "La recherche publi
 if ($publicScript -notmatch "openReportDetails" -or $publicScript -notmatch 'row-arrow\[data-request-id\]') { throw "Les signalements publics doivent pouvoir afficher leur détail." }
 $themeStyles = Get-Content -LiteralPath (Join-Path $projectRoot "theme.css") -Raw
 if ($themeStyles -notmatch "\.detail-dialog" -or $themeStyles -notmatch "\.profile-dialog") { throw "Les fenêtres de détail et de profil doivent avoir une presentation dediee." }
+if ($themeStyles -notmatch 'html\[data-theme="light"\] \.signup-header \.theme-toggle' -or $themeStyles -notmatch 'html\[data-theme="light"\] \.deck-nav \.theme-toggle') { throw "Les boutons de thème doivent rester lisibles dans les en-têtes clairs." }
 foreach ($councilId in @("council-source", "council-priority-title", "council-priority-meta", "council-urgent-count", "council-open-summary", "reviewUrgentReports")) {
   if ($dashboardMarkup -notmatch "id=`"$councilId`"") { throw "Indicateur ou action du Haut Conseil absent : $councilId." }
 }
@@ -88,5 +90,6 @@ if ($homeMarkup -notmatch 'aria-controls="publicNav"' -or $homeMarkup -notmatch 
 if ($homeScript -notmatch "event.key === 'Escape'" -or $homeScript -notmatch "Fermer le menu") { throw "Le menu public doit etre accessible au clavier et annoncer son etat." }
 if ($presentationMarkup -notmatch 'href="#main-content"' -or $presentationMarkup -notmatch 'id="main-content"') { throw "La présentation doit offrir un lien clavier vers le contenu principal." }
 if ($presentationA11yStyles -notmatch 'font-size:\s*clamp\(36px,\s*11vw,\s*52px\)' -or $presentationA11yStyles -notmatch 'prefers-reduced-motion:\s*reduce') { throw "La présentation doit s’adapter aux petits écrans et respecter la réduction des animations." }
+if ($dashboardMarkup -notmatch '<body class="dashboard-page">' -or $dashboardStyles -notmatch '@scope \(html\[data-theme="light"\] \.dashboard-page\)') { throw "Le thème clair du tableau de bord doit rester isolé des autres pages." }
 
 Write-Host "Verification Terra Nova reussie : structure et routes attendues presentes."
