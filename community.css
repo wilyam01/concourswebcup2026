@@ -33,6 +33,8 @@
 .community-notice h3 { margin:0; font-size:12px; }
 .community-notice p { margin:5px 0 0; color:#bec9d7; font-size:10px; line-height:1.6; white-space:pre-wrap; }
 .community-notice time,.community-notice small { display:block; margin-top:6px; color:#8190a4; font:8px var(--mono,monospace); }
+.community-notice-action,.community-alert-link { display:inline-flex; width:fit-content; margin-top:8px; color:#8fe7ef; font-size:9px; font-weight:700; line-height:1.5; text-decoration:underline; text-underline-offset:3px; }
+.community-notice-action:focus-visible,.community-alert-link:focus-visible { outline:2px solid #8fe7ef; outline-offset:3px; border-radius:2px; }
 .community-empty { padding:25px 12px; border:1px dashed #ffffff2b; border-radius:10px; color:#a8b5c6; text-align:center; font-size:11px; }
 .service-live-state { display:inline-flex; align-items:center; gap:5px; width:max-content; margin-top:8px; padding:4px 7px; border:1px solid #d7b96c66; border-radius:99px; color:#f2d58e; background:#d7b96c14; font:7px var(--mono,monospace); }
 .service-live-state.unavailable { border-color:#ff718366; color:#ff9daf; background:#ff718315; }
@@ -185,6 +187,7 @@ html[data-contrast="high"] .notification i { display:none; }
 html[data-theme="light"] .community-inbox-trigger,html[data-theme="light"] .assistant-launcher { color:#17253a; background:#fff; }
 html[data-theme="light"] .community-dialog { color:#1b2a3e; background:#f8fbff; }
 html[data-theme="light"] .community-dialog-heading p,html[data-theme="light"] .community-notice p,html[data-theme="light"] .community-notice time { color:#53677d; }
+html[data-theme="light"] .community-notice-action,html[data-theme="light"] .community-alert-link { color:#075d69; }
 html[data-theme="light"] .community-notice { border-color:#d7e0e8; background:#fff; }
 html[data-theme="light"] .community-support-card { border-color:#d7e0e8; background:#fff; }
 html[data-theme="light"] .community-support-button { color:#173343; background:#e7f8f3; }

@@ -96,6 +96,22 @@
     try { localStorage.setItem(readKey, JSON.stringify([...new Set([...readIds(), item.id])].slice(-200))); } catch (_) { /* Keep the current view usable when storage is unavailable. */ }
   }
 
+  function relatedDestination(item) {
+    const emergency = item.kind === 'flood' || item.kind === 'health';
+    const service = item.kind === 'service_status';
+    if (!emergency && !service) return null;
+    const section = emergency ? 'urgences' : 'services';
+    const isContact = Boolean(document.querySelector('.contact-page'));
+    const isDashboard = document.body.classList.contains('dashboard-page');
+    const href = isContact ? `../index.html#${section}` : isDashboard ? `index.html#${section}` : `#${section}`;
+    return {
+      href,
+      label: english()
+        ? (emergency ? 'Find nearby emergency services' : 'View municipal services')
+        : (emergency ? 'Voir les services d’urgence à proximité' : 'Voir les services municipaux'),
+    };
+  }
+
   function requestStatusName(status) {
     const names = english()
       ? { todo: 'Received', in_progress: 'In progress', done: 'Resolved' }
@@ -238,6 +254,14 @@
       article.append(area);
     }
     article.append(time);
+    const destination = relatedDestination(item);
+    if (destination) {
+      const action = document.createElement('a');
+      action.className = 'community-notice-action';
+      action.href = destination.href;
+      action.textContent = destination.label;
+      article.append(action);
+    }
     return article;
   }
 
@@ -275,6 +299,14 @@
       meta.className = 'community-alert-meta';
       meta.textContent = `${localized(item.kind)}${item.targetSector ? ` · ${localizedSector(item.targetSector)}` : ''}`;
       copy.append(title, body, meta);
+      const destination = relatedDestination(item);
+      if (destination) {
+        const action = document.createElement('a');
+        action.className = 'community-alert-link';
+        action.href = destination.href;
+        action.textContent = destination.label;
+        copy.append(action);
+      }
       const open = document.createElement('button');
       open.className = 'community-alert-close';
       open.type = 'button';
