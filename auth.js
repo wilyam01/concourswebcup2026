@@ -109,6 +109,35 @@
     }
   }
 
+  function updateProfile({ name, sector }) {
+    try {
+      const session = getSession();
+      if (!session) return { ok: false, error: 'not_authenticated' };
+
+      const normalizedName = String(name ?? '').trim();
+      const normalizedSector = String(sector ?? '').trim();
+      if (!normalizedName || normalizedName.length > 60) return { ok: false, error: 'invalid_name' };
+      if (!normalizedSector || normalizedSector.length > 60) return { ok: false, error: 'invalid_sector' };
+
+      const accounts = readAccounts();
+      const accountIndex = accounts.findIndex((account) => account.email === session.email);
+      if (accountIndex < 0) return { ok: false, error: 'account_not_found' };
+
+      accounts[accountIndex] = { ...accounts[accountIndex], name: normalizedName, sector: normalizedSector };
+      localStorage.setItem(accountsKey, JSON.stringify(accounts));
+
+      const updatedSession = { ...session, name: normalizedName, sector: normalizedSector };
+      const activeStorage = sessionStorage.getItem(sessionKey) ? sessionStorage : localStorage;
+      activeStorage.setItem(sessionKey, JSON.stringify(updatedSession));
+      return {
+        ok: true,
+        user: { name: normalizedName, email: session.email, sector: normalizedSector },
+      };
+    } catch (error) {
+      return { ok: false, error: error.name === 'QuotaExceededError' ? 'storage_full' : 'storage_unavailable' };
+    }
+  }
+
   function signOut() {
     try {
       sessionStorage.removeItem(sessionKey);
@@ -118,5 +147,5 @@
     }
   }
 
-  window.NovaTerraAuth = Object.freeze({ createAccount, signIn, getSession, signOut });
+  window.NovaTerraAuth = Object.freeze({ createAccount, signIn, getSession, updateProfile, signOut });
 })();

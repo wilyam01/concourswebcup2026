@@ -228,11 +228,22 @@ const profilePhotoStorageKey = `novaTerraProfilePhoto.v1:${encodeURIComponent(cu
 const legacyProfilePhotoStorageKey = 'novaTerraProfilePhoto';
 const profileName = document.querySelector('#profileName');
 const profileSector = document.querySelector('#profileSector');
-const initials = currentUser.name.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+const profileDialog = document.querySelector('#profileDialog');
+const profileForm = document.querySelector('#profileForm');
+const profileNameInput = document.querySelector('#profileNameInput');
+const profileSectorInput = document.querySelector('#profileSectorInput');
+const profileFormError = document.querySelector('#profileFormError');
 
-profileName.textContent = currentUser.name;
-profileSector.textContent = `Citoyen · ${currentUser.sector}`;
-profilePhotoButtons.forEach((button) => { button.textContent = initials || 'NT'; });
+function renderProfile(user) {
+  profileName.textContent = user.name;
+  profileSector.textContent = `Citoyen · ${user.sector}`;
+  const initials = user.name.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+  profilePhotoButtons.forEach((button) => {
+    if (!button.classList.contains('has-profile-photo')) button.textContent = initials || 'NT';
+  });
+}
+
+renderProfile(currentUser);
 
 function showProfilePhoto(dataUrl) {
   profilePhotoButtons.forEach((button) => {
@@ -260,6 +271,43 @@ try {
 } catch (_) {
   // A saved photo is optional when browser storage is unavailable.
 }
+
+document.querySelector('#editProfileButton').addEventListener('click', () => {
+  profileNameInput.value = currentUser.name;
+  profileSectorInput.value = currentUser.sector;
+  profileFormError.hidden = true;
+  profileFormError.textContent = '';
+  profileDialog.showModal();
+});
+document.querySelector('#profileDialogPhoto').addEventListener('click', () => profilePhotoInput.click());
+document.querySelector('#closeProfileDialog').addEventListener('click', () => profileDialog.close());
+document.querySelector('#cancelProfileEdit').addEventListener('click', () => profileDialog.close());
+profileForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  profileFormError.hidden = true;
+  const result = window.NovaTerraAuth.updateProfile({
+    name: profileNameInput.value,
+    sector: profileSectorInput.value,
+  });
+  if (!result.ok) {
+    const messages = {
+      account_not_found: 'Le compte est introuvable. Reconnecte-toi puis réessaie.',
+      invalid_name: 'Saisis un nom de 1 à 60 caractères.',
+      invalid_sector: 'Saisis un secteur de 1 à 60 caractères.',
+      storage_full: 'Le stockage du navigateur est plein. Libère de l’espace puis réessaie.',
+      storage_unavailable: 'Le profil n’a pas pu être enregistré dans ce navigateur.',
+      not_authenticated: 'Ta session a expiré. Reconnecte-toi puis réessaie.',
+    };
+    profileFormError.textContent = messages[result.error] || 'Impossible d’enregistrer le profil.';
+    profileFormError.hidden = false;
+    return;
+  }
+
+  Object.assign(currentUser, result.user);
+  renderProfile(currentUser);
+  profileDialog.close();
+  notify('Profil mis à jour.');
+});
 
 profilePhotoButtons.forEach((button) => button.addEventListener('click', () => profilePhotoInput.click()));
 document.querySelector('#logoutButton').addEventListener('click', () => {

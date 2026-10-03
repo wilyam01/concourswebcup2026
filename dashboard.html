@@ -33,7 +33,7 @@
       <div class="side-bottom">
         <div class="side-label">RÉSEAU</div>
         <div class="network"><span class="live-dot"></span><span><b>Réseau de démonstration</b><small>État illustratif · non connecté</small></span><span class="network-signal">▂▅▇</span></div>
-        <div class="profile"><button class="avatar profile-photo-trigger" type="button" aria-label="Ajouter une photo de profil" title="Ajouter une photo de profil">AM</button><div><b id="profileName">Alex Morgan</b><small id="profileSector">Citoyen · Niveau 04</small></div><button id="logoutButton" type="button" aria-label="Se déconnecter" title="Se déconnecter">Quitter</button></div>
+        <div class="profile"><button class="avatar profile-photo-trigger" type="button" aria-label="Ajouter une photo de profil" title="Ajouter une photo de profil">AM</button><div class="profile-details"><b id="profileName">Alex Morgan</b><small id="profileSector">Citoyen · Niveau 04</small><button class="profile-edit" id="editProfileButton" type="button">Modifier le profil</button></div><button id="logoutButton" type="button" aria-label="Se déconnecter" title="Se déconnecter">Quitter</button></div>
       </div>
     </aside>
 
@@ -99,6 +99,20 @@
       </div>
     </main>
   </div>
+  <dialog class="profile-dialog" id="profileDialog" aria-labelledby="profileDialogTitle">
+    <div class="profile-dialog-heading">
+      <div><div class="panel-kicker">ESPACE CITOYEN</div><h2 id="profileDialogTitle">Personnaliser mon profil</h2></div>
+      <button class="profile-dialog-close" id="closeProfileDialog" type="button" aria-label="Fermer">×</button>
+    </div>
+    <p class="profile-dialog-intro">Ces informations sont enregistrées avec ton compte sur cet appareil.</p>
+    <form id="profileForm" class="profile-form">
+      <label for="profileNameInput">Nom affiché<input id="profileNameInput" name="name" type="text" maxlength="60" autocomplete="name" required /></label>
+      <label for="profileSectorInput">Secteur<input id="profileSectorInput" name="sector" type="text" maxlength="60" autocomplete="address-level2" required /></label>
+      <div class="profile-photo-setting"><div><b>Photo de profil</b><small>Image JPG, PNG ou autre format image · 8 Mo maximum</small></div><button id="profileDialogPhoto" class="profile-secondary-button" type="button">Choisir une photo</button></div>
+      <p class="profile-form-error" id="profileFormError" role="alert" hidden></p>
+      <div class="profile-dialog-actions"><button class="profile-secondary-button" id="cancelProfileEdit" type="button">Annuler</button><button class="profile-save-button" type="submit">Enregistrer le profil <span>→</span></button></div>
+    </form>
+  </dialog>
   <div class="toast" id="toast" role="status"></div>
   <input id="profilePhotoInput" type="file" accept="image/*" hidden />
   <script src="config.js"></script>
