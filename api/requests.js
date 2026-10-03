@@ -9,25 +9,59 @@ function extractRequests(payload) {
   return requests;
 }
 
+function safeText(value, fallback, maxLength) {
+  if (typeof value !== "string" && typeof value !== "number") return fallback;
+  const text = String(value).trim();
+  return text ? text.slice(0, maxLength) : fallback;
+}
+
+function normalizeStatus(value) {
+  const status = String(value || "todo").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+  if (["todo", "to_do", "pending", "open", "new", "submitted", "created", "a_traiter"].includes(status)) return "todo";
+  if (["in_progress", "progress", "processing", "en_cours"].includes(status)) return "in_progress";
+  if (["done", "resolved", "completed", "closed", "termine", "terminee"].includes(status)) return "done";
+  throw new Error("Unsupported request status");
+}
+
+function normalizePriority(value) {
+  const priority = String(value || "normal").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+  if (["normal", "medium", "moderate", "moyenne", "normale"].includes(priority)) return "normal";
+  if (["critical", "urgent", "high", "haute", "elevee", "critique"].includes(priority)) return "high";
+  if (["low", "minor", "basse", "faible"].includes(priority)) return "low";
+  throw new Error("Unsupported request priority");
+}
+
 function normalizeRequest(item) {
   if (!item || typeof item !== "object" || Array.isArray(item)) {
     throw new Error("Unexpected request record");
   }
 
-  const id = item.id ?? item.reference;
-  if (id === undefined || id === null || String(id).trim() === "") {
+  const id = item.id ?? item.reference ?? item.request_id;
+  if ((typeof id !== "string" && typeof id !== "number") || String(id).trim() === "") {
     throw new Error("Request record is missing its identifier");
   }
 
   return {
-    id: String(id),
-    title: item.title || item.subject || item.name || "Demande citoyenne",
-    district: item.district || item.location || item.zone || "Secteur non précisé",
-    type: item.type || item.category || "Demande",
-    priority: item.priority || "normal",
-    status: item.status || "todo",
-    updatedAt: item.updatedAt || item.createdAt || ""
+    id: String(id).trim().slice(0, 100),
+    title: safeText(item.title || item.subject || item.name, "Demande citoyenne", 240),
+    district: safeText(item.district || item.location || item.zone, "Secteur non precise", 120),
+    type: safeText(item.type || item.category, "Demande", 80),
+    priority: normalizePriority(item.priority),
+    status: normalizeStatus(item.status),
+    updatedAt: safeText(item.updatedAt || item.updated_at || item.createdAt || item.created_at, "Date non precise", 80),
+    description: safeText(item.description || item.message, "Aucune description fournie.", 2000)
   };
+}
+
+function normalizeRequests(items) {
+  const requests = [];
+  let skipped = 0;
+  for (const item of items) {
+    try { requests.push(normalizeRequest(item)); }
+    catch { skipped += 1; }
+  }
+  if (items.length && !requests.length) throw new Error("No valid request records");
+  return { requests, skipped };
 }
 
 module.exports = async function handler(req, res) {
@@ -69,14 +103,15 @@ module.exports = async function handler(req, res) {
       return res.status(502).json({ error: "The WebCup API returned invalid JSON" });
     }
 
-    let requests;
+    let result;
     try {
-      requests = extractRequests(payload).map(normalizeRequest);
+      result = normalizeRequests(extractRequests(payload));
     } catch {
       return res.status(502).json({ error: "The WebCup API returned an unsupported request format" });
     }
 
-    return res.status(200).json({ requests });
+    res.setHeader("X-WebCup-Skipped-Records", String(result.skipped));
+    return res.status(200).json({ requests: result.requests, meta: { skippedRecords: result.skipped } });
   } catch (error) {
     if (error.name === "AbortError") {
       return res.status(504).json({ error: "The WebCup API request timed out" });

@@ -6,3 +6,4 @@ dist/
 .env.*
 !.env.example
 .vercel/
+postman/*.local.postman_environment.json

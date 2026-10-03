@@ -6,6 +6,9 @@ $requiredFiles = @(
   "config.js",
   "nova-terra.js",
   "api/requests.js",
+  "docs/webcup-api.md",
+  "postman/terra-nova-api.postman_collection.json",
+  "postman/terra-nova.postman_environment.template.json",
   "contact/index.html",
   "agent/dashboard/index.html",
   ".github/workflows/deploy-pages.yml"
@@ -18,7 +21,7 @@ foreach ($relativePath in $requiredFiles) {
   }
 }
 
-$sourceFiles = Get-ChildItem -LiteralPath $projectRoot -Recurse -File -Include *.html,*.js,*.css,*.md,*.yml
+$sourceFiles = Get-ChildItem -LiteralPath $projectRoot -Recurse -File -Include *.html,*.js,*.css,*.md,*.yml,*.json
 $mergeMarkerPattern = ("<<<" + "<<<<") + "|" + ("===" + "====") + "|" + (">>>" + ">>>>")
 foreach ($sourceFile in $sourceFiles) {
   $content = Get-Content -LiteralPath $sourceFile.FullName -Raw
@@ -34,6 +37,9 @@ $publicScript = Get-Content -LiteralPath (Join-Path $projectRoot "app.js") -Raw
 $contactMarkup = Get-Content -LiteralPath (Join-Path $projectRoot "contact/index.html") -Raw
 $apiAdapter = Get-Content -LiteralPath (Join-Path $projectRoot "nova-terra.js") -Raw
 $apiProxy = Get-Content -LiteralPath (Join-Path $projectRoot "api/requests.js") -Raw
+$apiCollectionPath = Join-Path $projectRoot "postman/terra-nova-api.postman_collection.json"
+$apiCollectionRaw = Get-Content -LiteralPath $apiCollectionPath -Raw
+$apiCollection = $apiCollectionRaw | ConvertFrom-Json
 
 if ($agentMarkup -notmatch 'id="kanban"') { throw "Kanban agent introuvable." }
 if ($contactMarkup -notmatch 'id="contact-form"') { throw "Formulaire citoyen introuvable." }
@@ -41,6 +47,11 @@ if ($apiAdapter -notmatch "citizen-messages") { throw "Endpoint des messages cit
 if ($apiProxy -notmatch 'process\.env\.WEBCUP_API_KEY') { throw "La cle WebCup doit etre lue depuis une variable d'environnement serveur." }
 if ($apiProxy -notmatch 'req\.method !== "GET"') { throw "Le proxy WebCup doit refuser les methodes autres que GET." }
 if ($apiProxy -notmatch "normalizeRequest") { throw "Le proxy doit filtrer les champs transmis au navigateur." }
+if ($apiProxy -notmatch "normalizeRequests") { throw "Le proxy doit tolerer et compter les demandes corrompues." }
+if ($apiAdapter -notmatch "NOVA_TERRA_REQUESTS_CACHE_KEY" -or $apiAdapter -notmatch "AbortController") { throw "Le client API doit limiter les attentes et conserver un instantane local." }
+if ($apiCollection.item.Count -lt 5 -or $apiCollectionRaw -notmatch '"apiKey"') { throw "La collection Postman doit couvrir les routes officielles et le proxy." }
+if ($publicScript -notmatch 'visibilitychange' -or $publicScript -notmatch 'setInterval') { throw "Le tableau public doit reprendre le polling apres un onglet inactif." }
+if ($agentScript -notmatch 'visibilitychange' -or $agentScript -notmatch 'Promise.allSettled') { throw "Le tableau agent doit reprendre le polling et preserver les sources disponibles." }
 foreach ($filterId in @("request-search", "status-filter", "priority-filter", "type-filter", "clear-filters", "request-count")) {
   if ($agentMarkup -notmatch "id=`"$filterId`"") { throw "Filtre ou indicateur agent absent : $filterId." }
 }

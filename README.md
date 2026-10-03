@@ -46,6 +46,8 @@ git push origin main
 
 ## API des signalements WebCup
 
+Le contrat, les reponses HTTP verifiees et l'import de tests Postman sont decrits dans [docs/webcup-api.md](docs/webcup-api.md). La collection partagee est `postman/terra-nova-api.postman_collection.json`; la cle doit rester dans une variable locale/secrete.
+
 Sur un domaine Vercel en `*.vercel.app`, le tableau public et l'espace agent chargent les signalements via `/api/requests`. Le proxy `api/requests.js` ajoute côté serveur la clé `WEBCUP_API_KEY` avant d'appeler l'API WebCup. La clé n'est jamais envoyée au navigateur ni enregistrée dans Git.
 
 ```text
@@ -68,7 +70,8 @@ La réponse des demandes doit être un tableau JSON, directement ou sous une pro
   type: "Infrastructure", // `category` est aussi accepte
   priority: "high", // high | normal | low
   status: "todo", // todo | in_progress | done
-  createdAt: "Il y a 12 min"
+  createdAt: "Il y a 12 min",
+  description: "Une description facultative de la demande."
 }
 ```
 

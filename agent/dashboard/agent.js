@@ -1,5 +1,6 @@
-const state = { requests: [], messages: [] };
+const state = { requests: window.NovaTerra.getCachedRequests(), messages: [] };
 let dashboardLoading = false;
+let lastSuccessfulSyncAt = 0;
 const columns = [
   { status: "todo", title: "A traiter" },
   { status: "in_progress", title: "En cours" },
@@ -100,13 +101,29 @@ async function loadDashboard() {
   document.querySelector("#requests-readonly").hidden = window.NovaTerra.canUpdateRequestStatus();
   stateLabel.textContent = "Synchronisation...";
   try {
-    [state.requests, state.messages] = await Promise.all([window.NovaTerra.getRequests(), window.NovaTerra.getMessages()]);
+    const [requestsResult, messagesResult] = await Promise.allSettled([
+      window.NovaTerra.getRequests(),
+      window.NovaTerra.getMessages()
+    ]);
+    const failures = [];
+    if (requestsResult.status === "fulfilled") state.requests = requestsResult.value;
+    else {
+      const cacheTime = window.NovaTerra.getRequestsCacheTime();
+      const cacheStamp = cacheTime ? ` (${new Date(cacheTime).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })})` : "";
+      failures.push(state.requests.length ? `Les demandes du cache local${cacheStamp} sont affichees, mais n'ont pas pu etre actualisees.` : "Les demandes sont indisponibles.");
+    }
+    if (messagesResult.status === "fulfilled") state.messages = messagesResult.value;
+    else failures.push("Les messages citoyens n'ont pas pu etre actualises.");
+
     renderTypeOptions();
-    stateLabel.textContent = window.NovaTerra.getDataSourceLabel();
-    showDashboardError("");
-  } catch {
-    stateLabel.textContent = "API indisponible";
-    showDashboardError("Les donnees ne sont pas disponibles ou le format renvoye n'est pas reconnu. Verifiez le contrat API et les autorisations, puis actualisez. Les dernieres donnees chargees restent affichees si elles existent.");
+    if (failures.length) {
+      stateLabel.textContent = state.requests.length ? "Donnees partiellement disponibles" : "API indisponible";
+      showDashboardError(failures.join(" "));
+    } else {
+      stateLabel.textContent = window.NovaTerra.getDataSourceLabel();
+      showDashboardError("");
+      lastSuccessfulSyncAt = Date.now();
+    }
   } finally {
     dashboardLoading = false;
     refreshButton.disabled = false;
@@ -118,6 +135,10 @@ async function loadDashboard() {
 document.querySelector("#request-search").addEventListener("input", renderKanban);
 document.querySelectorAll("#priority-filter, #status-filter, #type-filter").forEach((control) => control.addEventListener("change", renderKanban));
 document.querySelector("#refresh-data").addEventListener("click", loadDashboard);
+window.addEventListener("online", loadDashboard);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && Date.now() - lastSuccessfulSyncAt >= 60_000) loadDashboard();
+});
 document.querySelector("#clear-filters").addEventListener("click", () => {
   document.querySelector("#request-search").value = "";
   document.querySelector("#priority-filter").value = "all";
@@ -137,5 +158,11 @@ document.querySelector("#kanban").addEventListener("change", async (event) => {
   catch { control.value = previousStatus; control.disabled = false; showDashboardError("La mise a jour du statut a echoue. Reessayez dans un instant."); }
 });
 
+renderTypeOptions();
+render();
 loadDashboard();
-if (!window.NovaTerra.usingDemoData()) window.setInterval(loadDashboard, 60_000);
+if (!window.NovaTerra.usingDemoData()) {
+  window.setInterval(() => {
+    if (!document.hidden) loadDashboard();
+  }, 60_000);
+}

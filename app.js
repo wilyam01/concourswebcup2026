@@ -6,6 +6,7 @@ const toast = document.querySelector('#toast');
 let toastTimer;
 let publicReportsLoading = false;
 let publicRequests = [];
+let lastPublicReportsSuccessAt = 0;
 let displayedReportCount = 5;
 const reportsPageSize = 5;
 function notify(message) {
@@ -100,6 +101,15 @@ function normalizePublicSearch(value) {
 async function loadPublicReports() {
   if (publicReportsLoading) return;
 
+  if (!publicRequests.length) {
+    const cachedRequests = window.NovaTerra.getCachedRequests();
+    if (cachedRequests.length) {
+      publicRequests = cachedRequests;
+      updateReportCounts(publicRequests);
+      renderPublicReports();
+    }
+  }
+
   const error = document.querySelector("#reports-api-error");
   const loading = document.querySelector("#reports-loading");
   const apiStatus = document.querySelector("#api-status");
@@ -114,6 +124,7 @@ async function loadPublicReports() {
   loading.textContent = "Actualisation des signalements…";
   try {
     publicRequests = await window.NovaTerra.getRequests();
+    lastPublicReportsSuccessAt = Date.now();
     updateReportCounts(publicRequests);
     renderPublicReports();
     if (window.NovaTerra.usingDemoData()) {
@@ -124,11 +135,22 @@ async function loadPublicReports() {
     }
     error.hidden = true;
   } catch {
-    publicRequests = window.NovaTerra.getDemoRequests();
+    const cachedRequests = window.NovaTerra.getCachedRequests();
+    if (cachedRequests.length) publicRequests = cachedRequests;
+    else if (!publicRequests.length && window.NovaTerra.usingDemoData()) {
+      publicRequests = window.NovaTerra.getDemoRequests();
+    }
     updateReportCounts(publicRequests);
     renderPublicReports();
     apiStatus.classList.add("unavailable");
-    apiStatusText.textContent = "API indisponible · exemples affichés";
+    const cacheTime = window.NovaTerra.getRequestsCacheTime();
+    const cacheStamp = cacheTime ? ` (${new Date(cacheTime).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })})` : "";
+    apiStatusText.textContent = publicRequests.length
+      ? `API indisponible - cache local${cacheStamp}`
+      : "API indisponible - aucune donnee disponible";
+    error.textContent = publicRequests.length
+      ? "La connexion est interrompue. Les dernieres demandes enregistrees restent affichees."
+      : "Les demandes ne sont pas disponibles pour le moment. Reessaie lorsque la connexion est retablie.";
     error.hidden = false;
   } finally {
     loading.hidden = true;
@@ -189,6 +211,10 @@ document.querySelector("#loadMoreReports").addEventListener("click", () => {
   renderPublicReports();
 });
 document.querySelector("#refreshReports").addEventListener("click", loadPublicReports);
+window.addEventListener("online", loadPublicReports);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && Date.now() - lastPublicReportsSuccessAt >= 60_000) loadPublicReports();
+});
 document.querySelector('#menuButton').addEventListener('click', () => document.querySelector('#sidebar').classList.toggle('open'));
 document.querySelectorAll('.nav-item').forEach((link) => link.addEventListener('click', () => {
   document.querySelectorAll('.nav-item').forEach((item) => item.classList.remove('active'));
@@ -283,7 +309,9 @@ if (window.NovaTerra.usingDemoData()) {
   apiStatus.classList.add("demo");
   apiStatus.querySelector("span:last-child").textContent = "Mode démonstration · signalements fictifs";
 } else {
-  window.setInterval(loadPublicReports, 60_000);
+  window.setInterval(() => {
+    if (!document.hidden) loadPublicReports();
+  }, 60_000);
 }
 loadPublicReports();
 }

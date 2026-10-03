@@ -9,6 +9,9 @@ const NOVA_TERRA_ENDPOINTS = {
 
 const NOVA_TERRA_REQUESTS_KEY = "terra-nova.requests";
 const NOVA_TERRA_MESSAGES_KEY = "terra-nova.citizen-messages";
+const NOVA_TERRA_REQUESTS_CACHE_KEY = "terra-nova.requests.cache.v1";
+const NOVA_TERRA_REQUESTS_CACHE_TIME_KEY = "terra-nova.requests.cache-time.v1";
+const NOVA_TERRA_FETCH_TIMEOUT_MS = 12000;
 
 const demoRequests = [
   { id: "TN-1042", title: "Eclairage absent sur l'allee des Mimosas", district: "Quartier Horizon", type: "Infrastructure", priority: "high", status: "todo", updatedAt: "Il y a 12 min", description: "Trois lampadaires ne fonctionnent plus entre la place des Artisans et l'ecole." },
@@ -65,18 +68,18 @@ function normalizePriority(priority) {
 function normalizeRequest(item) {
   const source = item && typeof item === "object" && !Array.isArray(item) ? item : {};
   const id = source.id ?? source.reference;
-  if (id === undefined || id === null || String(id).trim() === "") {
+  if ((typeof id !== "string" && typeof id !== "number") || String(id).trim() === "") {
     throw new Error("Request is missing its identifier");
   }
   return {
-    id: String(id),
-    title: source.title || source.subject || source.name || "Demande citoyenne",
-    district: source.district || source.location || source.zone || "Secteur non precise",
-    type: source.type || source.category || "Demande",
+    id: String(id).trim().slice(0, 100),
+    title: toSafeText(source.title || source.subject || source.name, "Demande citoyenne", 240),
+    district: toSafeText(source.district || source.location || source.zone, "Secteur non precise", 120),
+    type: toSafeText(source.type || source.category, "Demande", 80),
     priority: normalizePriority(source.priority),
     status: normalizeStatus(source.status),
-    updatedAt: source.updatedAt || source.createdAt || "Date non précisée",
-    description: source.description || source.message || "Aucune description fournie."
+    updatedAt: toSafeText(source.updatedAt || source.createdAt, "Date non precise", 80),
+    description: toSafeText(source.description || source.message, "Aucune description fournie.", 2000)
   };
 }
 
@@ -88,10 +91,60 @@ function extractCollection(payload, preferredKey) {
   return collection;
 }
 
+function toSafeText(value, fallback, maxLength) {
+  if (typeof value !== "string" && typeof value !== "number") return fallback;
+  const text = String(value).trim();
+  return text ? text.slice(0, maxLength) : fallback;
+}
+
+function normalizeRequests(items) {
+  const requests = [];
+  for (const item of items) {
+    try { requests.push(normalizeRequest(item)); }
+    catch { /* Skip one malformed record without discarding the valid collection. */ }
+  }
+  if (items.length && !requests.length) throw new Error("API response contains no valid requests");
+  return requests;
+}
+
 async function getCollectionFromUrl(url, preferredKey) {
-  const response = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!response.ok) throw new Error("Nova Terra API unavailable");
-  return extractCollection(await response.json(), preferredKey);
+  return extractCollection(await requestJson(url), preferredKey);
+}
+
+async function requestJson(url, options = {}) {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), NOVA_TERRA_FETCH_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: { Accept: "application/json", ...(options.headers || {}) },
+      signal: controller.signal
+    });
+    if (!response.ok) throw new Error(`API request failed (${response.status})`);
+    if (response.status === 204) return null;
+    return await response.json();
+  } catch (error) {
+    if (error.name === "AbortError") throw new Error("API request timed out");
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
+function cacheRequests(requests) {
+  try {
+    localStorage.setItem(NOVA_TERRA_REQUESTS_CACHE_KEY, JSON.stringify(requests));
+    localStorage.setItem(NOVA_TERRA_REQUESTS_CACHE_TIME_KEY, String(Date.now()));
+  } catch {
+    // Keep the live response usable when browser storage is full or disabled.
+  }
+}
+
+function getCachedRequests() {
+  return readStored(NOVA_TERRA_REQUESTS_CACHE_KEY, []).flatMap((item) => {
+    try { return [normalizeRequest(item)]; }
+    catch { return []; }
+  });
 }
 
 async function getFromApi(path, preferredKey) {
@@ -102,7 +155,19 @@ window.NovaTerra = {
   usingDemoData: () => !NOVA_TERRA_API_BASE_URL && !NOVA_TERRA_REQUESTS_API_URL,
   canUpdateRequestStatus: () => !NOVA_TERRA_REQUESTS_API_URL,
   getDemoRequests() {
-    return readStored(NOVA_TERRA_REQUESTS_KEY, demoRequests).map(normalizeRequest);
+    return readStored(NOVA_TERRA_REQUESTS_KEY, demoRequests).flatMap((item) => {
+      try { return [normalizeRequest(item)]; }
+      catch { return []; }
+    });
+  },
+  getCachedRequests,
+  getRequestsCacheTime() {
+    try {
+      const value = Number(localStorage.getItem(NOVA_TERRA_REQUESTS_CACHE_TIME_KEY));
+      return Number.isFinite(value) && value > 0 ? value : null;
+    } catch {
+      return null;
+    }
   },
   getDataSourceLabel() {
     if (NOVA_TERRA_REQUESTS_API_URL) return "API WebCup · demandes en lecture seule, messages de démo";
@@ -110,15 +175,18 @@ window.NovaTerra = {
   },
 
   async getRequests() {
+    let requests;
     if (NOVA_TERRA_REQUESTS_API_URL) {
       const payload = await getCollectionFromUrl(NOVA_TERRA_REQUESTS_API_URL, "requests");
-      return payload.map(normalizeRequest);
-    }
-    if (NOVA_TERRA_API_BASE_URL) {
+      requests = normalizeRequests(payload);
+    } else if (NOVA_TERRA_API_BASE_URL) {
       const payload = await getFromApi(NOVA_TERRA_ENDPOINTS.requests, "requests");
-      return payload.map(normalizeRequest);
+      requests = normalizeRequests(payload);
+    } else {
+      return readStored(NOVA_TERRA_REQUESTS_KEY, demoRequests).map(normalizeRequest);
     }
-    return readStored(NOVA_TERRA_REQUESTS_KEY, demoRequests).map(normalizeRequest);
+    cacheRequests(requests);
+    return requests;
   },
 
   async getMessages() {
@@ -128,13 +196,11 @@ window.NovaTerra = {
 
   async sendMessage(message) {
     if (NOVA_TERRA_API_BASE_URL) {
-      const response = await fetch(`${NOVA_TERRA_API_BASE_URL}${NOVA_TERRA_ENDPOINTS.messages}`, {
+      return requestJson(`${NOVA_TERRA_API_BASE_URL}${NOVA_TERRA_ENDPOINTS.messages}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(message)
       });
-      if (!response.ok) throw new Error("Message delivery failed");
-      return response.json();
     }
     const messages = readStored(NOVA_TERRA_MESSAGES_KEY, demoMessages);
     const created = { ...message, id: `MSG-${Date.now()}`, createdAt: "A l'instant", unread: true };
@@ -148,13 +214,11 @@ window.NovaTerra = {
       throw new Error("The configured WebCup API is read-only for request status updates");
     }
     if (NOVA_TERRA_API_BASE_URL) {
-      const response = await fetch(`${NOVA_TERRA_API_BASE_URL}${NOVA_TERRA_ENDPOINTS.requests}/${encodeURIComponent(id)}`, {
+      return requestJson(`${NOVA_TERRA_API_BASE_URL}${NOVA_TERRA_ENDPOINTS.requests}/${encodeURIComponent(id)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status })
       });
-      if (!response.ok) throw new Error("Request update failed");
-      return response.json();
     }
     const requests = readStored(NOVA_TERRA_REQUESTS_KEY, demoRequests);
     const request = requests.find((item) => item.id === id);
