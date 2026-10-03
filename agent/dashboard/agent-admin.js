@@ -88,6 +88,7 @@
       ? (english
         ? (isAdmin ? 'Citywide notices appear on the public home page and in residents’ alert centres. Agents can publish notices for a selected sector.' : 'Choose a sector to publish a notice. Citywide notices are reserved for administrators.')
         : (isAdmin ? 'Les informations générales apparaissent sur l’accueil public et dans le centre d’alertes des habitants. Les agents peuvent cibler un secteur.' : 'Choisis un secteur pour publier une information. Les annonces à tous les habitants sont réservées aux administrateurs.')
+      )
       : (english
         ? 'Demo notices are saved in this browser only. Connect the city API to share them with residents across devices.'
         : 'Les informations de démonstration sont enregistrées dans ce navigateur uniquement. Connecte l’API municipale pour les partager entre habitants et appareils.');

@@ -27,6 +27,14 @@ foreach ($relativePath in $requiredFiles) {
 }
 
 $sourceFiles = Get-ChildItem -LiteralPath $projectRoot -Recurse -File -Include *.html,*.js,*.css,*.md,*.yml,*.json
+$javascriptFiles = Get-ChildItem -LiteralPath $projectRoot -Recurse -File -Filter *.js | Where-Object { $_.FullName -notmatch '\\.git\\|\\node_modules\\|\\concourswebcup2026-main\\' }
+foreach ($javascriptFile in $javascriptFiles) {
+  $nodeOutput = & node --check $javascriptFile.FullName 2>&1
+  if ($LASTEXITCODE -ne 0) {
+    throw "Syntaxe JavaScript invalide dans $($javascriptFile.FullName): $nodeOutput"
+  }
+}
+
 $mergeMarkerPattern = ("<<<" + "<<<<") + "|" + ("===" + "====") + "|" + (">>>" + ">>>>")
 foreach ($sourceFile in $sourceFiles) {
   $content = Get-Content -LiteralPath $sourceFile.FullName -Raw
