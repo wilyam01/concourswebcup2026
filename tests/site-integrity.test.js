@@ -74,6 +74,25 @@ test('interface languages are available across the app and backed by local catal
   }
 });
 
+test('public site content has translations for every supported language', () => {
+  const language = fs.readFileSync(path.join(projectRoot, 'language.js'), 'utf8');
+  const translationsMatch = language.match(/const additionalTranslations = \[([\s\S]*?)\n  \];/);
+  assert.ok(translationsMatch, 'language.js should declare its additional translations');
+  const translations = vm.runInNewContext(`[${translationsMatch[1]}]`);
+  const englishMatch = language.match(/const englishTranslations = \{([\s\S]*?)\n  \};/);
+  assert.ok(englishMatch, 'language.js should declare English additions for the expanded catalog');
+  const english = vm.runInNewContext(`({${englishMatch[1]}})`);
+  const locales = ['en', 'zh', 'es', 'it', 'pt', 'de', 'sw'];
+  const row = translations.find(([source]) => source === 'TRANSPORTS & MOBILITÉ');
+  assert.ok(row, 'the public transport introduction should be translated');
+  assert.equal(row.length, 7, 'the translation should cover the six non-English locales');
+  for (const [index, locale] of locales.entries()) {
+    const translated = locale === 'en' ? english[row[0]] : row[index];
+    assert.ok(translated, `${locale} should translate the public transport introduction`);
+    assert.notEqual(translated, row[0], `${locale} should not fall back to French`);
+  }
+});
+
 test('citizen participation saves private votes and ideas and follows language changes', () => {
   class Element {
     constructor(tag = 'div') {
