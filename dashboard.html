@@ -5,14 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#080a14" />
   <title>Terra Nova — Cœur numérique</title>
+  <script>document.documentElement.dataset.forceLight = 'true';</script>
   <script src="theme.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="theme.css" />
   <link rel="stylesheet" href="accessibility.css" />
   <link rel="stylesheet" href="community.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="dashboard-template.css" />
 </head>
 <body class="dashboard-page">
   <a class="skip-link" href="#top">Aller au contenu principal</a>
@@ -44,7 +46,7 @@
       <header class="topbar">
         <button class="mobile-menu" id="menuButton" type="button" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="sidebar">☰</button>
         <div class="breadcrumbs"><span>Nouvelle Aurore</span><span class="crumb-slash">/</span><b data-current-view="citizen">Vue d’ensemble</b></div>
-        <div class="top-actions"><span class="sync" id="api-status" role="status" aria-live="polite"><span class="live-dot" aria-hidden="true"></span><span>Chargement des signalements…</span></span><span class="top-divider"></span><span class="date-label">SOL 184 · 14:32 UTC</span><button class="theme-toggle" type="button" data-theme-toggle aria-label="Changer le thème"><span class="theme-symbol" aria-hidden="true">☼</span></button><button class="icon-button notification" aria-label="Notifications">♧<i></i></button><button class="avatar top-avatar profile-photo-trigger" type="button" aria-label="Ajouter une photo de profil" title="Ajouter une photo de profil">AM</button></div>
+        <div class="top-actions"><span class="sync" id="api-status" role="status" aria-live="polite"><span class="live-dot" aria-hidden="true"></span><span>Chargement des signalements…</span></span><span class="top-divider"></span><span class="date-label">SOL 184 · 14:32 UTC</span><button class="theme-toggle" type="button" data-theme-toggle aria-label="Changer le thème"><span class="theme-symbol" aria-hidden="true">☼</span></button><span class="role-badge" id="profileRole" data-role="citizen">CITOYEN</span><button class="icon-button notification" id="alertsButton" type="button" aria-label="Ouvrir le centre d’alertes" aria-haspopup="dialog" aria-controls="alertsDialog" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg><span class="notification-count" id="alertsCount" hidden>0</span></button><button class="avatar top-avatar profile-photo-trigger" type="button" aria-label="Ajouter une photo de profil" title="Ajouter une photo de profil">AM</button></div>
       </header>
 
       <div class="content" id="overview">
@@ -123,8 +125,13 @@
             <label class="report-search"><span class="sr-only">Rechercher un signalement par titre, secteur ou catégorie</span><input id="reports-search" type="search" placeholder="Rechercher un signalement…" /></label>
             <p id="reports-api-error" role="alert" hidden>L’API est indisponible ou son format n’est pas reconnu. Des exemples de démonstration sont affichés ; vérifie la connexion et réessaie.</p>
             <p class="reports-loading" id="reports-loading" role="status" aria-live="polite">Chargement des signalements…</p>
-            <div class="report-list">
-            </div><button class="mobile-all" id="mobileReports">Tous les signalements <span>→</span></button>
+            <div class="report-table-wrap">
+              <table class="report-table">
+                <caption class="sr-only">Signalements de la communauté avec leur zone, leur statut et leur détail.</caption>
+                <thead><tr><th scope="col">Signalement</th><th scope="col">Zone</th><th scope="col">Statut</th><th scope="col"><span class="sr-only">Action</span></th></tr></thead>
+                <tbody class="report-list" aria-live="polite"></tbody>
+              </table>
+            </div><button class="mobile-all" id="mobileReports" type="button">Tous les signalements <span>→</span></button>
             <p class="reports-empty" id="reports-empty" role="status" hidden>Aucun signalement ne correspond à cette recherche et à ce filtre.</p>
             <button class="load-more-reports" id="loadMoreReports" type="button" hidden>Afficher les signalements suivants</button>
           </article>
@@ -144,6 +151,21 @@
     <p class="detail-dialog-description" id="reportDialogDescription"></p>
     <p class="detail-dialog-location" id="reportDialogLocation"></p>
     <div class="detail-dialog-actions"><button class="profile-secondary-button" id="closeReportDialogAction" type="button">Fermer</button></div>
+  </dialog>
+  <dialog class="profile-dialog alert-center" id="alertsDialog" aria-labelledby="alertsTitle" aria-describedby="alertsSummary" hidden>
+    <div class="profile-dialog-heading">
+      <div><div class="panel-kicker">ADMINISTRATION · SIGNALEMENTS</div><h2 id="alertsTitle">Centre d’alertes</h2></div>
+      <button class="profile-dialog-close" id="closeAlertsDialog" type="button" aria-label="Fermer le centre d’alertes">×</button>
+    </div>
+    <p class="alert-center-summary" id="alertsSummary" role="status" aria-live="polite">Chargement des alertes…</p>
+    <div class="alert-filters" role="group" aria-label="Filtrer les alertes">
+      <button class="alert-filter active" type="button" data-alert-filter="all" aria-pressed="true">Toutes</button>
+      <button class="alert-filter" type="button" data-alert-filter="urgent" aria-pressed="false">Urgentes</button>
+      <button class="alert-filter" type="button" data-alert-filter="open" aria-pressed="false">En cours</button>
+      <button class="alert-filter" type="button" data-alert-filter="resolved" aria-pressed="false">Résolues</button>
+    </div>
+    <div class="admin-alert-list" id="adminAlertList" aria-live="polite"></div>
+    <p class="admin-alert-empty" id="adminAlertEmpty" role="status" hidden>Aucune alerte dans cette catégorie.</p>
   </dialog>
   <dialog class="profile-dialog report-form-dialog" id="reportFormDialog" aria-labelledby="reportFormTitle" aria-describedby="reportFormNote">
     <div class="profile-dialog-heading">

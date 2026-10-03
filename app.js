@@ -12,7 +12,14 @@ let lastPublicReportsSuccessAt = 0;
 let displayedReportCount = 5;
 let reportDataSourceLabel = "Chargement des signalements…";
 const reportsPageSize = 5;
+let adminAlertFilter = "all";
 let personalRequestFilter = "all";
+const alertsButton = document.querySelector("#alertsButton");
+const alertsDialog = document.querySelector("#alertsDialog");
+const alertsCount = document.querySelector("#alertsCount");
+const alertsSummary = document.querySelector("#alertsSummary");
+const adminAlertList = document.querySelector("#adminAlertList");
+const adminAlertEmpty = document.querySelector("#adminAlertEmpty");
 const personalRequestsPanel = document.querySelector("#my-requests");
 const personalRequestsDialog = document.querySelector("#reportFormDialog");
 const citizenReportForm = document.querySelector("#citizenReportForm");
@@ -41,10 +48,14 @@ function createReportRow(request) {
   const status = reportFilterStatus(request);
   const labels = { urgent: "URGENT", progress: "EN COURS", resolved: "RÉSOLU", todo: "À TRAITER" };
   const icons = { urgent: "ϟ", progress: "⌁", resolved: "✓", todo: "•" };
-  const row = document.createElement("article");
+  const row = document.createElement("tr");
   row.className = "report-row";
   row.dataset.status = status;
   row.dataset.priority = request.priority;
+
+  const subjectCell = document.createElement("th");
+  subjectCell.scope = "row";
+  subjectCell.className = "report-subject-cell";
 
   const icon = document.createElement("div");
   icon.className = `report-icon icon-${status === "todo" ? "progress" : status}`;
@@ -55,12 +66,24 @@ function createReportRow(request) {
   const title = document.createElement("b");
   title.textContent = request.title;
   const metadata = document.createElement("span");
-  metadata.textContent = `${request.district} · ${request.updatedAt}`;
+  metadata.textContent = `${request.id} · ${request.updatedAt}`;
   info.append(title, metadata);
+  const subject = document.createElement("div");
+  subject.className = "report-subject";
+  subject.append(icon, info);
+  subjectCell.append(subject);
+
+  const districtCell = document.createElement("td");
+  districtCell.className = "report-district";
+  districtCell.textContent = request.district;
 
   const statusLabel = document.createElement("span");
-  statusLabel.className = `status status-${status === "todo" ? "progress" : status}`;
+  statusLabel.className = `status status-${status}`;
   statusLabel.textContent = labels[status];
+
+  const statusCell = document.createElement("td");
+  statusCell.className = "report-status-cell";
+  statusCell.append(statusLabel);
 
   const openButton = document.createElement("button");
   openButton.className = "row-arrow";
@@ -70,7 +93,10 @@ function createReportRow(request) {
   openButton.setAttribute("aria-label", `Ouvrir le signalement ${request.id}`);
   openButton.textContent = "↗";
 
-  row.append(icon, info, statusLabel, openButton);
+  const actionCell = document.createElement("td");
+  actionCell.className = "report-action-cell";
+  actionCell.append(openButton);
+  row.append(subjectCell, districtCell, statusCell, actionCell);
   return row;
 }
 
@@ -122,6 +148,73 @@ function updateReportCounts(requests) {
     document.querySelector(`#report-count-${filter}`).textContent = count;
   });
   updateCouncilSummary(requests);
+  renderAdminAlerts(requests);
+}
+
+function renderAdminAlerts(requests = publicRequests) {
+  const isAdmin = currentUser.profile === "admin";
+  alertsButton.hidden = !isAdmin;
+  alertsDialog.hidden = !isAdmin;
+  if (!isAdmin) return;
+
+  const openCount = requests.filter((request) => request.status !== "done").length;
+  const urgentCount = requests.filter((request) => request.priority === "high" && request.status !== "done").length;
+  alertsCount.textContent = openCount;
+  alertsCount.hidden = openCount === 0;
+  alertsButton.setAttribute("aria-label", `Ouvrir le centre d’alertes, ${openCount} alerte${openCount === 1 ? "" : "s"} ouverte${openCount === 1 ? "" : "s"}`);
+  alertsSummary.textContent = `${requests.length} signalement${requests.length === 1 ? "" : "s"} · ${openCount} ouvert${openCount === 1 ? "" : "s"} · ${urgentCount} urgent${urgentCount === 1 ? "" : "s"}`;
+
+  const visibleAlerts = requests.filter((request) => {
+    if (adminAlertFilter === "urgent") return request.priority === "high" && request.status !== "done";
+    if (adminAlertFilter === "open") return request.status !== "done";
+    if (adminAlertFilter === "resolved") return request.status === "done";
+    return true;
+  });
+  const statusLabels = { urgent: "URGENT", progress: "EN COURS", resolved: "RÉSOLU", todo: "À TRAITER" };
+
+  adminAlertList.replaceChildren(...visibleAlerts.map((request) => {
+    const status = reportFilterStatus(request);
+    const card = document.createElement("article");
+    card.className = "admin-alert-card";
+    card.dataset.status = status;
+
+    const header = document.createElement("div");
+    header.className = "admin-alert-card-header";
+    const reference = document.createElement("span");
+    reference.className = "admin-alert-reference";
+    reference.textContent = request.id;
+    const statusBadge = document.createElement("span");
+    statusBadge.className = `alert-status status-${status}`;
+    statusBadge.textContent = statusLabels[status];
+    header.append(reference, statusBadge);
+
+    const title = document.createElement("h3");
+    title.className = "admin-alert-title";
+    title.textContent = request.title;
+    const meta = document.createElement("p");
+    meta.className = "admin-alert-meta";
+    meta.textContent = `${request.district} · ${request.updatedAt}`;
+
+    const actions = document.createElement("div");
+    actions.className = "admin-alert-actions";
+    if (request.priority === "high" && request.status !== "done") {
+      const priority = document.createElement("span");
+      priority.className = "alert-priority-high";
+      priority.textContent = "Haute priorité";
+      actions.append(priority);
+    }
+    const openButton = document.createElement("button");
+    openButton.className = "alert-open-button";
+    openButton.type = "button";
+    openButton.dataset.alertRequestId = request.id;
+    openButton.setAttribute("aria-haspopup", "dialog");
+    openButton.textContent = "Voir le détail ↗";
+    actions.append(openButton);
+
+    card.append(header, title, meta, actions);
+    return card;
+  }));
+  adminAlertEmpty.hidden = visibleAlerts.length > 0;
 }
 
 function matchesReportFilter(request, filter) {
@@ -563,12 +656,24 @@ const deleteAccountForm = document.querySelector('#deleteAccountForm');
 const deleteAccountPassword = document.querySelector('#deleteAccountPassword');
 const deleteAccountError = document.querySelector('#deleteAccountError');
 deleteAccountButton.hidden = currentUser.profile !== 'citizen';
+const profileRole = document.querySelector('#profileRole');
 
 topProfileButton.setAttribute('aria-label', 'Personnaliser le profil');
 topProfileButton.title = 'Personnaliser le profil';
 
 function renderProfile(user) {
   const initials = user.name.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+  const roles = {
+    citizen: { label: 'CITOYEN', tone: 'citizen' },
+    agent: { label: 'AGENT', tone: 'agent' },
+    admin: { label: 'ADMIN', tone: 'admin' },
+  };
+  const role = roles[user.profile] || roles.citizen;
+  profileRole.textContent = role.label;
+  profileRole.dataset.role = role.tone;
+  alertsButton.hidden = user.profile !== 'admin';
+  alertsDialog.hidden = user.profile !== 'admin';
+  if (user.profile === 'admin') renderAdminAlerts(publicRequests);
   profilePhotoButtons.forEach((button) => {
     if (!button.classList.contains('has-profile-photo')) button.textContent = initials || 'NT';
   });
@@ -756,6 +861,29 @@ profilePhotoInput.addEventListener('change', () => {
 if (requestedDashboardView === 'council' || currentUser.profile === 'admin') {
   document.querySelector('.view-btn[data-view="council"]')?.click();
 }
+
+alertsButton.addEventListener('click', () => {
+  if (currentUser.profile !== 'admin') return;
+  renderAdminAlerts(publicRequests);
+  alertsDialog.showModal();
+});
+document.querySelector('#closeAlertsDialog').addEventListener('click', () => alertsDialog.close());
+alertsDialog.addEventListener('click', (event) => {
+  if (event.target === alertsDialog) alertsDialog.close();
+});
+document.querySelectorAll('[data-alert-filter]').forEach((button) => button.addEventListener('click', () => {
+  adminAlertFilter = button.dataset.alertFilter;
+  document.querySelectorAll('[data-alert-filter]').forEach((filterButton) => {
+    const isActive = filterButton === button;
+    filterButton.classList.toggle('active', isActive);
+    filterButton.setAttribute('aria-pressed', String(isActive));
+  });
+  renderAdminAlerts(publicRequests);
+}));
+adminAlertList.addEventListener('click', (event) => {
+  const trigger = event.target.closest('[data-alert-request-id]');
+  if (trigger) openReportDetails(trigger.dataset.alertRequestId, trigger);
+});
 
 if (window.NovaTerra.usingDemoData()) {
   const apiStatus = document.querySelector("#api-status");
