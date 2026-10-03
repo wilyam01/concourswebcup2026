@@ -1,15 +1,15 @@
 const agentUser = window.NovaTerraAuth.getSession();
-if (!agentUser || agentUser.profile !== 'agent') {
+window.addEventListener('nova:session-revoked', () => window.location.replace('../../connexion.html?reason=access-revoked'));
+if (!agentUser || !['agent', 'admin'].includes(agentUser.profile)) {
   window.location.replace('../../connexion.html?profile=agent');
 } else {
 const agentInitials = agentUser.name.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
 document.querySelector('#agentAvatar').textContent = agentInitials || 'AG';
 document.querySelector('#agentName').textContent = agentUser.name;
 document.querySelector('#agentGreetingName').textContent = agentUser.name.split(/\s+/)[0];
-function includeCitizenSubmissions(requests) {
+function includeCitizenSubmissions(requests, citizenSubmissions = window.NovaTerra.getLocalCitizenRequests()) {
   const existingIds = new Set(requests.map((request) => request.id));
-  const localRequests = window.NovaTerra.getLocalCitizenRequests();
-  return [...localRequests.filter((request) => !existingIds.has(request.id)), ...requests];
+  return [...citizenSubmissions.filter((request) => !existingIds.has(request.id)), ...requests];
 }
 
 const state = { requests: includeCitizenSubmissions(window.NovaTerra.getCachedRequests()), messages: [] };
@@ -76,7 +76,7 @@ function renderMetrics() {
 }
 
 function requestCard(request) {
-  const statusDisabled = request.source === "citizen-local" || window.NovaTerra.canUpdateRequestStatus() ? "" : "disabled";
+  const statusDisabled = request.source === "citizen-local" || !window.NovaTerra.canUpdateRequestStatus() ? "" : "disabled";
   const updatedAt = request.source === "citizen-local"
     ? new Intl.DateTimeFormat(document.documentElement.lang === "en" ? "en" : "fr", { dateStyle: "medium", timeStyle: "short" }).format(new Date(request.updatedAt))
     : request.updatedAt;
@@ -120,17 +120,19 @@ async function loadDashboard() {
   document.querySelector("#requests-readonly").hidden = window.NovaTerra.canUpdateRequestStatus();
   stateLabel.textContent = "Synchronisation...";
   try {
-    const [requestsResult, messagesResult] = await Promise.allSettled([
+    const [requestsResult, messagesResult, citizenRequestsResult] = await Promise.allSettled([
       window.NovaTerra.getRequests(),
-      window.NovaTerra.getMessages()
+      window.NovaTerra.getMessages(),
+      window.NovaTerra.getCitizenRequests()
     ]);
     const failures = [];
-    if (requestsResult.status === "fulfilled") state.requests = includeCitizenSubmissions(requestsResult.value);
+    if (requestsResult.status === "fulfilled" && citizenRequestsResult.status === "fulfilled") state.requests = includeCitizenSubmissions(requestsResult.value, citizenRequestsResult.value);
     else {
       const cacheTime = window.NovaTerra.getRequestsCacheTime();
       const cacheStamp = cacheTime ? ` (${new Date(cacheTime).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })})` : "";
       failures.push(state.requests.length ? `Les demandes du cache local${cacheStamp} sont affichees, mais n'ont pas pu etre actualisees.` : "Les demandes sont indisponibles.");
     }
+    if (citizenRequestsResult.status === "rejected") failures.push('Les signalements citoyens ne sont pas disponibles.');
     if (messagesResult.status === "fulfilled") state.messages = messagesResult.value;
     else failures.push("Les messages citoyens n'ont pas pu etre actualises.");
 
@@ -174,7 +176,7 @@ document.querySelector("#kanban").addEventListener("change", async (event) => {
   const previousStatus = request.status;
   control.disabled = true;
   try {
-    if (request.source === "citizen-local") Object.assign(request, window.NovaTerra.updateLocalCitizenRequestStatus(request.id, control.value));
+    if (request.source === "citizen-local") Object.assign(request, await window.NovaTerra.updateLocalCitizenRequestStatus(request.id, control.value));
     else Object.assign(request, await window.NovaTerra.updateRequestStatus(request.id, control.value));
     showDashboardError("");
     render();

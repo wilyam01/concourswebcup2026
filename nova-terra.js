@@ -150,7 +150,11 @@ async function requestJson(url, options = {}) {
   try {
     const response = await fetch(url, {
       ...options,
-      headers: { Accept: "application/json", ...(options.headers || {}) },
+      headers: {
+        Accept: "application/json",
+        ...(window.NovaTerraAuth?.getToken?.() ? { Authorization: `Bearer ${window.NovaTerraAuth.getToken()}` } : {}),
+        ...(options.headers || {})
+      },
       signal: controller.signal
     });
     if (!response.ok) throw new Error(`API request failed (${response.status})`);
@@ -181,13 +185,16 @@ function getCachedRequests() {
 }
 
 async function getFromApi(path, preferredKey) {
-  return getCollectionFromUrl(`${NOVA_TERRA_API_BASE_URL}${path}`, preferredKey);
+  const payload = window.NovaTerraApi?.enabled
+    ? await window.NovaTerraApi.request(path)
+    : await requestJson(`${NOVA_TERRA_API_BASE_URL}${path}`);
+  return extractCollection(payload, preferredKey);
 }
 
 window.NovaTerra = {
   citizenRequestsStorageKey: NOVA_TERRA_CITIZEN_REQUESTS_KEY,
   usingDemoData: () => !NOVA_TERRA_API_BASE_URL && !NOVA_TERRA_REQUESTS_API_URL,
-  canUpdateRequestStatus: () => !NOVA_TERRA_REQUESTS_API_URL,
+  canUpdateRequestStatus: () => !NOVA_TERRA_REQUESTS_API_URL && !NOVA_TERRA_API_BASE_URL,
   getDemoRequests() {
     return readStored(NOVA_TERRA_REQUESTS_KEY, demoRequests).flatMap((item) => {
       try { return [normalizeRequest(item)]; }
@@ -201,7 +208,18 @@ window.NovaTerra = {
     const normalizedEmail = String(ownerEmail).trim().toLowerCase();
     return requests.filter((request) => request.ownerEmail === normalizedEmail);
   },
-  createCitizenRequest({ ownerEmail, title, district, type, service, priority = "normal", description }) {
+  async getCitizenRequests(ownerEmail = null) {
+    let requests;
+    if (NOVA_TERRA_API_BASE_URL) {
+      const payload = await window.NovaTerraApi.request('/citizen-requests');
+      const collection = extractCollection(payload, "requests");
+      requests = collection.flatMap((item) => { try { return [normalizeCitizenRequest(item)]; } catch { return []; } });
+    } else requests = readCitizenRequests();
+    if (ownerEmail === null) return requests;
+    const normalizedEmail = String(ownerEmail).trim().toLowerCase();
+    return requests.filter((request) => request.ownerEmail === normalizedEmail);
+  },
+  async createCitizenRequest({ ownerEmail, title, district, type, service, priority = "normal", description }) {
     const normalizedEmail = String(ownerEmail || "").trim().toLowerCase();
     const normalizedTitle = toSafeText(title, "", 100);
     const normalizedDistrict = toSafeText(district, "", 120);
@@ -212,6 +230,12 @@ window.NovaTerra = {
     }
     if (!localRequestServices.has(service)) throw new Error("Choose a valid municipal service");
     const normalizedPriority = normalizePriority(priority);
+    if (NOVA_TERRA_API_BASE_URL) {
+      const payload = await window.NovaTerraApi.request('/citizen-requests', {
+        method: 'POST', body: JSON.stringify({ title: normalizedTitle, district: normalizedDistrict, type: normalizedType, service, priority: normalizedPriority, description: normalizedDescription }),
+      });
+      return normalizeCitizenRequest(payload.request);
+    }
     const createdAt = new Date().toISOString();
     const suffix = globalThis.crypto?.randomUUID?.().slice(0, 8).toUpperCase() || Math.random().toString(36).slice(2, 10).toUpperCase();
     const request = normalizeCitizenRequest({
@@ -230,8 +254,14 @@ window.NovaTerra = {
     saveCitizenRequests([request, ...readCitizenRequests()]);
     return request;
   },
-  updateLocalCitizenRequestStatus(id, status) {
+  async updateLocalCitizenRequestStatus(id, status) {
     const normalizedStatus = normalizeStatus(status);
+    if (NOVA_TERRA_API_BASE_URL) {
+      const payload = await window.NovaTerraApi.request(`/citizen-requests/${encodeURIComponent(id)}`, {
+        method: 'PATCH', body: JSON.stringify({ status: normalizedStatus }),
+      });
+      return normalizeCitizenRequest(payload.request);
+    }
     const requests = readCitizenRequests();
     const request = requests.find((item) => item.id === id);
     if (!request) throw new Error("Local citizen request not found");
@@ -275,9 +305,8 @@ window.NovaTerra = {
 
   async sendMessage(message) {
     if (NOVA_TERRA_API_BASE_URL) {
-      return requestJson(`${NOVA_TERRA_API_BASE_URL}${NOVA_TERRA_ENDPOINTS.messages}`, {
+      return window.NovaTerraApi.request(NOVA_TERRA_ENDPOINTS.messages, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(message)
       });
     }
@@ -293,9 +322,8 @@ window.NovaTerra = {
       throw new Error("The configured WebCup API is read-only for request status updates");
     }
     if (NOVA_TERRA_API_BASE_URL) {
-      return requestJson(`${NOVA_TERRA_API_BASE_URL}${NOVA_TERRA_ENDPOINTS.requests}/${encodeURIComponent(id)}`, {
+      return window.NovaTerraApi.request(`${NOVA_TERRA_ENDPOINTS.requests}/${encodeURIComponent(id)}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status })
       });
     }

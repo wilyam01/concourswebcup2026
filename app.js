@@ -1,4 +1,5 @@
 const currentUser = window.NovaTerraAuth.getSession();
+window.addEventListener('nova:session-revoked', () => window.location.replace('connexion.html?reason=access-revoked'));
 const requestedDashboardView = new URLSearchParams(window.location.search).get('view');
 if (!currentUser || (requestedDashboardView === 'council' && currentUser.profile !== 'admin')) {
   window.location.replace(currentUser ? 'connexion.html?profile=admin' : 'connexion.html');
@@ -168,12 +169,20 @@ function personalRequestLabels() {
   };
 }
 
-function renderPersonalRequests() {
+async function renderPersonalRequests() {
   if (!personalRequestsPanel || personalRequestsPanel.hidden) return;
   const english = document.documentElement.lang === "en";
   const labels = personalRequestLabels();
-  const requests = window.NovaTerra.getLocalCitizenRequests(currentUser.email)
-    .sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt));
+  let requests;
+  try {
+    requests = (await window.NovaTerra.getCitizenRequests(currentUser.email))
+      .sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt));
+  } catch (_) {
+    const empty = document.querySelector('#personalRequestEmpty');
+    empty.textContent = document.documentElement.lang === 'en' ? 'Your requests could not be loaded. Try again shortly.' : 'Tes demandes n’ont pas pu être chargées. Réessaie dans un instant.';
+    empty.hidden = false;
+    return;
+  }
   const openCount = requests.filter((request) => request.status !== "done").length;
   const historyCount = requests.length - openCount;
   document.querySelector("#myRequestCountAll").textContent = requests.length;
@@ -243,8 +252,8 @@ function renderPersonalRequestFeedback() {
   if (!lastCitizenReportId) return;
   const english = document.documentElement.lang === "en";
   document.querySelector("#personalRequestFeedback").textContent = english
-    ? `Report ${lastCitizenReportId} was saved on this device. Follow its status in your request history.`
-    : `Le signalement ${lastCitizenReportId} est enregistré sur cet appareil. Suis son état dans ton historique.`;
+    ? `Report ${lastCitizenReportId} was saved ${window.NovaTerraApi?.enabled ? 'to your city account' : 'on this device'}. Follow its status in your request history.`
+    : `Le signalement ${lastCitizenReportId} est enregistré ${window.NovaTerraApi?.enabled ? 'dans ton compte citoyen' : 'sur cet appareil'}. Suis son état dans ton historique.`;
 }
 
 function renderCitizenReportError() {
@@ -256,6 +265,11 @@ function renderCitizenReportError() {
 }
 
 personalRequestsPanel.hidden = currentUser.profile !== "citizen";
+if (window.NovaTerraApi?.enabled) {
+  document.querySelector('#myRequestsNote').textContent = document.documentElement.lang === 'en'
+    ? 'Your reports are saved to your city account and can be followed from another device.'
+    : 'Tes signalements sont enregistrés dans ton compte et consultables depuis un autre appareil.';
+}
 document.querySelector('.nav-item[href="#my-requests"]').hidden = personalRequestsPanel.hidden;
 if (!personalRequestsPanel.hidden) renderPersonalRequests();
 document.querySelector("#openReportForm").addEventListener("click", (event) => openCitizenReportForm(event.currentTarget));
@@ -268,15 +282,15 @@ document.querySelector("#reportCategory").addEventListener("change", (event) => 
 personalRequestsDialog.addEventListener("close", () => {
   if (reportFormTrigger?.isConnected) reportFormTrigger.focus();
 });
-citizenReportForm.addEventListener("submit", (event) => {
+citizenReportForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const error = document.querySelector("#citizenReportError");
   citizenReportErrorKey = "";
   error.hidden = true;
   const values = Object.fromEntries(new FormData(citizenReportForm));
   try {
-    const request = window.NovaTerra.createCitizenRequest({ ...values, ownerEmail: currentUser.email });
-    renderPersonalRequests();
+    const request = await window.NovaTerra.createCitizenRequest({ ...values, ownerEmail: currentUser.email });
+    await renderPersonalRequests();
     const feedback = document.querySelector("#personalRequestFeedback");
     lastCitizenReportId = request.id;
     renderPersonalRequestFeedback();
@@ -303,7 +317,25 @@ window.addEventListener("nova:language-change", () => {
   renderPersonalRequests();
   renderPersonalRequestFeedback();
   renderCitizenReportError();
+  if (window.NovaTerraApi?.enabled) {
+    const english = document.documentElement.lang === 'en';
+    document.querySelector('#myRequestsNote').textContent = english
+      ? 'Your reports are saved to your city account and can be followed from another device.'
+      : 'Tes signalements sont enregistrés dans ton compte et consultables depuis un autre appareil.';
+    document.querySelector('#profileDialog .profile-dialog-intro').textContent = english
+      ? 'Your name and district are saved to your city account. Your profile photo is stored with the account.'
+      : 'Ton nom, ton secteur et ta photo sont enregistrés avec ton compte citoyen.';
+    document.querySelector('#profileDialog .profile-photo-setting small').textContent = english
+      ? 'Image · 8 MB maximum · synced to your city account'
+      : 'Image · 8 Mo maximum · synchronisée avec ton compte';
+    document.querySelector('#deleteAccountNote').textContent = english
+      ? 'This permanently deletes your account, reports, contact messages and appointments from the city database.'
+      : 'Cette action supprime définitivement ton compte, tes signalements, messages de contact et rendez-vous du serveur municipal.';
+  }
 });
+if (window.NovaTerraApi?.enabled && !personalRequestsPanel.hidden) window.setInterval(() => {
+  if (!document.hidden) renderPersonalRequests();
+}, 60_000);
 
 const reportDialog = document.querySelector("#reportDialog");
 const reportDialogStatusLabels = { todo: "À traiter", urgent: "Urgent", progress: "En cours", resolved: "Résolu" };
@@ -525,6 +557,12 @@ const profileForm = document.querySelector('#profileForm');
 const profileNameInput = document.querySelector('#profileNameInput');
 const profileSectorInput = document.querySelector('#profileSectorInput');
 const profileFormError = document.querySelector('#profileFormError');
+const deleteAccountButton = document.querySelector('#deleteAccountButton');
+const deleteAccountDialog = document.querySelector('#deleteAccountDialog');
+const deleteAccountForm = document.querySelector('#deleteAccountForm');
+const deleteAccountPassword = document.querySelector('#deleteAccountPassword');
+const deleteAccountError = document.querySelector('#deleteAccountError');
+deleteAccountButton.hidden = currentUser.profile !== 'citizen';
 
 topProfileButton.setAttribute('aria-label', 'Personnaliser le profil');
 topProfileButton.title = 'Personnaliser le profil';
@@ -565,6 +603,18 @@ try {
 } catch (_) {
   // A saved photo is optional when browser storage is unavailable.
 }
+if (window.NovaTerraApi?.enabled) {
+  document.querySelector('#profileDialog .profile-dialog-intro').textContent = document.documentElement.lang === 'en'
+    ? 'Your name and district are saved to your city account. Your profile photo is stored with the account.'
+    : 'Ton nom, ton secteur et ta photo sont enregistrés avec ton compte citoyen.';
+  document.querySelector('#profileDialog .profile-photo-setting small').textContent = document.documentElement.lang === 'en'
+    ? 'Image · 8 MB maximum · synced to your city account'
+    : 'Image · 8 Mo maximum · synchronisée avec ton compte';
+  document.querySelector('#deleteAccountNote').textContent = document.documentElement.lang === 'en'
+    ? 'This permanently deletes your account, reports, contact messages and appointments from the city database.'
+    : 'Cette action supprime définitivement ton compte, tes signalements, messages de contact et rendez-vous du serveur municipal.';
+  window.NovaTerraAuth.getProfilePhoto().then((dataUrl) => { if (dataUrl) showProfilePhoto(dataUrl); }).catch(() => {});
+}
 
 function openProfileDialog() {
   profileNameInput.value = currentUser.name;
@@ -582,10 +632,43 @@ document.querySelector('#logoutButton').addEventListener('click', () => {
 document.querySelector('#profileDialogPhoto').addEventListener('click', () => profilePhotoInput.click());
 document.querySelector('#closeProfileDialog').addEventListener('click', () => profileDialog.close());
 document.querySelector('#cancelProfileEdit').addEventListener('click', () => profileDialog.close());
-profileForm.addEventListener('submit', (event) => {
+deleteAccountButton.addEventListener('click', () => {
+  profileDialog.close();
+  deleteAccountForm.reset();
+  deleteAccountError.hidden = true;
+  deleteAccountDialog.showModal();
+  deleteAccountPassword.focus();
+});
+document.querySelector('#closeDeleteAccount').addEventListener('click', () => deleteAccountDialog.close());
+document.querySelector('#cancelDeleteAccount').addEventListener('click', () => deleteAccountDialog.close());
+deleteAccountDialog.addEventListener('close', () => topProfileButton.focus());
+deleteAccountForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  deleteAccountError.hidden = true;
+  const submitButton = deleteAccountForm.querySelector('[type="submit"]');
+  submitButton.disabled = true;
+  const result = await window.NovaTerraAuth.deleteCitizenAccount(deleteAccountPassword.value);
+  submitButton.disabled = false;
+  if (!result.ok) {
+    const messages = {
+      invalid_credentials: 'Le mot de passe ne correspond pas à ce compte.',
+      account_not_found: 'Le compte est introuvable dans ce navigateur.',
+      citizen_account_required: 'Cette action est réservée aux comptes citoyens.',
+      storage_unavailable: 'La suppression n’a pas pu être terminée dans ce navigateur.',
+    };
+    deleteAccountError.textContent = messages[result.error] || 'Impossible de supprimer le compte.';
+    deleteAccountError.hidden = false;
+    return;
+  }
+  deleteAccountDialog.close();
+  notify(window.NovaTerraApi?.enabled ? 'Compte citoyen et données associées supprimés.' : 'Compte et données locales supprimés.');
+  const deletionSource = window.NovaTerraApi?.enabled ? '&source=server' : '';
+  window.setTimeout(() => window.location.replace(`index.html?account=deleted${deletionSource}`), 900);
+});
+profileForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   profileFormError.hidden = true;
-  const result = window.NovaTerraAuth.updateProfile({
+  const result = await window.NovaTerraAuth.updateProfile({
     name: profileNameInput.value,
     sector: profileSectorInput.value,
   });
@@ -630,7 +713,7 @@ profilePhotoInput.addEventListener('change', () => {
   reader.onload = () => {
     const image = new Image();
     image.onerror = () => notify('Ce format d’image ne peut pas être affiché ici.');
-    image.onload = () => {
+    image.onload = async () => {
       const maxDimension = 512;
       const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
       const canvas = document.createElement('canvas');
@@ -645,6 +728,17 @@ profilePhotoInput.addEventListener('change', () => {
       context.fillRect(0, 0, canvas.width, canvas.height);
       context.drawImage(image, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.84);
+      if (window.NovaTerraApi?.enabled) {
+        const saved = await window.NovaTerraAuth.saveProfilePhoto(dataUrl);
+        if (!saved.ok) {
+          notify('La photo n’a pas pu être enregistrée sur le serveur.');
+          return;
+        }
+        try { localStorage.setItem(profilePhotoStorageKey, dataUrl); } catch (_) { /* The server copy is authoritative. */ }
+        showProfilePhoto(dataUrl);
+        notify(document.documentElement.lang === 'en' ? 'Profile photo synced to your account.' : 'Photo de profil synchronisée avec ton compte.');
+        return;
+      }
       let saved = true;
       try {
         localStorage.setItem(profilePhotoStorageKey, dataUrl);

@@ -1,0 +1,268 @@
+(() => {
+  if (!window.NovaTerraCity || document.body.classList.contains('agent-page')) return;
+  const user = window.NovaTerraAuth?.getSession();
+  const english = () => document.documentElement.lang === 'en';
+  const sector = user?.sector || '';
+  const readKey = `terra-nova.announcement-reads.v1:${user?.email || 'visitor'}`;
+  const host = document.createElement('section');
+  host.className = 'community-alert-host';
+  host.id = 'communityAlertHost';
+  host.setAttribute('aria-label', 'Informations prioritaires');
+
+  function insertHost() {
+    host.setAttribute('aria-label', english() ? 'City notices' : 'Informations prioritaires');
+    const publicHeader = document.querySelector('.public-header');
+    const dashboardHeading = document.querySelector('.welcome-row');
+    const contactIntro = document.querySelector('.contact-page .intro');
+    if (publicHeader) publicHeader.insertAdjacentElement('afterend', host);
+    else if (dashboardHeading) dashboardHeading.insertAdjacentElement('afterend', host);
+    else if (contactIntro) contactIntro.insertAdjacentElement('afterend', host);
+  }
+
+  const dialog = document.createElement('dialog');
+  dialog.className = 'community-dialog';
+  dialog.id = 'communityInbox';
+  dialog.setAttribute('aria-labelledby', 'communityInboxTitle');
+  dialog.innerHTML = `<div class="community-dialog-heading"><div><h2 id="communityInboxTitle">Centre des alertes</h2><p id="communityInboxNote">Annonces, consignes urgentes et état des services.</p></div><button class="community-dialog-close" type="button" aria-label="Fermer">×</button></div><div class="community-notice-list" id="communityNoticeList" aria-live="polite"></div>`;
+  document.body.append(dialog);
+  const list = dialog.querySelector('#communityNoticeList');
+  const trigger = document.querySelector('.notification') || document.createElement('button');
+  const isExistingTrigger = trigger.isConnected;
+  if (!isExistingTrigger) {
+    trigger.className = 'community-inbox-trigger';
+    trigger.type = 'button';
+    trigger.innerHTML = '<span aria-hidden="true">♧</span><span class="community-inbox-label">Alertes</span>';
+    document.body.append(trigger);
+  }
+  trigger.type = 'button';
+  trigger.setAttribute('aria-label', english() ? 'Open announcements and alerts' : 'Ouvrir les annonces et alertes');
+  trigger.setAttribute('aria-haspopup', 'dialog');
+  trigger.setAttribute('aria-controls', dialog.id);
+  trigger.setAttribute('aria-expanded', 'false');
+  const count = document.createElement('span');
+  count.className = 'community-inbox-count';
+  count.setAttribute('aria-live', 'polite');
+  count.hidden = true;
+  trigger.append(count);
+  const close = dialog.querySelector('.community-dialog-close');
+
+  function readIds() {
+    try {
+      const ids = JSON.parse(localStorage.getItem(readKey) || '[]');
+      return Array.isArray(ids) ? ids : [];
+    } catch (_) { return []; }
+  }
+
+  function localized(kind) {
+    const labels = english()
+      ? { general: 'PRIORITY MESSAGE', news: 'CITY ANNOUNCEMENT', flood: 'FLOOD WARNING', health: 'HEALTH ALERT', service_status: 'SERVICE STATUS' }
+      : { general: 'MESSAGE PRIORITAIRE', news: 'ANNONCE MUNICIPALE', flood: 'ALERTE INONDATION', health: 'ALERTE SANITAIRE', service_status: 'ÉTAT DU SERVICE' };
+    return labels[kind] || labels.general;
+  }
+
+  function localizedSector(value) {
+    if (!english()) return value;
+    return ({
+      'District Boréal · Secteur 01': 'Boreal District · Sector 01',
+      'Centre civique · Secteur 04': 'Civic Centre · Sector 04',
+      'Serres du Sud · Secteur 07': 'Southern Greenhouses · Sector 07',
+    })[value] || value;
+  }
+
+  function serviceStatusLabel(item) {
+    if (item.kind !== 'service_status') return '';
+    const service = (english()
+      ? { water: 'Water and environment', health: 'Health and wellbeing', energy: 'Energy and housing', mobility: 'Mobility', civic: 'Civic life', solidarity: 'Support and assistance', other: 'Other service' }
+      : { water: 'Eau et environnement', health: 'Santé et bien-être', energy: 'Énergie et habitat', mobility: 'Mobilité', civic: 'Vie citoyenne', solidarity: 'Aide et accompagnement', other: 'Autre service' })[item.service] || item.service;
+    const state = item.serviceStatus === 'maintenance'
+      ? (english() ? 'Maintenance' : 'En maintenance')
+      : item.serviceStatus === 'unavailable'
+        ? (english() ? 'Unavailable' : 'Indisponible')
+        : (english() ? 'Operational' : 'Disponible');
+    return `${service} · ${state}`;
+  }
+
+  async function announcementItems() {
+    return window.NovaTerraCity.getAnnouncements({ sector });
+  }
+
+  async function renderServiceStates() {
+    const statuses = await window.NovaTerraCity.getServiceStatuses();
+    document.querySelectorAll('.service-card[data-service-id]').forEach((card) => {
+      let badge = card.querySelector('.service-live-state');
+      const status = statuses[card.dataset.serviceId];
+      if (!status) {
+        badge?.remove();
+        return;
+      }
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'service-live-state';
+        card.querySelector('.service-info')?.insertAdjacentElement('afterend', badge);
+      }
+      badge.classList.toggle('unavailable', status.serviceStatus === 'unavailable');
+      badge.classList.toggle('operational', status.serviceStatus === 'operational');
+      const stateLabel = status.serviceStatus === 'unavailable'
+        ? (english() ? 'Unavailable' : 'Indisponible')
+        : status.serviceStatus === 'maintenance'
+          ? (english() ? 'Maintenance' : 'En maintenance')
+          : (english() ? 'Available' : 'Disponible');
+      badge.textContent = `${status.serviceStatus === 'unavailable' ? '●' : status.serviceStatus === 'maintenance' ? '◷' : '✓'} ${stateLabel}`;
+      badge.title = status.title;
+    });
+  }
+
+  function updateUnread(items) {
+    const seen = new Set(readIds());
+    const unreadCount = items.filter((item) => item.read === true ? false : !seen.has(item.id)).length;
+    count.textContent = unreadCount;
+    count.hidden = unreadCount === 0;
+    trigger.setAttribute('aria-label', english()
+      ? `Open announcements and alerts${unreadCount ? `, ${unreadCount} unread` : ''}`
+      : `Ouvrir les annonces et alertes${unreadCount ? `, ${unreadCount} non lue${unreadCount > 1 ? 's' : ''}` : ''}`);
+  }
+
+  function makeNotice(item) {
+    const article = document.createElement('article');
+    article.className = `community-notice ${item.kind}`;
+    const type = document.createElement('small');
+    type.textContent = localized(item.kind);
+    const title = document.createElement('h3');
+    title.textContent = item.title;
+    const body = document.createElement('p');
+    body.textContent = item.body;
+    const time = document.createElement('time');
+    time.dateTime = item.createdAt;
+    time.textContent = new Intl.DateTimeFormat(english() ? 'en' : 'fr', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.createdAt));
+    article.append(type, title, body);
+    const status = serviceStatusLabel(item);
+    if (status) {
+      const service = document.createElement('small');
+      service.textContent = status;
+      article.append(service);
+    }
+    if (item.targetSector) {
+      const area = document.createElement('small');
+      area.textContent = `${english() ? 'Area' : 'Secteur'} · ${localizedSector(item.targetSector)}`;
+      article.append(area);
+    }
+    article.append(time);
+    return article;
+  }
+
+  async function renderInbox() {
+    const items = await announcementItems();
+    list.replaceChildren(...items.map(makeNotice));
+    if (!items.length) {
+      const empty = document.createElement('p');
+      empty.className = 'community-empty';
+      empty.textContent = english() ? 'There are no current announcements for your area.' : 'Aucune annonce active pour ton secteur.';
+      list.append(empty);
+    }
+    updateUnread(items);
+  }
+
+  async function renderBanners() {
+    const items = (await announcementItems()).filter((item) => item.kind === 'general' || item.kind === 'flood' || item.kind === 'health' || (item.kind === 'service_status' && item.serviceStatus !== 'operational'));
+    const banners = items.slice(0, 3).map((item) => {
+      const banner = document.createElement('article');
+      banner.className = `community-alert ${item.kind}`;
+      const mark = document.createElement('span');
+      mark.className = 'community-alert-mark';
+      mark.setAttribute('aria-hidden', 'true');
+      mark.textContent = item.kind === 'flood' ? '!' : item.kind === 'health' ? '+' : item.kind === 'service_status' ? '◷' : 'i';
+      const copy = document.createElement('div');
+      copy.className = 'community-alert-copy';
+      const title = document.createElement('b');
+      title.textContent = item.title;
+      const body = document.createElement('p');
+      body.textContent = item.body;
+      const meta = document.createElement('small');
+      meta.className = 'community-alert-meta';
+      meta.textContent = `${localized(item.kind)}${item.targetSector ? ` · ${localizedSector(item.targetSector)}` : ''}`;
+      copy.append(title, body, meta);
+      const open = document.createElement('button');
+      open.className = 'community-alert-close';
+      open.type = 'button';
+      open.setAttribute('aria-label', english() ? 'Open alert centre' : 'Ouvrir le centre des alertes');
+      open.textContent = '↗';
+      open.addEventListener('click', () => dialog.showModal());
+      banner.append(mark, copy, open);
+      return banner;
+    });
+    if (new URLSearchParams(location.search).get('account') === 'deleted') {
+      const notice = document.createElement('p');
+      notice.className = 'community-alert';
+      notice.setAttribute('role', 'status');
+      const remoteDeletion = new URLSearchParams(location.search).get('source') === 'server';
+      notice.textContent = english()
+        ? (remoteDeletion ? 'Your citizen account and associated city records were deleted.' : 'Your citizen account and local records were deleted.')
+        : (remoteDeletion ? 'Ton compte citoyen et les données municipales associées ont été supprimés.' : 'Ton compte citoyen et les données locales associées ont été supprimés.');
+      banners.unshift(notice);
+    }
+    host.replaceChildren(...banners);
+  }
+
+  async function refresh() {
+    host.setAttribute('aria-label', english() ? 'City notices' : 'Informations prioritaires');
+    try {
+      await Promise.all([renderBanners(), renderServiceStates(), renderInbox(), renderPublicNews()]);
+    } catch (_) {
+      // The locally saved city view remains available if the configured API is offline.
+    }
+  }
+
+  async function renderPublicNews() {
+    const newsList = document.querySelector('#news-list');
+    if (!newsList) return;
+    const items = (await announcementItems()).filter((item) => item.kind === 'news').slice(0, 5);
+    newsList.querySelectorAll('[data-community-news]').forEach((element) => element.remove());
+    items.forEach((item) => {
+      const article = document.createElement('article');
+      article.className = 'news-item dynamic-news-item';
+      article.dataset.communityNews = item.id;
+      const top = document.createElement('div');
+      top.className = 'news-item-top';
+      const tag = document.createElement('span');
+      tag.className = 'news-tag tag-community';
+      tag.textContent = english() ? 'CITY ANNOUNCEMENT' : 'ANNONCE MUNICIPALE';
+      const time = document.createElement('time');
+      time.dateTime = item.createdAt;
+      time.textContent = new Intl.DateTimeFormat(english() ? 'en' : 'fr', { dateStyle: 'medium' }).format(new Date(item.createdAt));
+      top.append(tag, time);
+      const title = document.createElement('h3');
+      title.textContent = item.title;
+      const body = document.createElement('p');
+      body.textContent = item.body;
+      article.append(top, title, body);
+      newsList.prepend(article);
+    });
+  }
+
+  insertHost();
+  trigger.addEventListener('click', async () => {
+    dialog.showModal();
+    trigger.setAttribute('aria-expanded', 'true');
+    await renderInbox();
+    const items = await announcementItems();
+    if (window.NovaTerraApi?.enabled && user) {
+      try { await window.NovaTerraApi.request('/announcements/read', { method: 'POST', body: JSON.stringify({ ids: items.map((item) => item.id) }) }); } catch (_) { /* The inbox remains readable when receipts cannot sync. */ }
+    } else {
+      try { localStorage.setItem(readKey, JSON.stringify([...new Set([...readIds(), ...items.map((item) => item.id)])].slice(-200))); } catch (_) { /* Reading notices does not depend on persistence. */ }
+    }
+    await renderInbox();
+  });
+  close.addEventListener('click', () => dialog.close());
+  dialog.addEventListener('click', (event) => { if (event.target === dialog) dialog.close(); });
+  dialog.addEventListener('close', () => {
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.focus();
+  });
+  window.addEventListener('terra-nova:announcements-updated', refresh);
+  window.addEventListener('storage', (event) => {
+    if (event.key === window.NovaTerraCity.announcementStorageKey) refresh();
+  });
+  window.addEventListener('nova:language-change', refresh);
+  window.setInterval(() => { if (!document.hidden) refresh(); }, 60_000);
+  refresh();
+})();

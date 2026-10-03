@@ -12,17 +12,18 @@
     <link rel="stylesheet" href="agent.css" />
     <link rel="stylesheet" href="../../theme.css" />
     <link rel="stylesheet" href="../../accessibility.css" />
+    <link rel="stylesheet" href="../../community.css" />
   </head>
   <body class="agent-page">
     <a class="skip-link" href="#dashboard">Aller au contenu principal</a>
     <aside class="sidebar">
       <a class="brand" href="../../"><span>TN</span><b>Terra Nova<small>ESPACE AGENT</small></b></a>
-      <nav aria-label="Navigation agent"><a class="active" href="#dashboard">Tableau de bord</a><a href="#demandes">Demandes</a><a href="#messages">Messages citoyens <span id="unread-count">0</span></a></nav>
+      <nav aria-label="Navigation agent"><a class="active" href="#dashboard">Tableau de bord</a><a href="#demandes">Demandes</a><a href="#messages">Messages citoyens <span id="unread-count">0</span></a><a href="#city-management">Alertes &amp; accès</a><a href="#agentAppointments">Rendez-vous</a></nav>
       <div class="agent-profile"><span id="agentAvatar">AM</span><div><b id="agentName">Alex Morgan</b><small>Agent municipal</small></div></div>
     </aside>
     <main id="dashboard">
       <header class="topbar"><div><p class="kicker"><span>Nouvelle Aurore</span> / <b>Coordination</b></p><h1>Bonjour, <span id="agentGreetingName">Alex</span>.</h1></div><div class="top-actions"><span id="api-state" class="api-state">Chargement...</span><a href="../../contact/">Voir le contact citoyen</a><button class="agent-logout" id="agentLogout" type="button">Déconnexion</button><button class="theme-toggle agent-theme-toggle" type="button" data-theme-toggle aria-label="Changer le thème"><span class="theme-symbol" aria-hidden="true">☼</span></button></div></header>
-      <section class="metrics" aria-label="Synthese des demandes"><article><span>A traiter</span><strong id="todo-total">0</strong><small>Priorites a examiner</small></article><article><span>En cours</span><strong id="progress-total">0</strong><small>Services mobilises</small></article><article><span>Termine</span><strong id="done-total">0</strong><small>Dossiers clotures</small></article><article><span>Messages recus</span><strong id="message-total">0</strong><small>Flux citoyen</small></article></section>
+      <section class="metrics" aria-label="Synthese des demandes"><article><span id="pendingDemandLabel">Dossiers en attente</span><strong id="todo-total">0</strong><small id="pendingDemandDescription">À examiner par un agent</small></article><article><span>En cours</span><strong id="progress-total">0</strong><small>Services mobilisés</small></article><article><span>Terminé</span><strong id="done-total">0</strong><small>Dossiers clôturés</small></article><article><span>Messages reçus</span><strong id="message-total">0</strong><small>Flux citoyen</small></article></section>
       <section class="work-section" id="demandes">
         <div class="section-heading">
           <div><p class="kicker">SUIVI OPERATIONNEL</p><h2>Demandes citoyennes</h2></div>
@@ -37,16 +38,41 @@
         </div>
         <div class="request-summary"><span id="request-count" role="status" aria-live="polite">Chargement des demandes…</span></div>
         <p class="dashboard-error" id="dashboard-error" role="alert" hidden></p>
-        <p class="readonly-notice" id="requests-readonly" role="status" hidden>Avec l’API WebCup, les demandes sont en lecture seule. La mise à jour de leur statut nécessite la documentation d’un endpoint d’écriture.</p>
+        <p class="readonly-notice" id="requests-readonly" role="status" hidden>Les demandes synchronisées sont en lecture seule. Leur mise à jour nécessite un endpoint d’écriture fourni par le service source.</p>
         <div class="kanban" id="kanban" aria-live="polite"></div>
       </section>
       <section class="messages-section" id="messages"><div class="section-heading"><div><p class="kicker">BOITE DE RECEPTION</p><h2>Messages citoyens</h2></div><span id="message-label">0 message</span></div><div class="message-list" id="message-list"></div></section>
+      <section class="management-section" id="city-management">
+        <div class="section-heading"><div><p class="kicker">INFORMATION &amp; ACCÈS</p><h2>Gestion de la cité</h2></div><span>Enregistrement local · démonstration</span></div>
+        <div class="management-grid">
+          <article class="management-card"><p class="kicker">D18 · ALERTES CITOYENNES</p><h3>Diffuser une information</h3><p>Les habitants de ce navigateur la verront dans le bandeau et le centre de notifications.</p>
+            <form id="announcementForm" class="management-form">
+              <label>Type d’information<select name="kind" id="announcementKind"><option value="general">Message général prioritaire</option><option value="news">Annonce municipale</option><option value="flood">Alerte inondation / crue</option><option value="health">Alerte sanitaire / canicule</option><option value="service_status">Statut d’un service</option></select></label>
+              <label>Secteur ciblé<select name="targetSector"><option value="">Tous les habitants</option><option value="District Boréal · Secteur 01">District Boréal · Secteur 01</option><option value="Centre civique · Secteur 04">Centre civique · Secteur 04</option><option value="Serres du Sud · Secteur 07">Serres du Sud · Secteur 07</option></select></label>
+              <div class="management-service-fields" id="announcementServiceFields" hidden><label>Service<select name="service"><option value="water">Eau et environnement</option><option value="health">Santé et bien-être</option><option value="energy">Énergie et habitat</option><option value="mobility">Mobilité</option><option value="civic">Vie citoyenne</option><option value="solidarity">Aide et accompagnement</option><option value="other">Autre service</option></select></label><label>État<select name="serviceStatus"><option value="operational">Disponible</option><option value="maintenance">Maintenance</option><option value="unavailable">Indisponible</option></select></label></div>
+              <label>Titre<input name="title" maxlength="120" required placeholder="Ex. Vigilance crue · Secteur 04" /></label>
+              <label>Message et consignes<textarea name="body" rows="4" maxlength="1200" required placeholder="Précise la zone concernée, les consignes ou l’impact sur le service."></textarea></label>
+              <label>Expiration (facultative)<input name="expiresAt" type="datetime-local" /></label>
+              <button class="refresh-button" type="submit">Publier l’information</button><p class="management-feedback" id="announcementFeedback" role="status" aria-live="polite" hidden></p>
+            </form>
+            <div class="managed-announcements" id="managedAnnouncements" aria-live="polite"></div>
+          </article>
+          <article class="management-card"><p class="kicker">F34 · ACCÈS AUX COMPTES</p><h3>Comptes habitants</h3><p>Suspends ou rétablis un accès citoyen. Les mots de passe ne sont jamais affichés.</p><div class="managed-accounts" id="managedAccounts" aria-live="polite"></div><p class="management-feedback" id="accountsFeedback" role="status" aria-live="polite"></p></article>
+        </div>
+      </section>
+      <section class="management-section agent-appointments-section" id="agentAppointments"><div class="section-heading"><div><p class="kicker">F39 · RENDEZ-VOUS RÉSERVÉS</p><h2>Agenda des agents</h2></div><span>Demandes issues de ce navigateur</span></div><div class="managed-appointments" id="managedAppointments" aria-live="polite"></div><p class="appointment-empty" id="managedAppointmentsEmpty">Aucun rendez-vous à afficher.</p></section>
     </main>
     <template id="empty-column"><div class="empty-column">Aucune demande dans cette colonne.</div></template>
     <script src="../../config.js"></script>
+    <script src="../../api-client.js"></script>
     <script src="../../nova-terra.js"></script>
     <script src="../../auth.js"></script>
+    <script src="../../city-data.js"></script>
     <script src="agent.js"></script>
+    <script src="../../community.js"></script>
+    <script src="../../appointments.js"></script>
+    <script src="agent-admin.js"></script>
+    <script src="../../assistant.js"></script>
     <script src="../../accessibility.js"></script>
   </body>
 </html>

@@ -11,6 +11,10 @@ let creatingAccount = false;
 const messages = {
   password_mismatch: ['Les deux mots de passe ne correspondent pas.', 'The passwords do not match.'],
   weak_password: ['Le mot de passe doit contenir au moins 8 caractères.', 'Password must be at least 8 characters.'],
+  weak_password_server: ['Le mot de passe doit contenir au moins 12 caractères pour le compte serveur.', 'Server accounts require a password of at least 12 characters.'],
+  invalid_input: ['Vérifie le formulaire et utilise un mot de passe d’au moins 12 caractères en mode serveur.', 'Check the form and use a password of at least 12 characters in server mode.'],
+  api_unavailable: ['Le serveur Nova Terra ne répond pas. Vérifie qu’il est démarré.', 'The Nova Terra server is unavailable. Check that it is running.'],
+  api_error: ['La création du compte a échoué côté serveur. Réessaie.', 'The server could not create this account. Please try again.'],
   creating: ['Création du compte…', 'Creating your account…'],
   created: ['Compte créé. Ouverture de votre espace…', 'Account created. Opening your space…'],
   email_exists: ['Un compte existe déjà avec cette adresse. Connecte-toi.', 'An account already exists for this email. Sign in instead.'],
@@ -27,9 +31,10 @@ function isEnglish() { return document.documentElement.lang === 'en'; }
 
 function updateSignupLanguage() {
   const english = isEnglish();
-  if (notice) notice.innerHTML = english
-    ? '<b>Local demo account</b><br />Your account is saved only in this browser. Use HTTPS or localhost.'
-    : '<b>Compte local de démonstration</b><br />Le compte est conservé uniquement dans ce navigateur. Utilise HTTPS ou localhost.';
+  passwordInput.minLength = window.NovaTerraApi?.enabled ? 12 : 8;
+  if (notice) notice.innerHTML = window.NovaTerraApi?.enabled
+    ? (english ? '<b>Server account</b><br />Your account is saved by the Nova Terra API and can be used on another device.' : '<b>Compte sur le serveur</b><br />Ton compte est enregistré par l’API Nova Terra et pourra être utilisé sur un autre appareil.')
+    : (english ? '<b>Local demo account</b><br />Your account is saved only in this browser. Use HTTPS or localhost.' : '<b>Compte local de démonstration</b><br />Le compte est conservé uniquement dans ce navigateur. Utilise HTTPS ou localhost.');
   if (messageKey) signupMessage.textContent = messages[messageKey][english ? 1 : 0];
   signupButton.innerHTML = creatingAccount
     ? (english ? 'Creating account…' : 'Création du compte…')
@@ -53,8 +58,8 @@ signupForm.addEventListener('submit', async (event) => {
     confirmPasswordInput.focus();
     return;
   }
-  if (passwordInput.value.length < 8) {
-    showSignupMessage('weak_password');
+  if (passwordInput.value.length < (window.NovaTerraApi?.enabled ? 12 : 8)) {
+    showSignupMessage(window.NovaTerraApi?.enabled ? 'weak_password_server' : 'weak_password');
     passwordInput.focus();
     return;
   }

@@ -35,12 +35,35 @@ git push origin main
 ## Pages disponibles
 
 - `index.html` : vitrine publique avec catalogue des services et actualités
-- `connexion.html` : connexion avec vérification des comptes locaux de démonstration
-- `inscription.html` : création de compte locale avec mot de passe et confirmation
+- `connexion.html` : connexion en mode navigateur ou via le backend configuré
+- `inscription.html` : création de compte citoyen locale ou côté serveur
 - `dashboard.html` : tableau de bord citoyen et état de la cité
 - `contact/index.html` : formulaire de contact citoyen
 - `agent/dashboard/index.html` : back-office agents, Kanban et messages reçus
 - `presentation.html` : support visuel de présentation
+
+## Relier l’application au backend Nova Terra
+
+Un backend Express/SQLite optionnel est fourni dans `backend/`. Il permet de partager les comptes, les rôles, les signalements citoyens, les messages de contact, les annonces/alertes, les états des services et les rendez-vous entre appareils. Le mode local du navigateur reste disponible pour la démonstration hors ligne.
+
+### Démarrage local
+
+1. Installer Node.js 20 ou plus récent.
+2. Installer les dépendances : `npm run backend:install`.
+3. Copier `backend/.env.example` vers `backend/.env`, puis définir un `JWT_SECRET` aléatoire d’au moins 32 caractères et vérifier `CORS_ORIGIN=http://localhost:5500`.
+4. Créer le premier administrateur : ajouter temporairement `ADMIN_EMAIL` et `ADMIN_PASSWORD` (12 à 72 caractères) à `backend/.env`, lancer `npm run backend:create-admin`, puis retirer ces deux variables du fichier.
+5. Démarrer le serveur avec `npm run backend:start`.
+6. Dans un autre terminal, servir le site sur le port 5500, par exemple avec `npx serve . -l 5500`, puis ouvrir `http://localhost:5500/?api=backend`.
+
+Le mode API est mémorisé dans l’onglet pendant sa session. Ouvre `http://localhost:5500/?api=local` pour revenir au mode navigateur. Les inscriptions serveur créent uniquement des citoyens; connecte-toi avec le premier administrateur, puis attribue le rôle **Agent** depuis « Gestion de la cité ».
+
+Le backend vérifie les rôles côté serveur, chiffre les mots de passe avec bcrypt, verrouille temporairement une adresse après cinq échecs de connexion et conserve ses données dans `backend/data/` (ignoré par Git). Les rappels de rendez-vous sont déclenchés lorsque le tableau de bord est ouvert; les notifications système nécessitent aussi l’autorisation du navigateur.
+
+### Déploiement
+
+Le backend ne peut pas tourner sur GitHub Pages. Héberge-le sur un service Node.js avec une base de données persistante, active HTTPS et configure `CORS_ORIGIN` avec le domaine de la vitrine. Configure ensuite `DEPLOYED_API_BASE_URL` dans `config.js` avec l’URL publique du backend terminant par `/api`. Les secrets restent dans l’environnement du serveur. Le fichier SQLite local convient au développement; pour plusieurs instances de production, remplace-le par une base gérée persistante.
+
+Pour synchroniser les demandes officielles, configure aussi `TERRA_NOVA_API_URL`, `TERRA_NOVA_API_KEY` et `TERRA_NOVA_POLL_MS` dans l’environnement du backend. L’API officielle WebCup actuelle reste en lecture seule; ces demandes sont donc consultables mais leur statut ne peut pas être modifié depuis Nova Terra.
 
 `npm test` execute le controle de structure et les tests du proxy WebCup avec le runner integre a Node.js ; aucune dependance npm n'est necessaire pour ces tests. Sous Windows PowerShell, si la politique d'execution bloque `npm.ps1`, utiliser `npm.cmd test`. Ces tests ne remplacent pas encore une suite de tests navigateur automatisee.
 
@@ -58,7 +81,7 @@ GET   {API_BASE_URL}/citizen-messages
 POST  {API_BASE_URL}/citizen-messages       body: { name, email, category, subject, message }
 ```
 
-L'API WebCup fournie expose actuellement la lecture des demandes. Le proxy n'envoie au navigateur qu'une liste de champs autorisés et ne relaie pas les autres propriétés reçues. Le changement de statut est désactivé pour ces données jusqu'à ce que l'équipe API fournisse et documente un endpoint d'écriture. Le Haut Conseil exploite les mêmes demandes pour faire ressortir les urgences ouvertes et les renvoie vers le filtre correspondant, sans simuler de vote ou d'écriture. Les messages citoyens restent en mode démonstration tant qu'un endpoint de messages n'est pas configuré ; dans ce mode, le formulaire précise que les messages sont seulement conservés dans le navigateur et ne sont pas transmis aux services. Les tableaux actualisent les demandes à l'ouverture, toutes les minutes et sur demande. La recherche publique et celle de l'espace agent acceptent le titre, la référence, le secteur, la catégorie et la description, sans tenir compte des accents ; les espaces agents offrent aussi des filtres par statut, priorité et catégorie. Les autres intégrations Nova Terra peuvent toujours utiliser `apiBaseUrl`.
+L'API WebCup fournie expose actuellement la lecture des demandes. Le proxy n'envoie au navigateur qu'une liste de champs autorisés et ne relaie pas les autres propriétés reçues. Le changement de statut est désactivé pour ces données jusqu'à ce que l'équipe API fournisse et documente un endpoint d'écriture. Le Haut Conseil exploite les mêmes demandes pour faire ressortir les urgences ouvertes et les renvoie vers le filtre correspondant, sans simuler de vote ou d'écriture. Le formulaire de contact utilise `/citizen-messages` quand le backend Nova Terra est configuré; sinon il précise que les messages sont seulement conservés dans le navigateur et ne sont pas transmis aux services. Les tableaux actualisent les demandes à l'ouverture, toutes les minutes et sur demande. La recherche publique et celle de l'espace agent acceptent le titre, la référence, le secteur, la catégorie et la description, sans tenir compte des accents ; les espaces agents offrent aussi des filtres par statut, priorité et catégorie.
 
 Les ressources CSS et JavaScript de la page de contact utilisent un identifiant de cache dans `contact/index.html`. Incrémentez-le lorsque vous modifiez ces ressources pour que les navigateurs récupèrent bien la version publiée.
 
@@ -79,9 +102,9 @@ La réponse des demandes doit être un tableau JSON, directement ou sous une pro
 }
 ```
 
-En l'absence d'API, les donnees de demonstration restent actives. Les formulaires et deplacements de cartes Kanban sont alors memorises dans le navigateur avec `localStorage`. La photo de profil du tableau de bord est reduite puis conservee localement dans le navigateur; elle n'est pas envoyee au serveur.
+En mode navigateur (sans `apiBaseUrl`), les formulaires et deplacements de cartes Kanban sont memorises localement avec `localStorage`. La photo de profil est réduite à 512 px; elle reste locale en mode navigateur et se synchronise avec le compte en mode backend.
 
-L'inscription conserve le compte dans le navigateur et le mot de passe sous forme de hash PBKDF2 sale (pas en clair). La connexion verifie ce hash. Les comptes ne sont pas partages entre appareils et ne constituent pas une authentification de production: sans serveur, les donnees et les controles du navigateur ne protegent pas un vrai service. Utilisez HTTPS ou localhost pour Web Crypto.
+En mode navigateur, l'inscription conserve le compte dans cet appareil et le mot de passe sous forme de hash PBKDF2 sale (pas en clair). En mode backend, le serveur vérifie l'identité, stocke les comptes en SQLite et utilise bcrypt; les données de demandes, messages, alertes et rendez-vous suivent le compte entre appareils.
 
 ### Déployer sur Vercel
 
@@ -102,11 +125,11 @@ npx vercel --prod
 
 Le domaine Vercel par défaut active automatiquement le proxy. Si un domaine personnalisé est utilisé, renseigner `requestsApiUrl: "/api/requests"` dans `config.js` pour ce déploiement. Sur GitHub Pages, l'application conserve le mode démonstration : Pages ne peut pas exécuter la fonction serveur.
 
-Les exemples locaux restent disponibles avec `localStorage` quand aucune API n'est configurée. Pour lancer le proxy localement, utiliser Vercel CLI (`npx vercel dev`), configurer `WEBCUP_API_KEY` dans les variables d'environnement de développement Vercel, puis ouvrir `http://localhost:3000/dashboard.html?api=webcup`. Ne pas créer ni committer un fichier contenant la clé.
+Les exemples locaux restent disponibles avec `localStorage` quand aucune API n'est configurée. Pour lancer le proxy WebCup localement, utiliser Vercel CLI (`npx vercel dev`), configurer `WEBCUP_API_KEY` dans les variables d'environnement de développement Vercel, puis ouvrir `http://localhost:3000/dashboard.html?api=webcup`. Ne pas créer ni committer un fichier contenant la clé.
 
 ## Déploiement GitHub Pages
 
-Le workflow `.github/workflows/deploy-pages.yml` peut toujours publier la version statique à chaque commit sur `main`. Dans GitHub, activez `Settings` > `Pages` > `Source: GitHub Actions`. Cette version reste en mode démonstration ; utilisez Vercel pour la connexion au proxy API.
+Le workflow `.github/workflows/deploy-pages.yml` peut toujours publier la version statique à chaque commit sur `main`. Dans GitHub, activez `Settings` > `Pages` > `Source: GitHub Actions`. Cette version reste en mode démonstration tant que `DEPLOYED_API_BASE_URL` ne pointe pas vers un backend Node.js externe hébergé en HTTPS.
 
 ## Securite de l'espace agent
 
