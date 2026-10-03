@@ -6,7 +6,7 @@ const successLabel = success.querySelector(".kicker");
 const successTitle = success.querySelector("h2");
 const successDescription = success.querySelector("p:not(.kicker)");
 const submitButton = form.querySelector("button[type='submit']");
-const messagesAreDemo = window.NovaTerra.messagesAreDemo();
+const messagesAreDemo = !window.TERRA_NOVA_CONFIG?.apiBaseUrl;
 const introDescription = document.querySelector("#contact-intro-description");
 const serviceDescription = document.querySelector("#service-description");
 const followUpMethod = document.querySelector("#follow-up-method");

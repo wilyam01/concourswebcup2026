@@ -153,7 +153,6 @@ async function getFromApi(path, preferredKey) {
 
 window.NovaTerra = {
   usingDemoData: () => !NOVA_TERRA_API_BASE_URL && !NOVA_TERRA_REQUESTS_API_URL,
-  messagesAreDemo: () => !NOVA_TERRA_API_BASE_URL,
   canUpdateRequestStatus: () => !NOVA_TERRA_REQUESTS_API_URL,
   getDemoRequests() {
     return readStored(NOVA_TERRA_REQUESTS_KEY, demoRequests).flatMap((item) => {

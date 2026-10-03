@@ -44,10 +44,9 @@ $apiCollection = $apiCollectionRaw | ConvertFrom-Json
 
 if ($agentMarkup -notmatch 'id="kanban"') { throw "Kanban agent introuvable." }
 if ($contactMarkup -notmatch 'id="contact-form"') { throw "Formulaire citoyen introuvable." }
-if ($contactMarkup -notmatch 'id="delivery-mode"' -or $contactScript -notmatch "messagesAreDemo") { throw "Le formulaire de contact doit distinguer le mode demo de la transmission API." }
+if ($contactMarkup -notmatch 'id="delivery-mode"' -or $contactScript -notmatch "apiBaseUrl") { throw "Le formulaire de contact doit distinguer le mode demo de la transmission API." }
 if ($contactScript -notmatch "ne sera pas transmis aux services municipaux" -or $contactScript -notmatch "aucun e-mail de suivi ne sera envoyé") { throw "Le formulaire de demonstration ne doit pas laisser croire qu'un message a ete transmis." }
 if ($apiAdapter -notmatch "citizen-messages") { throw "Endpoint des messages citoyens introuvable." }
-if ($apiAdapter -notmatch "messagesAreDemo") { throw "La source des messages doit etre exposee au formulaire citoyen." }
 if ($apiProxy -notmatch 'process\.env\.WEBCUP_API_KEY') { throw "La cle WebCup doit etre lue depuis une variable d'environnement serveur." }
 if ($apiProxy -notmatch 'req\.method !== "GET"') { throw "Le proxy WebCup doit refuser les methodes autres que GET." }
 if ($apiProxy -notmatch "normalizeRequest") { throw "Le proxy doit filtrer les champs transmis au navigateur." }
