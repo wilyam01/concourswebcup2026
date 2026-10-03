@@ -199,32 +199,43 @@ async function loadPublicReports() {
       apiStatus.classList.add("demo");
       apiStatusText.textContent = "Mode démonstration · signalements fictifs";
     } else {
-      apiStatusText.textContent = "API WebCup · signalements";
+      apiStatusText.textContent = window.NovaTerra.getDataSourceLabel();
     }
     error.hidden = true;
   } catch {
     const cachedRequests = window.NovaTerra.getCachedRequests();
+    let fallbackSource = "unavailable";
     if (cachedRequests.length) {
       publicRequests = cachedRequests;
+      fallbackSource = window.NovaTerra.usingDemoData() ? "demo-cache" : "api-cache";
       reportDataSourceLabel = window.NovaTerra.usingDemoData()
         ? "Instantané local · mode démonstration"
         : "Instantané local · API indisponible";
     } else if (!publicRequests.length && window.NovaTerra.usingDemoData()) {
       publicRequests = window.NovaTerra.getDemoRequests();
+      fallbackSource = "demo";
       reportDataSourceLabel = "Mode démonstration · données fictives";
     } else if (!publicRequests.length) {
       reportDataSourceLabel = "Données indisponibles · API inaccessible";
+    } else {
+      fallbackSource = "memory";
+      reportDataSourceLabel = "Dernière réponse en mémoire · API indisponible";
     }
     updateReportCounts(publicRequests);
     renderPublicReports();
     apiStatus.classList.add("unavailable");
     const cacheTime = window.NovaTerra.getRequestsCacheTime();
     const cacheStamp = cacheTime ? ` (${new Date(cacheTime).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })})` : "";
-    apiStatusText.textContent = publicRequests.length
-      ? `API indisponible - cache local${cacheStamp}`
-      : "API indisponible - aucune donnee disponible";
+    const fallbackLabels = {
+      "api-cache": `API indisponible · instantané local${cacheStamp}`,
+      "demo-cache": "Mode démonstration · données locales",
+      demo: "Mode démonstration · données fictives",
+      memory: "API indisponible · dernière réponse en mémoire",
+      unavailable: "API indisponible · aucune donnée disponible"
+    };
+    apiStatusText.textContent = fallbackLabels[fallbackSource];
     error.textContent = publicRequests.length
-      ? "La connexion est interrompue. Les dernieres demandes enregistrees restent affichees."
+      ? "La connexion est interrompue. Les dernières demandes disponibles restent affichées."
       : "Les demandes ne sont pas disponibles pour le moment. Reessaie lorsque la connexion est retablie.";
     error.hidden = false;
   } finally {
