@@ -51,7 +51,14 @@
     if (!globalThis.crypto?.subtle || !globalThis.crypto?.getRandomValues) return { ok: false, error: 'crypto_unavailable' };
 
     try {
+      const normalizedName = name.trim();
       const normalizedEmail = email.trim().toLowerCase();
+      const normalizedSector = sector.trim();
+      if (!normalizedName) return { ok: false, error: 'invalid_name' };
+      if (!normalizedEmail) return { ok: false, error: 'invalid_email' };
+      if (!normalizedSector) return { ok: false, error: 'invalid_sector' };
+      if (password.length < 8) return { ok: false, error: 'weak_password' };
+
       const accounts = readAccounts();
       if (accounts.some((account) => account.email === normalizedEmail)) {
         return { ok: false, error: 'email_exists' };
@@ -59,9 +66,9 @@
 
       const salt = globalThis.crypto.getRandomValues(new Uint8Array(16));
       const account = {
-        name: name.trim(),
+        name: normalizedName,
         email: normalizedEmail,
-        sector,
+        sector: normalizedSector,
         salt: bytesToHex(salt),
         passwordHash: await hashPassword(password, salt),
         createdAt: new Date().toISOString(),

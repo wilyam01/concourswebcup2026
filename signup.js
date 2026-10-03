@@ -46,8 +46,12 @@ signupForm.addEventListener('submit', async (event) => {
   const errors = {
     email_exists: 'Un compte existe déjà avec cette adresse. Connectez-vous.',
     crypto_unavailable: 'Le navigateur ne permet pas le chiffrement. Ouvrez le site en HTTPS ou sur localhost.',
+    invalid_name: 'Saisis ton nom complet.',
+    invalid_email: 'Saisis une adresse e-mail valide.',
+    invalid_sector: 'Choisis ton secteur.',
     storage_full: 'Le stockage du navigateur est plein. Libérez de la place puis réessayez.',
     storage_unavailable: 'Impossible d’enregistrer le compte dans ce navigateur.',
+    weak_password: 'Le mot de passe doit contenir au moins 8 caractères.',
   };
   showSignupMessage(errors[result.error] || 'La création du compte a échoué. Réessayez.');
   signupButton.disabled = false;
