@@ -1,6 +1,9 @@
 const toast = document.querySelector('#toast');
 let toastTimer;
 let publicReportsLoading = false;
+let publicRequests = [];
+let displayedReportCount = 5;
+const reportsPageSize = 5;
 function notify(message) {
   toast.textContent = message;
   toast.classList.add('show');
@@ -50,6 +53,7 @@ function createReportRow(request) {
 }
 
 function updateReportCounts(requests) {
+  const openCount = requests.filter((request) => request.status !== "done").length;
   const counts = {
     all: requests.length,
     urgent: requests.filter((request) => request.priority === "high" && request.status !== "done").length,
@@ -57,35 +61,76 @@ function updateReportCounts(requests) {
     resolved: requests.filter((request) => request.status === "done").length
   };
   document.querySelector("#report-total-count").textContent = counts.all;
+  document.querySelector("#nav-open-report-count").textContent = openCount;
+  document.querySelector("#open-report-count").textContent = openCount;
   Object.entries(counts).forEach(([filter, count]) => {
     document.querySelector(`#report-count-${filter}`).textContent = count;
   });
 }
 
-function applyReportFilter(filter) {
-  document.querySelectorAll(".report-row").forEach((row) => {
-    const matchesFilter = filter === "urgent"
-      ? (row.dataset.priority === "high" || row.dataset.status === "urgent") && row.dataset.status !== "resolved"
-      : row.dataset.status === filter;
-    row.hidden = filter !== "all" && !matchesFilter;
+function matchesReportFilter(request, filter) {
+  const status = reportFilterStatus(request);
+  return filter === "all"
+    || (filter === "urgent" && request.priority === "high" && status !== "resolved")
+    || status === filter;
+}
+
+function renderPublicReports() {
+  const filter = document.querySelector(".filter.active")?.dataset.filter || "all";
+  const query = normalizePublicSearch(document.querySelector("#reports-search").value.trim());
+  const matchingRequests = publicRequests.filter((request) => {
+    const searchable = normalizePublicSearch([request.id, request.title, request.district, request.type, request.description].join(" "));
+    return matchesReportFilter(request, filter) && (!query || searchable.includes(query));
   });
+  const displayedRequests = matchingRequests.slice(0, displayedReportCount);
+  document.querySelector(".report-list").replaceChildren(...displayedRequests.map(createReportRow));
+  document.querySelector("#reports-empty").hidden = matchingRequests.length > 0;
+  document.querySelector("#loadMoreReports").hidden = displayedRequests.length >= matchingRequests.length;
+  document.querySelector("#loadMoreReports").textContent = `Afficher les signalements suivants (${matchingRequests.length - displayedRequests.length})`;
+}
+
+function normalizePublicSearch(value) {
+  return String(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
 async function loadPublicReports() {
-  if (window.NovaTerra.usingDemoData() || publicReportsLoading) return;
+  if (publicReportsLoading) return;
 
   const error = document.querySelector("#reports-api-error");
+  const loading = document.querySelector("#reports-loading");
+  const apiStatus = document.querySelector("#api-status");
+  const refreshButton = document.querySelector("#refreshReports");
+  const apiStatusText = apiStatus.querySelector("span:last-child");
+  refreshButton.disabled = true;
+  refreshButton.textContent = "Actualisation…";
+  apiStatus.classList.remove("demo", "unavailable");
+  apiStatusText.textContent = "Actualisation des signalements…";
   publicReportsLoading = true;
+  loading.hidden = false;
+  loading.textContent = "Actualisation des signalements…";
   try {
-    const requests = await window.NovaTerra.getRequests();
-    document.querySelector(".report-list").replaceChildren(...requests.slice(0, 5).map(createReportRow));
-    updateReportCounts(requests);
-    applyReportFilter(document.querySelector(".filter.active")?.dataset.filter || "all");
+    publicRequests = await window.NovaTerra.getRequests();
+    updateReportCounts(publicRequests);
+    renderPublicReports();
+    if (window.NovaTerra.usingDemoData()) {
+      apiStatus.classList.add("demo");
+      apiStatusText.textContent = "Mode démonstration · signalements fictifs";
+    } else {
+      apiStatusText.textContent = "API WebCup · signalements";
+    }
     error.hidden = true;
   } catch {
+    publicRequests = window.NovaTerra.getDemoRequests();
+    updateReportCounts(publicRequests);
+    renderPublicReports();
+    apiStatus.classList.add("unavailable");
+    apiStatusText.textContent = "API indisponible · exemples affichés";
     error.hidden = false;
   } finally {
+    loading.hidden = true;
     publicReportsLoading = false;
+    refreshButton.disabled = false;
+    refreshButton.textContent = "Actualiser ↻";
   }
 }
 
@@ -93,7 +138,8 @@ document.querySelectorAll('.filter').forEach((button) => {
   button.addEventListener('click', () => {
     document.querySelectorAll('.filter').forEach((item) => item.classList.remove('active'));
     button.classList.add('active');
-    applyReportFilter(button.dataset.filter);
+    displayedReportCount = reportsPageSize;
+    renderPublicReports();
   });
 });
 
@@ -120,11 +166,23 @@ document.querySelectorAll('.map-point').forEach((point) => point.addEventListene
 document.querySelectorAll('.map-controls button').forEach((button, index) => button.addEventListener('click', () => notify(['Carte agrandie.', 'Carte réduite.', 'Carte recentrée.'][index])));
 document.querySelector('#allReports').addEventListener('click', () => {
   document.querySelector('[data-filter="all"]').click();
+  displayedReportCount = Number.POSITIVE_INFINITY;
+  renderPublicReports();
   notify('Affichage de tous les signalements disponibles.');
 });
 document.querySelector('#mobileReports').addEventListener('click', () => {
   document.querySelector('[data-filter="all"]').click();
+  displayedReportCount = Number.POSITIVE_INFINITY;
+  renderPublicReports();
   notify('Affichage de tous les signalements disponibles.');
+});
+document.querySelector("#reports-search").addEventListener("input", () => {
+  displayedReportCount = reportsPageSize;
+  renderPublicReports();
+});
+document.querySelector("#loadMoreReports").addEventListener("click", () => {
+  displayedReportCount += reportsPageSize;
+  renderPublicReports();
 });
 document.querySelector("#refreshReports").addEventListener("click", loadPublicReports);
 document.querySelector('#menuButton').addEventListener('click', () => document.querySelector('#sidebar').classList.toggle('open'));
@@ -205,5 +263,11 @@ profilePhotoInput.addEventListener('change', () => {
   reader.readAsDataURL(photo);
 });
 
+if (window.NovaTerra.usingDemoData()) {
+  const apiStatus = document.querySelector("#api-status");
+  apiStatus.classList.add("demo");
+  apiStatus.querySelector("span:last-child").textContent = "Mode démonstration · signalements fictifs";
+} else {
+  window.setInterval(loadPublicReports, 60_000);
+}
 loadPublicReports();
-if (!window.NovaTerra.usingDemoData()) window.setInterval(loadPublicReports, 60_000);

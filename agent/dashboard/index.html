@@ -21,7 +21,23 @@
     <main id="dashboard">
       <header class="topbar"><div><p class="kicker">NOUVELLE AURORE / COORDINATION</p><h1>Bonjour, Alex.</h1></div><div class="top-actions"><span id="api-state" class="api-state">Chargement...</span><a href="../../contact/">Voir le contact citoyen</a><button class="theme-toggle agent-theme-toggle" type="button" data-theme-toggle aria-label="Changer le thème"><span class="theme-symbol" aria-hidden="true">☼</span></button></div></header>
       <section class="metrics" aria-label="Synthese des demandes"><article><span>A traiter</span><strong id="todo-total">0</strong><small>Priorites a examiner</small></article><article><span>En cours</span><strong id="progress-total">0</strong><small>Services mobilises</small></article><article><span>Termine</span><strong id="done-total">0</strong><small>Dossiers clotures</small></article><article><span>Messages recus</span><strong id="message-total">0</strong><small>Flux citoyen</small></article></section>
-      <section class="work-section" id="demandes"><div class="section-heading"><div><p class="kicker">SUIVI OPERATIONNEL</p><h2>Demandes citoyennes</h2></div><button class="refresh-button" id="refresh-data" type="button">Actualiser</button></div><div class="toolbar"><label class="search"><span class="sr-only">Rechercher une demande</span><input id="request-search" type="search" placeholder="Rechercher un dossier, un secteur..." /></label><label><span class="sr-only">Filtrer par priorite</span><select id="priority-filter"><option value="all">Toutes priorites</option><option value="high">Priorite haute</option><option value="normal">Priorite normale</option><option value="low">Priorite basse</option></select></label></div><p class="dashboard-error" id="dashboard-error" role="alert" hidden></p><p class="readonly-notice" id="requests-readonly" role="status" hidden>Avec l’API WebCup, les demandes sont en lecture seule. La mise à jour de leur statut nécessite la documentation d’un endpoint d’écriture.</p><div class="kanban" id="kanban" aria-live="polite"></div></section>
+      <section class="work-section" id="demandes">
+        <div class="section-heading">
+          <div><p class="kicker">SUIVI OPERATIONNEL</p><h2>Demandes citoyennes</h2></div>
+          <button class="refresh-button" id="refresh-data" type="button">Actualiser</button>
+        </div>
+        <div class="toolbar">
+          <label class="search"><span class="sr-only">Rechercher une demande</span><input id="request-search" type="search" placeholder="Rechercher un dossier, un secteur, un détail..." /></label>
+          <label><span class="sr-only">Filtrer par statut</span><select id="status-filter"><option value="all">Tous les statuts</option><option value="todo">À traiter</option><option value="in_progress">En cours</option><option value="done">Terminé</option></select></label>
+          <label><span class="sr-only">Filtrer par priorité</span><select id="priority-filter"><option value="all">Toutes les priorités</option><option value="high">Priorité haute</option><option value="normal">Priorité normale</option><option value="low">Priorité basse</option></select></label>
+          <label><span class="sr-only">Filtrer par catégorie</span><select id="type-filter"><option value="all">Toutes les catégories</option></select></label>
+          <button class="clear-filters" id="clear-filters" type="button">Effacer les filtres</button>
+        </div>
+        <div class="request-summary"><span id="request-count" role="status" aria-live="polite">Chargement des demandes…</span></div>
+        <p class="dashboard-error" id="dashboard-error" role="alert" hidden></p>
+        <p class="readonly-notice" id="requests-readonly" role="status" hidden>Avec l’API WebCup, les demandes sont en lecture seule. La mise à jour de leur statut nécessite la documentation d’un endpoint d’écriture.</p>
+        <div class="kanban" id="kanban" aria-live="polite"></div>
+      </section>
       <section class="messages-section" id="messages"><div class="section-heading"><div><p class="kicker">BOITE DE RECEPTION</p><h2>Messages citoyens</h2></div><span id="message-label">0 message</span></div><div class="message-list" id="message-list"></div></section>
     </main>
     <template id="empty-column"><div class="empty-column">Aucune demande dans cette colonne.</div></template>

@@ -42,7 +42,7 @@ git push origin main
 - `agent/dashboard/index.html` : back-office agents, Kanban et messages reçus
 - `presentation.html` : support visuel de présentation
 
-`npm test` execute le controle de structure du projet. Il ne remplace pas encore des tests de navigateur complets.
+`npm test` execute le controle de structure et de presence des filtres de signalements. Il ne remplace pas encore une suite de tests navigateur automatisee.
 
 ## API des signalements WebCup
 
@@ -54,7 +54,9 @@ GET   {API_BASE_URL}/citizen-messages
 POST  {API_BASE_URL}/citizen-messages       body: { name, email, category, subject, message }
 ```
 
-L'API WebCup fournie expose actuellement la lecture des demandes. Le proxy n'envoie au navigateur qu'une liste de champs autorisés et ne relaie pas les autres propriétés reçues. Le changement de statut est désactivé pour ces données jusqu'à ce que l'équipe API fournisse et documente un endpoint d'écriture. Les messages citoyens restent en mode démonstration tant qu'un endpoint de messages n'est pas configuré. Les tableaux actualisent les demandes à l'ouverture, toutes les minutes et sur demande. Les autres intégrations Nova Terra peuvent toujours utiliser `apiBaseUrl`.
+L'API WebCup fournie expose actuellement la lecture des demandes. Le proxy n'envoie au navigateur qu'une liste de champs autorisés et ne relaie pas les autres propriétés reçues. Le changement de statut est désactivé pour ces données jusqu'à ce que l'équipe API fournisse et documente un endpoint d'écriture. Les messages citoyens restent en mode démonstration tant qu'un endpoint de messages n'est pas configuré. Les tableaux actualisent les demandes à l'ouverture, toutes les minutes et sur demande. La recherche publique et celle de l'espace agent acceptent le titre, la référence, le secteur, la catégorie et la description, sans tenir compte des accents ; les espaces agents offrent aussi des filtres par statut, priorité et catégorie. Les autres intégrations Nova Terra peuvent toujours utiliser `apiBaseUrl`.
+
+Les indicateurs de population, de bien-être et de ressources, la carte et la météo sont des éléments illustratifs et ne sont pas alimentés par l'API WebCup. L'interface le signale pour éviter de confondre les données de démonstration avec les signalements réels. Les compteurs de signalements, eux, sont calculés depuis la réponse active ; pendant le chargement ils affichent un tiret ou zéro plutôt qu'une valeur inventée.
 
 La réponse des demandes doit être un tableau JSON, directement ou sous une propriété `requests`, `data` ou `items`. Les champs actuellement reconnus sont :
 

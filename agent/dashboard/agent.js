@@ -9,13 +9,43 @@ const columns = [
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[character]));
 const priorityLabel = { high:"Haute", normal:"Normale", low:"Basse" };
 
+function normalizeSearchText(value) {
+  return String(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
 function visibleRequests() {
-  const query = document.querySelector("#request-search").value.trim().toLowerCase();
+  const query = normalizeSearchText(document.querySelector("#request-search").value.trim());
   const priority = document.querySelector("#priority-filter").value;
+  const status = document.querySelector("#status-filter").value;
+  const type = document.querySelector("#type-filter").value;
   return state.requests.filter((request) => {
-    const searchable = [request.id, request.title, request.district, request.type].join(" ").toLowerCase();
-    return (!query || searchable.includes(query)) && (priority === "all" || request.priority === priority);
+    const searchable = normalizeSearchText([request.id, request.title, request.district, request.type, request.description].join(" "));
+    return (!query || searchable.includes(query))
+      && (priority === "all" || request.priority === priority)
+      && (status === "all" || request.status === status)
+      && (type === "all" || request.type === type);
   });
+}
+
+function renderRequestSummary(requests) {
+  const count = document.querySelector("#request-count");
+  const filtersActive = document.querySelector("#request-search").value.trim()
+    || document.querySelector("#priority-filter").value !== "all"
+    || document.querySelector("#status-filter").value !== "all"
+    || document.querySelector("#type-filter").value !== "all";
+  count.textContent = filtersActive
+    ? `${requests.length} résultat${requests.length === 1 ? "" : "s"} sur ${state.requests.length}`
+    : `${state.requests.length} demande${state.requests.length === 1 ? "" : "s"} au total`;
+}
+
+function renderTypeOptions() {
+  const select = document.querySelector("#type-filter");
+  const selectedType = select.value;
+  const types = [...new Set(state.requests.map((request) => request.type).filter(Boolean))]
+    .sort((left, right) => left.localeCompare(right, "fr"));
+  select.replaceChildren(new Option("Toutes les catégories", "all"));
+  types.forEach((type) => select.add(new Option(type, type)));
+  select.value = types.includes(selectedType) ? selectedType : "all";
 }
 
 function renderMetrics() {
@@ -39,6 +69,7 @@ function requestCard(request) {
 
 function renderKanban() {
   const requests = visibleRequests();
+  renderRequestSummary(requests);
   document.querySelector("#kanban").innerHTML = columns.map((column) => {
     const items = requests.filter((request) => request.status === column.status);
     return `<section class="kanban-column"><header class="column-heading"><h3>${column.title}</h3><span>${items.length}</span></header>${items.length ? items.map(requestCard).join("") : "<div class=\"empty-column\">Aucune demande dans cette colonne.</div>"}</section>`;
@@ -63,28 +94,43 @@ async function loadDashboard() {
   if (dashboardLoading) return;
   dashboardLoading = true;
   const stateLabel = document.querySelector("#api-state");
+  const refreshButton = document.querySelector("#refresh-data");
+  refreshButton.disabled = true;
+  refreshButton.textContent = "Actualisation…";
   document.querySelector("#requests-readonly").hidden = window.NovaTerra.canUpdateRequestStatus();
   stateLabel.textContent = "Synchronisation...";
   try {
     [state.requests, state.messages] = await Promise.all([window.NovaTerra.getRequests(), window.NovaTerra.getMessages()]);
+    renderTypeOptions();
     stateLabel.textContent = window.NovaTerra.getDataSourceLabel();
     showDashboardError("");
   } catch {
     stateLabel.textContent = "API indisponible";
-    showDashboardError("Les donnees Nova Terra ne sont pas disponibles. Verifiez l'URL API et les autorisations CORS, puis actualisez.");
+    showDashboardError("Les donnees ne sont pas disponibles ou le format renvoye n'est pas reconnu. Verifiez le contrat API et les autorisations, puis actualisez. Les dernieres donnees chargees restent affichees si elles existent.");
   } finally {
     dashboardLoading = false;
+    refreshButton.disabled = false;
+    refreshButton.textContent = "Actualiser";
   }
   render();
 }
 
 document.querySelector("#request-search").addEventListener("input", renderKanban);
-document.querySelector("#priority-filter").addEventListener("change", renderKanban);
+document.querySelectorAll("#priority-filter, #status-filter, #type-filter").forEach((control) => control.addEventListener("change", renderKanban));
 document.querySelector("#refresh-data").addEventListener("click", loadDashboard);
+document.querySelector("#clear-filters").addEventListener("click", () => {
+  document.querySelector("#request-search").value = "";
+  document.querySelector("#priority-filter").value = "all";
+  document.querySelector("#status-filter").value = "all";
+  document.querySelector("#type-filter").value = "all";
+  renderKanban();
+  document.querySelector("#request-search").focus();
+});
 document.querySelector("#kanban").addEventListener("change", async (event) => {
   const control = event.target.closest(".request-status");
   if (!control) return;
   const request = state.requests.find((item) => item.id === control.dataset.id);
+  if (!request || !window.NovaTerra.canUpdateRequestStatus()) return;
   const previousStatus = request.status;
   control.disabled = true;
   try { await window.NovaTerra.updateRequestStatus(request.id, control.value); request.status = control.value; request.updatedAt = "A l'instant"; showDashboardError(""); render(); }

@@ -24,7 +24,7 @@
       <div class="side-label nav-label">NAVIGATION</div>
       <nav class="nav-list" aria-label="Navigation principale">
         <a class="nav-item active" href="#overview"><span class="nav-icon">◉</span>Vue d’ensemble<span class="nav-dot"></span></a>
-        <a class="nav-item" href="#reports"><span class="nav-icon">⌖</span>Signalements<span class="nav-count">12</span></a>
+        <a class="nav-item" href="#reports"><span class="nav-icon">⌖</span>Signalements<span class="nav-count" id="nav-open-report-count">0</span></a>
         <a class="nav-item" href="#planet"><span class="nav-icon">◌</span>État de la planète</a>
         <a class="nav-item" href="#council"><span class="nav-icon">⌘</span>Haut Conseil<span class="nav-lock">✦</span></a>
         <a class="nav-item" href="contact/index.html"><span class="nav-icon">＋</span>Contact citoyen</a>
@@ -32,7 +32,7 @@
       </nav>
       <div class="side-bottom">
         <div class="side-label">RÉSEAU</div>
-        <div class="network"><span class="live-dot"></span><span><b>Réseau opérationnel</b><small>Latence 18 ms</small></span><span class="network-signal">▂▅▇</span></div>
+        <div class="network"><span class="live-dot"></span><span><b>Réseau de démonstration</b><small>État illustratif · non connecté</small></span><span class="network-signal">▂▅▇</span></div>
         <div class="profile"><button class="avatar profile-photo-trigger" type="button" aria-label="Ajouter une photo de profil" title="Ajouter une photo de profil">AM</button><div><b>Alex Morgan</b><small>Citoyen · Niveau 04</small></div><button aria-label="Options du profil">···</button></div>
       </div>
     </aside>
@@ -41,7 +41,7 @@
       <header class="topbar">
         <button class="mobile-menu" id="menuButton" aria-label="Ouvrir le menu">☰</button>
         <div class="breadcrumbs"><span>Nouvelle Aurore</span><span class="crumb-slash">/</span><b>Vue d’ensemble</b></div>
-        <div class="top-actions"><span class="sync"><span class="live-dot"></span>SYNC. EN DIRECT</span><span class="top-divider"></span><span class="date-label">SOL 184 · 14:32 UTC</span><button class="theme-toggle" type="button" data-theme-toggle aria-label="Changer le thème"><span class="theme-symbol" aria-hidden="true">☼</span></button><button class="icon-button notification" aria-label="Notifications">♧<i></i></button><button class="avatar top-avatar profile-photo-trigger" type="button" aria-label="Ajouter une photo de profil" title="Ajouter une photo de profil">AM</button></div>
+        <div class="top-actions"><span class="sync" id="api-status" role="status" aria-live="polite"><span class="live-dot" aria-hidden="true"></span><span>Chargement des signalements…</span></span><span class="top-divider"></span><span class="date-label">SOL 184 · 14:32 UTC</span><button class="theme-toggle" type="button" data-theme-toggle aria-label="Changer le thème"><span class="theme-symbol" aria-hidden="true">☼</span></button><button class="icon-button notification" aria-label="Notifications">♧<i></i></button><button class="avatar top-avatar profile-photo-trigger" type="button" aria-label="Ajouter une photo de profil" title="Ajouter une photo de profil">AM</button></div>
       </header>
 
       <div class="content" id="overview">
@@ -50,16 +50,17 @@
           <div class="view-switch" role="group" aria-label="Choisir le tableau de bord"><button class="view-btn selected" data-view="citizen">◉ Citoyen</button><button class="view-btn" data-view="council">⌘ Haut Conseil</button></div>
         </section>
 
-        <section class="metric-grid" aria-label="Indicateurs de la colonie">
+        <section class="metric-grid" aria-label="Indicateurs de démonstration">
+          <p class="demo-metrics-note">Indicateurs illustratifs — ils ne proviennent pas de l’API.</p>
           <article class="metric-card"><div class="metric-top"><span>POPULATION ACTIVE</span><span class="metric-symbol violet">⌁</span></div><div class="metric-value">24,<span>892</span></div><div class="metric-foot"><span class="trend up">↗ 2,4%</span><span>vs cycle précédent</span><div class="spark violet-spark"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div></article>
           <article class="metric-card"><div class="metric-top"><span>BIEN-ÊTRE CITOYEN</span><span class="metric-symbol cyan">♡</span></div><div class="metric-value">86<span class="unit">/100</span></div><div class="metric-foot"><span class="trend up">↗ 4 pts</span><span>objectif : 90</span><div class="progress-mini"><i style="width:86%"></i></div></div></article>
-          <article class="metric-card"><div class="metric-top"><span>À TRAITER</span><span class="metric-symbol pink">⌖</span></div><div class="metric-value">18</div><div class="metric-foot"><span class="trend warn">↑ 3 nouveaux</span><span>depuis votre dernière visite</span><div class="spark pink-spark"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div></article>
+          <article class="metric-card"><div class="metric-top"><span>SIGNAL. OUVERTS</span><span class="metric-symbol pink">⌖</span></div><div class="metric-value" id="open-report-count">—</div><div class="metric-foot"><span>À traiter ou en cours</span><span>signalements visibles</span></div></article>
           <article class="metric-card"><div class="metric-top"><span>RESSOURCES VITALES</span><span class="metric-symbol mint">✳</span></div><div class="metric-value">94<span class="unit">%</span></div><div class="metric-foot"><span class="trend stable">● Stable</span><span>réserves planétaires</span><div class="progress-mini mint-progress"><i style="width:94%"></i></div></div></article>
         </section>
 
         <section class="main-grid">
           <article class="panel map-panel" id="planet">
-            <div class="panel-heading"><div><div class="panel-kicker">CARTOGRAPHIE EN TEMPS RÉEL</div><h2>Réseau de la cité <span class="live-pill"><i></i> EN DIRECT</span></h2></div><button class="more-button" aria-label="Plus d’options">···</button></div>
+            <div class="panel-heading"><div><div class="panel-kicker">CARTE ILLUSTRATIVE · DÉMO</div><h2>Réseau de la cité <span class="live-pill"><i></i> SIMULATION</span></h2></div><button class="more-button" aria-label="Plus d’options">···</button></div>
             <div class="map-wrap">
               <div class="map-grid"></div><div class="map-orbit orbit-one"></div><div class="map-orbit orbit-two"></div>
               <svg class="map-lines" viewBox="0 0 700 280" preserveAspectRatio="none" aria-hidden="true"><path d="M60 213 L145 165 L227 189 L300 116 L372 140 L465 77 L553 102 L645 43"/><path d="M145 165 L160 76 L260 48 L300 116 L408 212 L515 202 L553 102"/><path d="M227 189 L260 48 M372 140 L408 212 M465 77 L515 202 M60 213 L106 115 L160 76"/></svg>
@@ -68,11 +69,11 @@
               <div class="map-legend"><span><i class="legend-cyan"></i>Infrastructure</span><span><i class="legend-pink"></i>Signalement</span><span><i class="legend-purple"></i>Votre position</span></div><div class="map-coordinates">18° 42′ N &nbsp; 22° 06′ E</div>
               <div class="map-controls"><button aria-label="Zoom avant">＋</button><button aria-label="Zoom arrière">−</button><button aria-label="Recentrer">⌖</button></div>
             </div>
-            <div class="map-footer"><span><i class="live-dot"></i> 7 SECTEURS CONNECTÉS</span><span>DERNIÈRE MISE À JOUR · IL Y A 12 S</span><button>Explorer la carte <b>↗</b></button></div>
+            <div class="map-footer"><span>EXEMPLE VISUEL · SECTEURS FICTIFS</span><span>DONNÉES NON CONNECTÉES</span><button type="button">Carte de démonstration <b>↗</b></button></div>
           </article>
 
           <article class="panel climate-panel">
-            <div class="panel-heading"><div><div class="panel-kicker">CONDITIONS LOCALES <span class="tiny-live">●</span></div><h2>Météo planétaire</h2></div><button class="weather-more" aria-label="Détails météo">↗</button></div>
+            <div class="panel-heading"><div><div class="panel-kicker">MÉTÉO DE DÉMONSTRATION</div><h2>Météo planétaire</h2></div><button class="weather-more" aria-label="Détails météo" type="button">↗</button></div>
             <div class="weather-place"><span class="pin">⌖</span> Nouvelle Aurore, Secteur 07</div>
             <div class="weather-main"><div><div class="temperature">−18<span>°</span></div><div class="weather-state">Nuageux avec éclaircies</div></div><div class="weather-art"><div class="planet-halo"></div><div class="planet"></div><div class="cloud cloud-a"></div><div class="cloud cloud-b"></div></div></div>
             <div class="weather-divider"></div><div class="weather-stats"><div><span>VENT</span><b>12 <small>km/h</small></b><i>↗ NE</i></div><div><span>PRESSION</span><b>746 <small>hPa</small></b><i class="normal">Normale</i></div><div><span>QUALITÉ AIR</span><b>98 <small>AQI</small></b><i class="good">Excellente</i></div></div>
@@ -81,14 +82,15 @@
         </section>
 
         <section class="bottom-grid">
-          <article class="panel reports-panel" id="reports"><div class="panel-heading reports-heading"><div><div class="panel-kicker">VIE DE LA COMMUNAUTÉ <span class="count-badge" id="report-total-count">12</span></div><h2>Signalements récents</h2></div><div><button class="text-button" id="refreshReports" type="button">Actualiser <b>↻</b></button><button class="text-button" id="allReports" type="button">Voir tout <b>↗</b></button></div></div>
-            <div class="filters" role="group" aria-label="Filtrer les signalements"><button class="filter active" data-filter="all">Tous <span id="report-count-all">12</span></button><button class="filter" data-filter="urgent"><i class="filter-dot urgent-dot"></i>Urgents <span id="report-count-urgent">3</span></button><button class="filter" data-filter="progress">En cours <span id="report-count-progress">6</span></button><button class="filter" data-filter="resolved">Résolus <span id="report-count-resolved">3</span></button></div>
-            <p id="reports-api-error" role="alert" hidden>Les signalements de l’API ne sont pas disponibles. Les exemples de démonstration sont affichés ; réessaie avec le bouton Actualiser.</p>
+          <article class="panel reports-panel" id="reports"><div class="panel-heading reports-heading"><div><div class="panel-kicker">VIE DE LA COMMUNAUTÉ <span class="count-badge" id="report-total-count">0</span></div><h2>Signalements récents</h2></div><div><button class="text-button" id="refreshReports" type="button">Actualiser <b>↻</b></button><button class="text-button" id="allReports" type="button">Voir tout <b>↗</b></button></div></div>
+            <div class="filters" role="group" aria-label="Filtrer les signalements"><button class="filter active" data-filter="all">Tous <span id="report-count-all">0</span></button><button class="filter" data-filter="urgent"><i class="filter-dot urgent-dot"></i>Urgents <span id="report-count-urgent">0</span></button><button class="filter" data-filter="progress">En cours <span id="report-count-progress">0</span></button><button class="filter" data-filter="resolved">Résolus <span id="report-count-resolved">0</span></button></div>
+            <label class="report-search"><span class="sr-only">Rechercher un signalement par titre, secteur ou catégorie</span><input id="reports-search" type="search" placeholder="Rechercher un signalement…" /></label>
+            <p id="reports-api-error" role="alert" hidden>L’API est indisponible ou son format n’est pas reconnu. Des exemples de démonstration sont affichés ; vérifie la connexion et réessaie.</p>
+            <p class="reports-loading" id="reports-loading" role="status" aria-live="polite">Chargement des signalements…</p>
             <div class="report-list">
-              <article class="report-row" data-status="urgent"><div class="report-icon icon-urgent">ϟ</div><div class="report-info"><b>Fuite de pression — conduit C-12</b><span>District Boréal · il y a 8 min <i>•</i> par <strong>J. Okafor</strong></span></div><span class="status status-urgent">URGENT</span><button class="row-arrow" aria-label="Ouvrir le signalement">↗</button></article>
-              <article class="report-row" data-status="progress"><div class="report-icon icon-progress">⌁</div><div class="report-info"><b>Éclairage défaillant — allée 04</b><span>Centre civique · il y a 26 min <i>•</i> par <strong>M. Chen</strong></span></div><span class="status status-progress">EN COURS</span><button class="row-arrow" aria-label="Ouvrir le signalement">↗</button></article>
-              <article class="report-row" data-status="resolved"><div class="report-icon icon-resolved">✓</div><div class="report-info"><b>Rationnement d’eau — unité résidentielle</b><span>Habitat Sud · il y a 1 h <i>•</i> par <strong>A. Diallo</strong></span></div><span class="status status-resolved">RÉSOLU</span><button class="row-arrow" aria-label="Ouvrir le signalement">↗</button></article>
             </div><button class="mobile-all" id="mobileReports">Tous les signalements <span>→</span></button>
+            <p class="reports-empty" id="reports-empty" role="status" hidden>Aucun signalement ne correspond à cette recherche et à ce filtre.</p>
+            <button class="load-more-reports" id="loadMoreReports" type="button" hidden>Afficher les signalements suivants</button>
           </article>
 
           <article class="panel council-panel" id="council"><div class="panel-heading"><div><div class="panel-kicker">DÉCISION COLLECTIVE · DÉMO</div><h2>Haut Conseil</h2></div><span class="council-mark">⌘</span></div><div class="council-alert"><div class="alert-icon">✦</div><div><div class="alert-label">VOTE DE DÉMONSTRATION <span>· 02H 14M</span></div><b>Extension du dôme agricole</b><p>Proposition #TN-084 · Secteur Sud</p></div></div><div class="vote-meter"><div class="vote-label"><span>CONSENSUS DE DÉMONSTRATION</span><b>72%</b></div><div class="vote-track"><i></i></div><div class="vote-scale"><span>Seuil fictif : 60%</span><span>186 / 240 votes de démonstration</span></div></div><div class="council-bottom"><div class="council-avatars"><span>AM</span><span>JK</span><span>LS</span><span>+183</span></div><button class="vote-button" id="voteButton" type="button">Voir la maquette <span>↗</span></button></div></article>

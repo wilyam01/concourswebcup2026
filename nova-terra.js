@@ -38,27 +38,45 @@ function saveStored(key, value) {
 }
 
 function normalizeStatus(status) {
-  if (["done", "resolved", "completed", "termine"].includes(status)) return "done";
-  if (["in_progress", "progress", "in-progress", "en_cours"].includes(status)) return "in_progress";
-  return "todo";
+  const normalized = String(status || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+  if (!normalized || ["todo", "to_do", "pending", "open", "new", "submitted", "created", "a_traiter"].includes(normalized)) return "todo";
+  if (["done", "resolved", "completed", "closed", "termine", "terminee"].includes(normalized)) return "done";
+  if (["in_progress", "progress", "processing", "en_cours"].includes(normalized)) return "in_progress";
+  throw new Error("Unsupported request status");
 }
 
 function normalizePriority(priority) {
-  if (["critical", "urgent", "high"].includes(priority)) return "high";
-  if (["low", "minor"].includes(priority)) return "low";
-  return "normal";
+  const normalized = String(priority || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+  if (!normalized || ["normal", "medium", "moderate", "moyenne", "normale"].includes(normalized)) return "normal";
+  if (["critical", "urgent", "high", "haute", "elevee", "critique"].includes(normalized)) return "high";
+  if (["low", "minor", "basse", "faible"].includes(normalized)) return "low";
+  throw new Error("Unsupported request priority");
 }
 
 function normalizeRequest(item) {
+  const source = item && typeof item === "object" && !Array.isArray(item) ? item : {};
+  const id = source.id ?? source.reference;
+  if (id === undefined || id === null || String(id).trim() === "") {
+    throw new Error("Request is missing its identifier");
+  }
   return {
-    id: item.id || item.reference || `TN-${Date.now()}`,
-    title: item.title || item.subject || item.name || "Demande citoyenne",
-    district: item.district || item.location || item.zone || "Secteur non precise",
-    type: item.type || item.category || "Demande",
-    priority: normalizePriority(item.priority),
-    status: normalizeStatus(item.status),
-    updatedAt: item.updatedAt || item.createdAt || "Date non précisée",
-    description: item.description || item.message || "Aucune description fournie."
+    id: String(id),
+    title: source.title || source.subject || source.name || "Demande citoyenne",
+    district: source.district || source.location || source.zone || "Secteur non precise",
+    type: source.type || source.category || "Demande",
+    priority: normalizePriority(source.priority),
+    status: normalizeStatus(source.status),
+    updatedAt: source.updatedAt || source.createdAt || "Date non précisée",
+    description: source.description || source.message || "Aucune description fournie."
   };
 }
 
@@ -83,6 +101,9 @@ async function getFromApi(path, preferredKey) {
 window.NovaTerra = {
   usingDemoData: () => !NOVA_TERRA_API_BASE_URL && !NOVA_TERRA_REQUESTS_API_URL,
   canUpdateRequestStatus: () => !NOVA_TERRA_REQUESTS_API_URL,
+  getDemoRequests() {
+    return readStored(NOVA_TERRA_REQUESTS_KEY, demoRequests).map(normalizeRequest);
+  },
   getDataSourceLabel() {
     if (NOVA_TERRA_REQUESTS_API_URL) return "API WebCup · demandes en lecture seule, messages de démo";
     return NOVA_TERRA_API_BASE_URL ? "API Nova Terra connectée" : "Données de démonstration";
