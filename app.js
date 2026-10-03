@@ -224,7 +224,8 @@ document.querySelectorAll('.nav-item').forEach((link) => link.addEventListener('
 
 const profilePhotoInput = document.querySelector('#profilePhotoInput');
 const profilePhotoButtons = [...document.querySelectorAll('.profile-photo-trigger')];
-const profilePhotoStorageKey = 'novaTerraProfilePhoto';
+const profilePhotoStorageKey = `novaTerraProfilePhoto.v1:${encodeURIComponent(currentUser.email)}`;
+const legacyProfilePhotoStorageKey = 'novaTerraProfilePhoto';
 const profileName = document.querySelector('#profileName');
 const profileSector = document.querySelector('#profileSector');
 const initials = currentUser.name.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
@@ -246,7 +247,15 @@ function showProfilePhoto(dataUrl) {
 }
 
 try {
-  const savedProfilePhoto = localStorage.getItem(profilePhotoStorageKey);
+  let savedProfilePhoto = localStorage.getItem(profilePhotoStorageKey);
+  if (!savedProfilePhoto) {
+    const legacyProfilePhoto = localStorage.getItem(legacyProfilePhotoStorageKey);
+    if (legacyProfilePhoto) {
+      localStorage.setItem(profilePhotoStorageKey, legacyProfilePhoto);
+      localStorage.removeItem(legacyProfilePhotoStorageKey);
+      savedProfilePhoto = legacyProfilePhoto;
+    }
+  }
   if (savedProfilePhoto) showProfilePhoto(savedProfilePhoto);
 } catch (_) {
   // A saved photo is optional when browser storage is unavailable.
