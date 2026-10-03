@@ -62,7 +62,7 @@ Un backend Express/SQLite optionnel est fourni dans `backend/`. Il permet de par
 
 ### Démarrage local
 
-1. Installer Node.js 20 ou plus récent.
+1. Installer Node.js 22 ou plus récent.
 2. Installer les dépendances : `npm run backend:install`.
 3. Copier `backend/.env.example` vers `backend/.env`, puis définir un `JWT_SECRET` aléatoire d’au moins 32 caractères et vérifier `CORS_ORIGIN=http://localhost:5500`.
 4. Créer le premier administrateur : ajouter temporairement `ADMIN_EMAIL` et `ADMIN_PASSWORD` (12 à 72 caractères) à `backend/.env`, lancer `npm run backend:create-admin`, puis retirer ces deux variables du fichier.

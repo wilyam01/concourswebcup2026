@@ -64,7 +64,11 @@ const newsSearchLabel = document.createElement('label');
 const newsSearchTools = document.createElement('div');
 const newsSearchFeedback = document.createElement('p');
 const newsEmpty = document.createElement('p');
+const newsSourceNote = document.createElement('p');
 let newsExpanded = false;
+let publicAnnouncements = [];
+let publicAnnouncementsLoaded = false;
+let publicAnnouncementsFailed = false;
 if (newsSection) {
   newsSearch.type = 'search';
   newsSearch.id = 'newsSearch';
@@ -78,8 +82,10 @@ if (newsSection) {
   newsEmpty.className = 'news-search-empty';
   newsEmpty.setAttribute('role', 'status');
   newsEmpty.hidden = true;
+  newsSourceNote.className = 'news-source-note';
+  newsSourceNote.setAttribute('role', 'status');
   const newsLayout = newsSection.querySelector('.news-layout');
-  newsLayout?.before(newsSearchTools, newsEmpty);
+  newsLayout?.before(newsSearchTools, newsSourceNote, newsEmpty);
   const english = document.documentElement.lang === 'en';
   newsSearch.setAttribute('aria-label', english ? 'Search municipal announcements' : 'Rechercher une annonce municipale');
   newsSearch.placeholder = english ? 'Search announcements…' : 'Rechercher une annonce…';
@@ -105,10 +111,95 @@ function renderNewsSearch() {
   newsSearchFeedback.textContent = document.documentElement.lang === 'en'
     ? `${visibleCount} announcement${visibleCount === 1 ? '' : 's'}`
     : `${visibleCount} annonce${visibleCount === 1 ? '' : 's'}`;
-  newsEmpty.hidden = visibleCount > 0;
+  const english = document.documentElement.lang === 'en';
+  const apiMode = Boolean(window.NovaTerraApi?.enabled);
+  newsEmpty.textContent = query
+    ? (english ? 'No announcements match your search.' : 'Aucune annonce ne correspond à votre recherche.')
+    : (english ? 'No municipal announcements have been published yet.' : 'Aucune annonce municipale n’a encore été publiée.');
+  newsEmpty.hidden = visibleCount > 0 || (!query && !apiMode && !publicAnnouncements.length)
+    || (!query && apiMode && (!publicAnnouncementsLoaded || publicAnnouncementsFailed));
   const link = document.querySelector('#allNews');
-  if (link) link.setAttribute('aria-expanded', String(newsExpanded));
+  if (link) {
+    link.setAttribute('aria-expanded', String(newsExpanded));
+    link.hidden = !cards.some((entry) => entry.classList.contains('archived-news')) || Boolean(query);
+  }
   updateNewsToggleLabel();
+}
+
+function renderPublicAnnouncements() {
+  if (!newsSection) return;
+  const english = document.documentElement.lang === 'en';
+  const apiMode = Boolean(window.NovaTerraApi?.enabled);
+  const host = newsSection.querySelector('#news-list');
+  const lead = newsSection.querySelector('.news-lead');
+  const layout = newsSection.querySelector('.news-layout');
+  if (!host) return;
+  host.setAttribute('aria-live', 'polite');
+
+  if (apiMode || publicAnnouncements.length) {
+    host.replaceChildren();
+    publicAnnouncements.forEach((item, index) => {
+      const card = document.createElement('article');
+      card.className = `news-item${index >= 3 ? ' archived-news' : ''}`;
+      if (index >= 3) card.hidden = true;
+      const top = document.createElement('div');
+      top.className = 'news-item-top';
+      const tag = document.createElement('span');
+      const category = ({ news: ['Municipal announcement', 'ANNONCE MUNICIPALE', 'tag-council'], general: ['City information', 'INFORMATION MUNICIPALE', 'tag-alert'], flood: ['Flood warning', 'ALERTE CRUE', 'tag-alert'], health: ['Health alert', 'ALERTE SANITAIRE', 'tag-alert'], service_status: ['Service status', 'STATUT DE SERVICE', 'tag-planet'] })[item.kind] || ['Municipal announcement', 'ANNONCE MUNICIPALE', 'tag-council'];
+      tag.className = `news-tag ${category[2]}`;
+      tag.textContent = english ? category[0] : category[1];
+      const time = document.createElement('time');
+      const date = new Date(item.createdAt);
+      if (!Number.isNaN(date.getTime())) {
+        time.dateTime = date.toISOString();
+        time.textContent = new Intl.DateTimeFormat(english ? 'en' : 'fr', { dateStyle: 'medium' }).format(date);
+      }
+      top.append(tag, time);
+      const title = document.createElement('h3');
+      title.textContent = item.title || '';
+      const body = document.createElement('p');
+      body.textContent = item.body || '';
+      const link = document.createElement('a');
+      link.href = 'dashboard.html';
+      link.setAttribute('aria-label', english ? `Open the citizen area to read ${item.title || 'this announcement'}` : `Ouvrir l’espace citoyen pour lire ${item.title || 'cette annonce'}`);
+      link.textContent = '↗';
+      card.append(top, title, body, link);
+      host.append(card);
+    });
+    if (lead) lead.hidden = true;
+    layout?.classList.add('live-news');
+  } else {
+    if (lead) lead.hidden = false;
+    layout?.classList.remove('live-news');
+  }
+
+  if (apiMode) {
+    newsSourceNote.textContent = !publicAnnouncementsLoaded
+      ? (english ? 'Loading city announcements…' : 'Chargement des annonces municipales…')
+      : publicAnnouncementsFailed
+        ? (english ? 'City announcements could not be loaded. Demonstration stories are hidden.' : 'Les annonces municipales n’ont pas pu être chargées. Les exemples de démonstration sont masqués.')
+        : (english ? 'Published by the connected municipal service.' : 'Annonces publiées par le service municipal connecté.');
+  } else {
+    newsSourceNote.textContent = publicAnnouncements.length
+      ? (english ? 'Announcements saved in this browser.' : 'Annonces enregistrées dans ce navigateur.')
+      : (english ? 'Illustrative demonstration stories.' : 'Actualités illustratives de démonstration.');
+  }
+  renderNewsSearch();
+}
+
+async function loadPublicAnnouncements() {
+  if (!newsSection || !window.NovaTerraCity?.getAnnouncements) return;
+  try {
+    const items = await window.NovaTerraCity.getAnnouncements();
+    publicAnnouncements = Array.isArray(items) ? items.filter((item) => item && item.title && item.body) : [];
+    publicAnnouncementsFailed = false;
+  } catch (_) {
+    publicAnnouncements = [];
+    publicAnnouncementsFailed = Boolean(window.NovaTerraApi?.enabled);
+  } finally {
+    publicAnnouncementsLoaded = true;
+    renderPublicAnnouncements();
+  }
 }
 
 document.querySelector('#allNews')?.addEventListener('click', (event) => {
@@ -117,6 +208,10 @@ document.querySelector('#allNews')?.addEventListener('click', (event) => {
   renderNewsSearch();
 });
 newsSearch.addEventListener('input', renderNewsSearch);
+window.addEventListener('terra-nova:announcements-updated', loadPublicAnnouncements);
+window.addEventListener('storage', (event) => {
+  if (event.key === window.NovaTerraCity?.announcementStorageKey) void loadPublicAnnouncements();
+});
 
 const serviceSearch = document.querySelector('#serviceSearch');
 const serviceCards = [...document.querySelectorAll('.service-card[data-service-id]')];
@@ -280,6 +375,7 @@ window.addEventListener('nova:language-change', () => {
   newsSearch.setAttribute('aria-label', document.documentElement.lang === 'en' ? 'Search municipal announcements' : 'Rechercher une annonce municipale');
   newsSearch.placeholder = document.documentElement.lang === 'en' ? 'Search announcements…' : 'Rechercher une annonce…';
   newsEmpty.textContent = document.documentElement.lang === 'en' ? 'No announcements match your search.' : 'Aucune annonce ne correspond à votre recherche.';
+  renderPublicAnnouncements();
   renderNewsSearch();
   updateNewsToggleLabel();
 });
@@ -288,6 +384,9 @@ window.addEventListener('storage', (event) => {
 });
 renderServiceSearch();
 renderServicePopularity();
+renderPublicAnnouncements();
 renderNewsSearch();
+void loadPublicAnnouncements();
+if (window.NovaTerraApi?.enabled) window.NovaTerraEco.schedulePolling(loadPublicAnnouncements);
 void loadServicePopularity();
 if (window.NovaTerraApi?.enabled) window.NovaTerraEco.schedulePolling(loadServicePopularity);

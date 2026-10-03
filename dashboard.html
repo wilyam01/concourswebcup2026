@@ -10,7 +10,7 @@
   <script src="theme.js"></script>
   <link rel="stylesheet" href="theme.css?v=security-data-exports-1" />
   <link rel="stylesheet" href="accessibility.css" />
-  <link rel="stylesheet" href="community.css?v=community-participation-1" />
+  <link rel="stylesheet" href="community.css?v=community-participation-2" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="dashboard-template.css?v=dashboard-mobile-overflow-2" />
 </head>
@@ -30,6 +30,7 @@
         <a class="nav-item" href="#reports"><span class="nav-icon">⌖</span>Signalements<span class="nav-count" id="nav-open-report-count">0</span></a>
         <a class="nav-item" href="#my-requests"><span class="nav-icon">▤</span>Mes demandes<span class="nav-count" id="my-requests-nav-count">0</span></a>
         <a class="nav-item" href="#planet"><span class="nav-icon">◌</span>État de la planète</a>
+        <a class="nav-item" href="#participation"><span class="nav-icon">✳</span>Projets &amp; consultations</a>
         <a class="nav-item" href="#council"><span class="nav-icon">⌘</span>Haut Conseil<span class="nav-lock">✦</span></a>
         <a class="nav-item" href="contact/index.html"><span class="nav-icon">＋</span>Contact citoyen</a>
         <a class="nav-item" href="agent/dashboard/index.html"><span class="nav-icon">A</span>Espace agent</a>
@@ -121,6 +122,17 @@
           </form>
           <div class="appointment-list" id="appointmentList" aria-live="polite"></div>
           <p class="appointment-empty" id="appointmentEmpty">Aucun rendez-vous réservé pour le moment.</p>
+        </section>
+
+        <section class="panel participation-panel" id="participation" aria-labelledby="participationTitle">
+          <div class="panel-heading"><div><div class="panel-kicker">F65 · F66 · F67 · F68 · VIE CITOYENNE</div><h2 id="participationTitle">Projets &amp; consultations</h2></div><span class="council-mark" aria-hidden="true">✳</span></div>
+          <p class="participation-intro" id="participationIntro">Consulte les projets de la ville, donne ton avis sur les décisions en cours et propose tes idées pour la planète et ton quartier.</p>
+          <p class="participation-storage-note" id="participationStorageNote" role="status">Espace de démonstration : tes réponses et idées sont enregistrées dans ce navigateur et ne sont pas transmises à la mairie.</p>
+          <div class="participation-grid">
+            <section class="participation-subsection" aria-labelledby="consultationsTitle"><div class="participation-subheading"><div><div class="panel-kicker">F65 · F66</div><h3 id="consultationsTitle">Donner son avis</h3></div></div><div id="consultationList" class="participation-card-list" aria-live="polite"></div></section>
+            <section class="participation-subsection" aria-labelledby="projectsTitle"><div class="participation-subheading"><div><div class="panel-kicker">F67</div><h3 id="projectsTitle">Projets en cours</h3></div></div><div id="cityProjectList" class="participation-card-list"></div></section>
+          </div>
+          <form class="participation-idea-form" id="participationIdeaForm"><div><div class="panel-kicker">F68 · PROPOSITION CITOYENNE</div><h3>Une idée pour la ville ou la planète ?</h3><p>Partage une proposition concrète. N’ajoute pas de coordonnées personnelles.</p></div><label for="participationIdeaTitle">Titre de l’idée<input id="participationIdeaTitle" name="title" type="text" maxlength="100" required /></label><label for="participationIdeaBody">Décris ton idée<textarea id="participationIdeaBody" name="body" rows="3" maxlength="1000" required></textarea></label><button class="btn-primary" type="submit">Enregistrer mon idée</button><p id="participationFeedback" role="status" aria-live="polite"></p><ul id="citizenIdeaList" class="citizen-idea-list" aria-live="polite"></ul></form>
         </section>
 
         <section class="bottom-grid">
@@ -257,6 +269,7 @@
   <script src="city-data.js"></script>
   <script src="app.js?v=security-data-exports-1"></script>
   <script src="community.js?v=community-security-alerts-1"></script>
+  <script src="participation.js?v=participation-board-1"></script>
   <script src="appointments.js"></script>
   <script src="assistant.js"></script>
   <script src="accessibility.js"></script>

@@ -137,8 +137,10 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .news-search input::placeholder { color:#727e91; }
 .news-search input:focus { border-color:#8f80d4; box-shadow:0 0 0 3px #a18ae51c; }
 .news-tools p,.news-search-empty { margin:0; color:#a8b2c1; font-size:9px; }
+.news-source-note { margin:-7px 0 15px; color:#8490a2; font:8px var(--mono); }
 .news-search-empty { padding:24px 12px; border:1px dashed var(--rule); border-radius:5px; text-align:center; }
 .news-item[hidden],.news-lead[hidden] { display:none !important; }
+.news-layout.live-news { grid-template-columns:1fr; }
 .service-popularity { max-width:150px; padding:4px 6px; border:1px solid #d7b96c55; border-radius:999px; color:#f1d995; background:#d7b96c12; font:6px var(--mono); letter-spacing:.35px; text-align:center; }
 .service-featured .service-popularity:not([hidden]) { color:#d8cbff; border-color:#a98bff5c; background:#a98bff16; }
 .mobility-section { position:relative; padding:72px 0 76px; border-top:1px solid var(--rule); border-bottom:1px solid var(--rule); background:radial-gradient(ellipse at 85% 10%,#34496c38,transparent 48%),#0c121c; scroll-margin-top:30px; }
@@ -157,6 +159,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .mobility-demo-note { margin:13px 0 0; color:#788597; font-size:8px; line-height:1.6; }
 .mobility-section,.news-section,.join-section { content-visibility:auto; contain-intrinsic-size:auto 680px; }
 html[data-theme="light"] .service-search input,html[data-theme="light"] .news-search input { border-color:#c9d3df; color:#233247; background:#fff; }
+html[data-theme="light"] .news-source-note,html[data-theme="light"] .news-tools p,html[data-theme="light"] .news-search-empty { color:#65768a; }
 html[data-theme="light"] #serviceSearchFeedback,html[data-theme="light"] .service-popularity-note,html[data-theme="light"] .mobility-demo-note { color:#65768a; }
 html[data-theme="light"] .mobility-section { border-color:#d5dde5; background:radial-gradient(ellipse at 85% 10%,#cbd8ed77,transparent 48%),#f3f6f9; }
 html[data-theme="light"] .mobility-route { border-color:#d5dde5; background:#fff; }

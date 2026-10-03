@@ -117,8 +117,18 @@ app.use('/api', (_req, res, next) => { res.setHeader('Cache-Control', 'no-store'
 app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: 'draft-7', legacyHeaders: false }));
 app.use('/api/citizen-messages', rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: 'draft-7', legacyHeaders: false }));
 const privacySubmissionLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 12, standardHeaders: 'draft-7', legacyHeaders: false });
+const ideaSubmissionLimit = rateLimit({ windowMs: 60 * 60 * 1000, limit: 5, standardHeaders: 'draft-7', legacyHeaders: false });
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+
+app.post('/api/citizen-ideas', ideaSubmissionLimit, (req, res) => {
+  const title = clean(req.body?.title, 100);
+  const body = clean(req.body?.body, 1000);
+  if (title.length < 3 || body.length < 10) return res.status(400).json({ error: 'INVALID_INPUT', message: 'Le titre doit contenir au moins 3 caractères et la description 10.' });
+  const idea = { id: id('IDEA'), title, body, createdAt: isoNow() };
+  db.prepare('INSERT INTO citizen_ideas(id,title,body,created_at) VALUES(?,?,?,?)').run(idea.id, idea.title, idea.body, idea.createdAt);
+  res.status(201).json({ idea: { reference: idea.id, createdAt: idea.createdAt } });
+});
 
 app.post('/api/auth/signup', asyncRoute(async (req, res) => {
   const email = clean(req.body?.email, 254).toLowerCase();

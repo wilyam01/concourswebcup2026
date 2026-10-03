@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#080a14" />
+  <title>Proposer un projet — Nova Terra</title>
+  <link rel="stylesheet" href="theme.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .proposal-page{min-height:100vh;padding:clamp(24px,6vw,72px) 20px;background:#080a14;color:#f4f5fa}
+    .proposal-wrap{max-width:760px;margin:auto}.proposal-wrap>a{color:#a5e6c5}
+    .proposal-card{margin-top:28px;padding:clamp(24px,5vw,48px);border:1px solid #ffffff20;border-radius:24px;background:#111522}
+    .proposal-card h1{font-size:clamp(2rem,6vw,3.5rem);margin:8px 0 14px}.proposal-card>p{color:#c0c4d1;line-height:1.65}
+    .proposal-form{display:grid;gap:18px;margin-top:30px}.proposal-form label{display:grid;gap:8px;font-weight:600}
+    .proposal-form input,.proposal-form textarea{width:100%;padding:14px;border:1px solid #ffffff35;border-radius:10px;background:#090c16;color:white;font:inherit}
+    .proposal-form textarea{resize:vertical}.proposal-form button{justify-self:start;border:0;cursor:pointer}
+    #proposalStatus{min-height:1.5em;color:#a5e6c5}.proposal-note{font-size:.9rem;color:#c0c4d1}
+  </style>
+</head>
+<body class="proposal-page">
+  <main class="proposal-wrap">
+    <a href="index.html#services">← Retour aux services de la ville</a>
+    <section class="proposal-card" aria-labelledby="proposalTitle">
+      <div class="section-kicker">VIE CITOYENNE · VOTRE VOIX COMPTE</div>
+      <h1 id="proposalTitle">Proposez un projet</h1>
+      <p>Une idée pour améliorer votre quartier ou la ville ? Décrivez-la ici. Toute personne peut contribuer, sans créer de compte.</p>
+      <p class="proposal-note" id="proposalStorageNote">Votre proposition sera transmise à la mairie lorsque le service est connecté. N’indiquez aucune coordonnée personnelle.</p>
+      <form class="proposal-form" id="projectProposalForm">
+        <label for="proposalName">Titre du projet<input id="proposalName" name="title" required minlength="3" maxlength="100" autocomplete="off" /></label>
+        <label for="proposalDescription">Description<textarea id="proposalDescription" name="body" required minlength="10" maxlength="1000" rows="6"></textarea></label>
+        <button class="button" type="submit">Envoyer ma proposition <span>↗</span></button>
+        <p id="proposalStatus" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+  </main>
+  <script src="config.js"></script>
+  <script src="api-client.js"></script>
+  <script src="proposer-un-projet.js"></script>
+</body>
+</html>

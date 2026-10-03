@@ -26,7 +26,7 @@ foreach ($relativePath in $requiredFiles) {
   }
 }
 
-$sourceFiles = Get-ChildItem -LiteralPath $projectRoot -Recurse -File -Include *.html,*.js,*.css,*.md,*.yml,*.json
+$sourceFiles = Get-ChildItem -LiteralPath $projectRoot -Recurse -File -Include *.html,*.js,*.css,*.md,*.yml,*.json | Where-Object { $_.FullName -notmatch '\\.git\\|\\node_modules\\|\\concourswebcup2026-main\\' }
 $javascriptFiles = Get-ChildItem -LiteralPath $projectRoot -Recurse -File -Filter *.js | Where-Object { $_.FullName -notmatch '\\.git\\|\\node_modules\\|\\concourswebcup2026-main\\' }
 foreach ($javascriptFile in $javascriptFiles) {
   $nodeOutput = & node --check $javascriptFile.FullName 2>&1

@@ -420,6 +420,14 @@ function openCitizenReportForm(trigger) {
   reportFormTrigger = trigger;
   citizenReportErrorKey = "";
   document.querySelector("#citizenReportError").hidden = true;
+  const english = document.documentElement.lang === "en";
+  document.querySelector("#reportFormNote").innerHTML = window.NovaTerraApi?.enabled
+    ? (english
+      ? 'Your report will be sent to the municipal service and shared with signed-in residents in a privacy-filtered list. Your name, email and full description stay private. For an immediate emergency, call <a href="tel:112">112</a>.'
+      : 'Ton signalement sera envoyé au service municipal et partagé dans une liste filtrée avec les habitants connectés. Ton nom, ton e-mail et ta description complète restent privés. Pour une urgence immédiate, appelle le <a href="tel:112">112</a>.')
+    : (english
+      ? 'Demo mode: this report is saved only on this device. Connect the shared municipal service to send it to city staff and share it with residents. For an immediate emergency, call <a href="tel:112">112</a>.'
+      : 'Mode démo : ce signalement est enregistré uniquement sur cet appareil. Le service municipal partagé doit être connecté pour le transmettre aux équipes et le partager avec les habitants. Pour une urgence immédiate, appelle le <a href="tel:112">112</a>.');
   citizenReportForm.reset();
   document.querySelector("#reportDistrictInput").value = currentUser.sector || "";
   personalRequestsDialog.showModal();
@@ -504,6 +512,7 @@ citizenReportForm.addEventListener("submit", async (event) => {
   try {
     const request = await window.NovaTerra.createCitizenRequest({ ...values, ownerEmail: currentUser.email });
     await renderPersonalRequests();
+    if (window.NovaTerraApi?.enabled) await renderCommunitySupports();
     const feedback = document.querySelector("#personalRequestFeedback");
     lastCitizenReportId = request.id;
     renderPersonalRequestFeedback();
