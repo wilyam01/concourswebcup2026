@@ -167,3 +167,22 @@ html[data-theme="light"] .assistant-heading,html[data-theme="light"] .assistant-
 html[data-theme="light"] .assistant-message { border-color:#d9e2eb; color:#263950; background:#eef3f7; }
 html[data-theme="light"] .assistant-message.user { color:#1b3855; background:#e4efff; }
 html[data-theme="light"] .assistant-form input { border-color:#ccd7e2; color:#1c2b3d; background:#fff; }
+
+/* Keep supporting tools available without covering a mobile form or filter. */
+@media(max-width:700px) {
+  .assistant-launcher,.community-inbox-trigger,.a11y-launcher {
+    bottom:14px;
+    width:44px;
+    min-width:44px;
+    height:44px;
+    min-height:44px;
+    padding:0;
+    justify-content:center;
+  }
+  .assistant-launcher { right:126px; font-size:0; }
+  .assistant-launcher::before { content:"✧"; font-size:17px; }
+  .community-inbox-trigger { right:70px; }
+  .community-inbox-trigger .community-inbox-label { display:none; }
+  .a11y-launcher { right:14px; }
+  .assistant-panel { right:10px; bottom:70px; height:min(500px,calc(100dvh - 90px)); }
+}

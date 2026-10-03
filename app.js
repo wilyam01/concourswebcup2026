@@ -745,19 +745,35 @@ document.addEventListener("visibilitychange", () => {
 });
 const menuButton = document.querySelector('#menuButton');
 const sidebar = document.querySelector('#sidebar');
+const menuBackdrop = document.querySelector('#menuBackdrop');
+const sidebarFirstItem = sidebar.querySelector('.nav-item');
+const dashboardContent = document.querySelector('.content');
+const isDrawerViewport = () => window.matchMedia('(max-width: 900px)').matches;
 
-function setSidebarOpen(isOpen) {
+function setSidebarOpen(isOpen, returnFocus = false) {
+  const wasOpen = sidebar.classList.contains('open');
+  const drawer = isDrawerViewport();
   sidebar.classList.toggle('open', isOpen);
+  menuBackdrop.hidden = !isOpen;
   menuButton.setAttribute('aria-expanded', String(isOpen));
   menuButton.setAttribute('aria-label', isOpen ? 'Fermer le menu' : 'Ouvrir le menu');
+  if (dashboardContent) dashboardContent.inert = isOpen && drawer;
+  if (isOpen && drawer && sidebarFirstItem) {
+    sidebarFirstItem.focus({ preventScroll: true });
+  } else if (!isOpen && (returnFocus || (wasOpen && drawer && sidebar.contains(document.activeElement)))) {
+    menuButton.focus();
+  }
 }
 
 menuButton.addEventListener('click', () => setSidebarOpen(!sidebar.classList.contains('open')));
+menuBackdrop.addEventListener('click', () => setSidebarOpen(false, true));
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && sidebar.classList.contains('open')) {
-    setSidebarOpen(false);
-    menuButton.focus();
+    setSidebarOpen(false, true);
   }
+});
+window.addEventListener('resize', () => {
+  if (window.matchMedia('(min-width: 901px)').matches) setSidebarOpen(false);
 });
 document.querySelectorAll('.nav-item').forEach((link) => link.addEventListener('click', () => {
   document.querySelectorAll('.nav-item').forEach((item) => item.classList.remove('active'));

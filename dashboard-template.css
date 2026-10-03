@@ -286,7 +286,7 @@ html[data-theme="light"] .filter.active { border-color: #cbd9f2; color: var(--ui
   white-space: nowrap;
 }
 
-.report-table tbody .report-row { transition: background-color .16s ease; }
+.report-table tbody .report-row { display: table-row; transition: background-color .16s ease; }
 .report-table tbody .report-row:nth-child(even) { background: var(--ui-surface-alt); }
 .report-table tbody .report-row:hover { background: var(--ui-row-hover); }
 .report-table .report-row > th,
@@ -406,4 +406,52 @@ html[data-theme="light"] footer a { color: var(--ui-cobalt); }
   *,
   *::before,
   *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
+
+/* The citizen dashboard uses a drawer below the desktop breakpoint. Keeping these
+   rules after the theme overrides makes a viewport change deterministic. */
+.dashboard-menu-backdrop { display: none; }
+
+@media (max-width: 900px) {
+  .dashboard-page .sidebar { transform: translateX(-100%); }
+  .dashboard-page .sidebar.open { transform: translateX(0); }
+  .dashboard-menu-backdrop[hidden] { display: none; }
+  .dashboard-menu-backdrop:not([hidden]) {
+    position: fixed;
+    z-index: 19;
+    inset: 0;
+    display: block;
+    border: 0;
+    background: #02071280;
+    cursor: default;
+  }
+}
+
+@media (max-width: 600px) {
+  .report-table-wrap { overflow-x: hidden; }
+  .report-table { min-width: 0; table-layout: fixed; }
+  .report-table thead th:nth-child(1) { width: 58%; }
+  .report-table thead th:nth-child(3) { width: 27%; }
+  .report-table thead th:nth-child(4) { width: 42px; }
+  .report-table thead th:nth-child(2),
+  .report-table .report-row > td:nth-child(2) { display: none; }
+  .report-table .report-subject-cell { width: auto; }
+  .report-subject { width: 100%; min-width: 0; }
+  .report-subject .report-info { flex: 1; }
+  .report-table .report-row > th,
+  .report-table .report-row > td { padding: 10px 8px; }
+  .report-action-cell { width: 42px; }
+  .report-table .row-arrow { display: grid; width: 32px; height: 32px; }
+}
+
+@media (min-width: 601px) {
+  .report-table { min-width: 0; table-layout: fixed; }
+  .report-table thead th:nth-child(1) { width: 48%; }
+  .report-table thead th:nth-child(2) { width: 24%; }
+  .report-table thead th:nth-child(3) { width: 20%; }
+  .report-table thead th:nth-child(4) { width: 52px; }
+  .report-table .report-district { min-width: 0; overflow-wrap: anywhere; }
+  .report-table .report-row > th,
+  .report-table .report-row > td { padding-right: 10px; padding-left: 10px; }
+  .report-subject { min-width: 0; }
 }

@@ -48,6 +48,14 @@ Le bouton « Aa » regroupe les préférences déjà présentes : navigation cla
 
 La section **Urgences** de l’accueil ajoute la carte filtrable des hôpitaux, postes de secours et lieux frais (F45/F46). Ses emplacements et horaires sont illustratifs, non officiels; appeler le 112 en cas d’urgence réelle. Une source cartographique municipale pourra remplacer ces exemples si elle est fournie.
 
+## Navigation mobile et tableau adaptatif
+
+Sous 900 px, le tableau de bord citoyen affiche le menu latéral en tiroir. Un fond cliquable (`#menuBackdrop`, bouton `dashboard-menu-backdrop`) ferme le menu par un appui hors navigation; la touche Échap referme le tiroir et restitue le focus au bouton du menu, et un passage au gabarit bureau referme le tiroir pour éviter un état figé. À l’ouverture, le focus passe au premier lien de navigation; le contenu principal devient `inert` pour rester hors de portée du clavier et des lecteurs d’écran tant que le tiroir est ouvert, puis le focus revient au bouton du menu à la fermeture (y compris après le choix d’une rubrique).
+
+Sous 600 px, le tableau des signalements passe en disposition fixe : la colonne du secteur est masquée, la référence et le statut restent lisibles et le bouton d’ouverture conserve une cible de 32 px minimum. Les commandes flottantes de l’assistant, de la boîte de réception et des préférences « Aa » se réduisent à 44 px et s’alignent en bas à droite pour ne pas recouvrir un formulaire ou un filtre.
+
+Les identifiants de cache de `community.css` et `app.js` ont été relevés dans les pages qui les chargent; pensez à les incrémenter à nouveau après toute modification de ces ressources.
+
 ## Éco-conception et faible débit
 
 Le bilan F57, dans les préférences « Aa », affiche le transfert mesuré par le navigateur pour les ressources de même origine. Les entrées en cache et les ressources tierces peuvent être absentes de cette mesure : ce chiffre n'est ni un score environnemental complet ni une estimation d'énergie ou de CO₂. Les pages principales n'intègrent pas de photos/vidéos et n'appellent plus de fournisseur de polices externe.
@@ -146,6 +154,8 @@ npx vercel --prod
 Le domaine Vercel par défaut active automatiquement le proxy. Si un domaine personnalisé est utilisé, renseigner `requestsApiUrl: "/api/requests"` dans `config.js` pour ce déploiement. Sur GitHub Pages, l'application conserve le mode démonstration : Pages ne peut pas exécuter la fonction serveur.
 
 Les exemples locaux restent disponibles avec `localStorage` quand aucune API n'est configurée. Pour lancer le proxy WebCup localement, utiliser Vercel CLI (`npx vercel dev`), configurer `WEBCUP_API_KEY` dans les variables d'environnement de développement Vercel, puis ouvrir `http://localhost:3000/dashboard.html?api=webcup`. Ne pas créer ni committer un fichier contenant la clé.
+
+Le détail des cibles Vercel, Netlify, Render et GitHub Pages, avec les variables d'environnement et les vérifications, est regroupé dans [docs/deployment.md](docs/deployment.md). Le dépôt fournit déjà `vercel.json` (durée de la fonction `api/requests.js`, en-têtes de sécurité, indexation de l'espace agent désactivée) et `.nvmrc` (Node 20).
 
 ## Déploiement GitHub Pages
 

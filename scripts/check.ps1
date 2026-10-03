@@ -17,6 +17,9 @@ $requiredFiles = @(
   "postman/terra-nova.postman_environment.template.json",
   "contact/index.html",
   "agent/dashboard/index.html",
+  "vercel.json",
+  ".nvmrc",
+  "docs/deployment.md",
   ".github/workflows/deploy-pages.yml"
 )
 
@@ -62,6 +65,7 @@ $homeMarkup = Get-Content -LiteralPath (Join-Path $projectRoot "index.html") -Ra
 $homeScript = Get-Content -LiteralPath (Join-Path $projectRoot "public.js") -Raw
 $ecoModeScript = Get-Content -LiteralPath (Join-Path $projectRoot "eco-mode.js") -Raw
 $communityScript = Get-Content -LiteralPath (Join-Path $projectRoot "community.js") -Raw
+$communityStyles = Get-Content -LiteralPath (Join-Path $projectRoot "community.css") -Raw
 $cityDataScript = Get-Content -LiteralPath (Join-Path $projectRoot "city-data.js") -Raw
 $deployWorkflow = Get-Content -LiteralPath (Join-Path $projectRoot ".github/workflows/deploy-pages.yml") -Raw
 $publicStyles = Get-Content -LiteralPath (Join-Path $projectRoot "public.css") -Raw
@@ -131,6 +135,14 @@ if ($homeScript -notmatch "IntersectionObserver" -or $homeScript -notmatch "is-v
 if ($presentationMarkup -notmatch 'href="#main-content"' -or $presentationMarkup -notmatch 'id="main-content"') { throw "La présentation doit offrir un lien clavier vers le contenu principal." }
 if ($presentationA11yStyles -notmatch 'font-size:\s*clamp\(36px,\s*11vw,\s*52px\)' -or $presentationA11yStyles -notmatch 'html\s*\{[^}]*scroll-behavior:\s*auto[^}]*scroll-snap-type:\s*y mandatory' -or $presentationA11yStyles -notmatch '(?s)prefers-reduced-motion:\s*reduce.*?html,\s*\.deck-body\s*\{[^}]*scroll-snap-type:\s*none') { throw "La présentation doit naviguer entre diapositives et respecter la réduction des animations." }
 if ($dashboardMarkup -notmatch '<body class="dashboard-page">' -or $dashboardStyles -notmatch '@scope \(html\[data-theme="light"\] \.dashboard-page\)') { throw "Le thème clair du tableau de bord doit rester isolé des autres pages." }
+if ($dashboardMarkup -notmatch 'id="menuBackdrop"' -or $publicScript -notmatch 'menuBackdrop') { throw "Le menu mobile du tableau de bord doit pouvoir se fermer hors navigation." }
+if ($dashboardTemplateStyles -notmatch 'dashboard-menu-backdrop' -or $dashboardTemplateStyles -notmatch 'report-table thead th:nth-child\(2\)' -or $dashboardTemplateStyles -notmatch 'report-table tbody \.report-row \{ display: table-row') { throw "Le tableau citoyen doit rester utilisable sur mobile sans recouvrir le contenu." }
+if ($communityStyles -notmatch '\.assistant-launcher,\.community-inbox-trigger,\.a11y-launcher\s*\{' -or $communityStyles -notmatch '\.community-inbox-trigger \.community-inbox-label\s*\{\s*display:\s*none') { throw "Les commandes flottantes doivent rester compactes sur mobile sans recouvrir un formulaire." }
+if ($publicScript -notmatch "sidebar\.querySelector\('\.nav-item'\)" -or $publicScript -notmatch "\.inert =") { throw "Le tiroir mobile doit déplacer le focus et réserver le fond hors du clavier." }
+$vercelConfigPath = Join-Path $projectRoot "vercel.json"
+$vercelConfigRaw = Get-Content -LiteralPath $vercelConfigPath -Raw
+try { $null = $vercelConfigRaw | ConvertFrom-Json } catch { throw "vercel.json doit etre un JSON valide." }
+if ($vercelConfigRaw -notmatch '"api/requests\.js"' -or $vercelConfigRaw -notmatch 'X-Content-Type-Options' -or $vercelConfigRaw -notmatch 'Referrer-Policy') { throw "La configuration Vercel doit declarer la fonction proxy et les en-tetes de securite." }
 $sitePages = @(
   @{ Path = "index.html"; Script = "eco-mode.js" },
   @{ Path = "connexion.html"; Script = "eco-mode.js" },
