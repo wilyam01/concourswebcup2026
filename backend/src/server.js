@@ -17,6 +17,7 @@ import { decryptTotpSecret, deviceFingerprint, deviceLabel, encryptTotpSecret, h
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) throw new Error('JWT_SECRET must contain at least 32 characters');
 const app = express();
 const id = (prefix) => `${prefix}-${newId().slice(0, 8).toUpperCase()}`;
+db.function('normalize_sector', { deterministic: true }, (value) => String(value || '').trim().toLocaleLowerCase('fr'));
 const services = new Set(['water', 'health', 'energy', 'mobility', 'civic', 'solidarity', 'other']);
 const kinds = new Set(['general', 'news', 'flood', 'health', 'service_status']);
 const states = new Set(['operational', 'maintenance', 'unavailable']);
@@ -534,17 +535,16 @@ app.post('/api/citizen-messages', (req, res) => {
 
 function announcement(row) {
   return { id: row.id, kind: row.kind, title: row.title, body: row.body, targetSector: row.target_sector,
-    service: row.service, serviceStatus: row.service_status, authorEmail: row.author_email || '',
+    service: row.service, serviceStatus: row.service_status,
     createdAt: row.created_at, expiresAt: row.expires_at || '', active: Boolean(row.active), read: Boolean(row.read) };
 }
 app.get('/api/announcements', optionalAuth, (req, res) => {
   const staff = req.user && ['AGENT', 'ADMIN'].includes(req.user.role) && req.query.includeTargeted === 'true';
-  const rows = db.prepare(`SELECT a.*,u.email AS author_email,
+  const rows = db.prepare(`SELECT a.*,
       CASE WHEN ar.user_id IS NULL THEN 0 ELSE 1 END AS read
-    FROM announcements a LEFT JOIN users u ON u.id=a.author_id
-    LEFT JOIN announcement_reads ar ON ar.announcement_id=a.id AND ar.user_id=?
+    FROM announcements a LEFT JOIN announcement_reads ar ON ar.announcement_id=a.id AND ar.user_id=?
     WHERE a.active=1 AND (a.expires_at IS NULL OR a.expires_at>?)
-    AND (a.target_sector='' OR a.target_sector=? OR ?=1)
+    AND (a.target_sector='' OR normalize_sector(a.target_sector)=normalize_sector(?) OR ?=1)
     ORDER BY a.created_at DESC LIMIT 300`).all(req.user?.id || '', isoNow(), req.user?.sector || '', staff ? 1 : 0);
   res.json({ announcements: rows.map(announcement) });
 });

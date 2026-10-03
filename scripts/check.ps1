@@ -50,6 +50,7 @@ $homeScript = Get-Content -LiteralPath (Join-Path $projectRoot "public.js") -Raw
 $ecoModeScript = Get-Content -LiteralPath (Join-Path $projectRoot "eco-mode.js") -Raw
 $communityScript = Get-Content -LiteralPath (Join-Path $projectRoot "community.js") -Raw
 $cityDataScript = Get-Content -LiteralPath (Join-Path $projectRoot "city-data.js") -Raw
+$deployWorkflow = Get-Content -LiteralPath (Join-Path $projectRoot ".github/workflows/deploy-pages.yml") -Raw
 $publicStyles = Get-Content -LiteralPath (Join-Path $projectRoot "public.css") -Raw
 $presentationMarkup = Get-Content -LiteralPath (Join-Path $projectRoot "presentation.html") -Raw
 $presentationA11yStyles = Get-Content -LiteralPath (Join-Path $projectRoot "presentation-a11y.css") -Raw
@@ -78,7 +79,7 @@ if ($apiProxy -notmatch "normalizeRequests") { throw "Le proxy doit tolerer et c
 if ($apiAdapter -notmatch "NOVA_TERRA_REQUESTS_CACHE_KEY" -or $apiAdapter -notmatch "AbortController") { throw "Le client API doit limiter les attentes et conserver un instantane local." }
 if ($apiCollection.item.Count -lt 5 -or $apiCollectionRaw -notmatch '"apiKey"') { throw "La collection Postman doit couvrir les routes officielles et le proxy." }
 if ($publicScript -notmatch 'visibilitychange' -or $publicScript -notmatch 'schedulePolling') { throw "Le tableau public doit reprendre le polling apres un onglet inactif." }
-if ($agentScript -notmatch 'visibilitychange' -or $agentScript -notmatch 'Promise.allSettled') { throw "Le tableau agent doit reprendre le polling et preserver les sources disponibles." }
+if ($agentScript -notmatch 'visibilitychange' -or $agentScript -notmatch 'Promise.allSettled' -or $agentScript -notmatch 'schedulePolling' -or $agentAdminScript -notmatch 'NovaTerraEco\.schedulePolling') { throw "Le tableau agent doit reprendre le polling et respecter le mode bas débit." }
 foreach ($filterId in @("request-search", "status-filter", "priority-filter", "type-filter", "clear-filters", "request-count")) {
   if ($agentMarkup -notmatch "id=`"$filterId`"") { throw "Filtre ou indicateur agent absent : $filterId." }
 }
@@ -119,6 +120,7 @@ $sitePages = @(
   @{ Path = "agent/dashboard/index.html"; Script = "../../eco-mode.js" },
   @{ Path = "presentation.html"; Script = "eco-mode.js" }
 )
+if ($deployWorkflow -notmatch "rsync -a --exclude='.git/' --exclude='concourswebcup2026-main/'" -or $deployWorkflow -notmatch 'path: \$\{\{ runner\.temp \}\}/pages') { throw "Le déploiement Pages doit exclure la copie historique non utilisée du site." }
 foreach ($page in $sitePages) {
   $markup = Get-Content -LiteralPath (Join-Path $projectRoot $page.Path) -Raw
   if ($markup -notmatch [regex]::Escape($page.Script)) { throw "Le mode éco-conçu doit être chargé sur $($page.Path)." }
@@ -129,5 +131,7 @@ if ($homeMarkup -notmatch 'data-service-id="water"' -or $communityScript -notmat
 if ($ecoModeScript -notmatch "300_000" -or $ecoModeScript -notmatch "schedulePolling" -or $communityScript -notmatch "schedulePolling") { throw "Les rafraîchissements doivent ralentir explicitement en mode bas débit." }
 if ($agentMarkup -notmatch 'id="serviceKillSwitchCard"' -or $agentAdminScript -notmatch "user.profile !== 'admin'" -or $backendServer -notmatch "ADMIN_REQUIRED_FOR_KILL_SWITCH") { throw "L’arrêt rapide d’un service doit être réservé aux administrateurs côté interface et serveur." }
 if ($cityDataScript -notmatch "admin_required_for_kill_switch" -or $backendServer -notmatch "current\.service_status === 'unavailable'") { throw "Seul un administrateur peut rétablir un service arrêté." }
+if ($backendServer -match 'authorEmail:\s*row\.author_email|u\.email AS author_email' -or $backendServer -notmatch 'normalize_sector\(a\.target_sector\)=normalize_sector\(\?\)') { throw "Les annonces publiques ne doivent pas exposer les e-mails et doivent comparer les secteurs sans tenir compte de la casse." }
+if ($cityDataScript -notmatch 'minute !== 0 && minute !== 30' -or $cityDataScript -notmatch 'hour === 16 && minute > 30') { throw "Les créneaux locaux doivent appliquer les mêmes règles de disponibilité que l’API." }
 
 Write-Host "Verification Terra Nova reussie : structure et routes attendues presentes."

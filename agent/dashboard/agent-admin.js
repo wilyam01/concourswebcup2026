@@ -550,7 +550,7 @@
     renderAuditLogs();
     kindSelect.dispatchEvent(new Event('change'));
   });
-  window.setInterval(() => {
+  window.NovaTerraEco.schedulePolling(() => {
     if (!document.hidden && window.NovaTerraApi?.enabled) {
       renderAnnouncements();
       renderAccounts();
@@ -560,7 +560,7 @@
       }
       renderAuditLogs();
     }
-  }, 60_000);
+  });
   updateManagementCopy();
   renderAnnouncements();
   renderAccounts();

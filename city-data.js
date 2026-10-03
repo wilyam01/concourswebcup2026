@@ -212,7 +212,11 @@
     const now = Date.now();
     if (Number.isNaN(scheduledAt.getTime()) || scheduledAt.getTime() < now + 120000 || scheduledAt.getTime() > now + 365 * 86400000) throw new Error('invalid_slot');
     const hour = scheduledAt.getHours();
-    if (hour < 8 || hour >= 17 || scheduledAt.getDay() === 0 || scheduledAt.getDay() === 6) throw new Error('outside_hours');
+    const minute = scheduledAt.getMinutes();
+    if (hour < 8 || hour >= 17 || (hour === 16 && minute > 30)
+      || (minute !== 0 && minute !== 30) || scheduledAt.getDay() === 0 || scheduledAt.getDay() === 6) {
+      throw new Error('outside_hours');
+    }
     const requestedAgentEmail = String(input.agentEmail || '').trim().toLowerCase();
     const agents = await window.NovaTerraAuth.getAvailableAgents();
     const agent = requestedAgentEmail

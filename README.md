@@ -52,7 +52,7 @@ La section **Urgences** de l’accueil ajoute la carte filtrable des hôpitaux, 
 
 Le bilan F57, dans les préférences « Aa », affiche le transfert mesuré par le navigateur pour les ressources de même origine. Les entrées en cache et les ressources tierces peuvent être absentes de cette mesure : ce chiffre n'est ni un score environnemental complet ni une estimation d'énergie ou de CO₂. Les pages principales n'intègrent pas de photos/vidéos et n'appellent plus de fournisseur de polices externe.
 
-F58/F61 réduisent le travail de rendu sur les pages longues et désactivent automatiquement animations, filtres et décors coûteux sur les appareils déclarés peu puissants. F59 détecte Save-Data et les réseaux 2G, avec un réglage manuel/automatique dans « Aa »; en mode bas débit, les vérifications périodiques des services, demandes et rendez-vous passent d'une à cinq minutes. F62 complète ces options par l'interface simplifiée existante. Les médias ajoutés à l'avenir doivent rester compressés et définir `loading="lazy"`, `decoding="async"`, des dimensions explicites et `data-critical` uniquement pour les médias indispensables au premier écran; pour les médias créés par script, appeler `NovaTerraEco.optimizeMedia(element)` avant de leur assigner une source.
+F58/F61 réduisent le travail de rendu sur les pages longues et désactivent automatiquement animations, filtres et décors coûteux sur les appareils déclarés peu puissants. F59 détecte Save-Data et les réseaux 2G, avec un réglage manuel/automatique dans « Aa »; en mode bas débit, les vérifications périodiques des services, demandes, rendez-vous, comptes et annonces passent d'une à cinq minutes. F62 complète ces options par l'interface simplifiée existante. Les médias ajoutés à l'avenir doivent rester compressés et définir `loading="lazy"`, `decoding="async"`, des dimensions explicites et `data-critical` uniquement pour les médias indispensables au premier écran; pour les médias créés par script, appeler `NovaTerraEco.optimizeMedia(element)` avant de leur assigner une source.
 
 F63 propose aux administrateurs un arrêt rapide par service. Le changement et le rétablissement d'un service déclaré indisponible sont contrôlés côté serveur et consignés dans le journal; un agent ne peut ni déclencher cet arrêt ni le lever. F64 publie un état par service dans le catalogue : « Statut non communiqué » n'est jamais présenté comme une disponibilité, et une erreur de vérification est signalée explicitement.
 
@@ -147,7 +147,7 @@ Les exemples locaux restent disponibles avec `localStorage` quand aucune API n'e
 
 ## Déploiement GitHub Pages
 
-Le workflow `.github/workflows/deploy-pages.yml` peut toujours publier la version statique à chaque commit sur `main`. Dans GitHub, activez `Settings` > `Pages` > `Source: GitHub Actions`. Cette version reste en mode démonstration tant que `DEPLOYED_API_BASE_URL` ne pointe pas vers un backend Node.js externe hébergé en HTTPS.
+Le workflow `.github/workflows/deploy-pages.yml` publie la version statique à chaque commit sur `main`, en excluant la copie historique `concourswebcup2026-main/` qui n’est plus reliée aux pages courantes. Dans GitHub, activez `Settings` > `Pages` > `Source: GitHub Actions`. Cette version reste en mode démonstration tant que `DEPLOYED_API_BASE_URL` ne pointe pas vers un backend Node.js externe hébergé en HTTPS.
 
 ## Couverture backend et audit
 
