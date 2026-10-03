@@ -216,6 +216,7 @@ html[data-theme="light"] .mobility-route-meta { border-color:#e0e5ea; color:#586
 .signal-meter span { background-size:200% 100%; animation:nova-meter-flow 3.2s linear infinite; }
 .glow-left { animation:nova-glow-breathe 8s ease-in-out infinite alternate; }
 .glow-right { animation:nova-glow-breathe 10s ease-in-out -3s infinite alternate-reverse; }
+.hero.is-observed:not(.is-visible) .hero-copy,.hero.is-observed:not(.is-visible) .hero-visual,.hero.is-observed:not(.is-visible) .hero-visual * { animation-play-state:paused; }
 
 @keyframes nova-copy-arrive { from { opacity:0; transform:translateY(12px); filter:blur(3px); } to { opacity:1; transform:translateY(0); filter:blur(0); } }
 @keyframes nova-visual-arrive { from { opacity:0; filter:blur(7px); } to { opacity:1; filter:blur(0); } }

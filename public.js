@@ -1,5 +1,14 @@
 const menuToggle = document.querySelector('#menuToggle');
 const publicNav = document.querySelector('#publicNav');
+const hero = document.querySelector('.hero');
+
+if (hero && 'IntersectionObserver' in window) {
+  hero.classList.add('is-observed');
+  const heroObserver = new IntersectionObserver(([entry]) => {
+    hero.classList.toggle('is-visible', entry.isIntersecting);
+  });
+  heroObserver.observe(hero);
+}
 
 menuToggle?.addEventListener('click', () => {
   const isOpen = publicNav.classList.toggle('open');

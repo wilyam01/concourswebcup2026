@@ -42,6 +42,7 @@ $contactMarkup = Get-Content -LiteralPath (Join-Path $projectRoot "contact/index
 $contactScript = Get-Content -LiteralPath (Join-Path $projectRoot "contact/contact.js") -Raw
 $homeMarkup = Get-Content -LiteralPath (Join-Path $projectRoot "index.html") -Raw
 $homeScript = Get-Content -LiteralPath (Join-Path $projectRoot "public.js") -Raw
+$publicStyles = Get-Content -LiteralPath (Join-Path $projectRoot "public.css") -Raw
 $presentationMarkup = Get-Content -LiteralPath (Join-Path $projectRoot "presentation.html") -Raw
 $presentationA11yStyles = Get-Content -LiteralPath (Join-Path $projectRoot "presentation-a11y.css") -Raw
 $dashboardStyles = Get-Content -LiteralPath (Join-Path $projectRoot "styles.css") -Raw
@@ -88,6 +89,7 @@ if ($dashboardMarkup -notmatch "LECTURE SEULE" -or $dashboardMarkup -notmatch "S
 if ($dashboardMarkup -notmatch 'id="logoutButton"' -or $publicScript -notmatch "NovaTerraAuth\.signOut\(\)") { throw "L’espace citoyen doit permettre de fermer sa session." }
 if ($homeMarkup -notmatch 'aria-controls="publicNav"' -or $homeMarkup -notmatch 'aria-expanded="false"') { throw "Le menu mobile public doit exposer son etat et son controle." }
 if ($homeScript -notmatch "event.key === 'Escape'" -or $homeScript -notmatch "Fermer le menu") { throw "Le menu public doit etre accessible au clavier et annoncer son etat." }
+if ($homeScript -notmatch "IntersectionObserver" -or $homeScript -notmatch "is-visible" -or $homeScript -notmatch "isIntersecting" -or $publicStyles -notmatch "animation-play-state:\s*paused") { throw "Les animations decoratives de l'accueil doivent etre suspendues hors ecran." }
 if ($presentationMarkup -notmatch 'href="#main-content"' -or $presentationMarkup -notmatch 'id="main-content"') { throw "La présentation doit offrir un lien clavier vers le contenu principal." }
 if ($presentationA11yStyles -notmatch 'font-size:\s*clamp\(36px,\s*11vw,\s*52px\)' -or $presentationA11yStyles -notmatch 'html\s*\{[^}]*scroll-behavior:\s*auto[^}]*scroll-snap-type:\s*y mandatory' -or $presentationA11yStyles -notmatch '(?s)prefers-reduced-motion:\s*reduce.*?html,\s*\.deck-body\s*\{[^}]*scroll-snap-type:\s*none') { throw "La présentation doit naviguer entre diapositives et respecter la réduction des animations." }
 if ($dashboardMarkup -notmatch '<body class="dashboard-page">' -or $dashboardStyles -notmatch '@scope \(html\[data-theme="light"\] \.dashboard-page\)') { throw "Le thème clair du tableau de bord doit rester isolé des autres pages." }
