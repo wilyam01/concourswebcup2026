@@ -185,6 +185,10 @@ html[data-theme="light"] .mobility-route-meta { border-color:#e0e5ea; color:#586
 .login-profile-option:focus-visible,.login-profile-back:focus-visible { outline:2px solid var(--cyan); outline-offset:3px; }
 .login-profile-symbol { width:35px; height:35px; display:grid; place-items:center; border:1px solid #83d5d544; border-radius:7px; background:#162b333d; color:#83d5d5; font:16px var(--mono); }
 .login-profile-symbol.council-symbol { border-color:#b297e44d; background:#2a223a70; color:#c6aeff; }
+#signupForm[hidden],#existingAccountLink[hidden],.role-access-panel[hidden] { display:none !important; }
+.role-access-panel { align-items:flex-start; flex-wrap:wrap; }
+.role-access-panel>span { min-width:0; flex:1; }
+.role-access-panel .signup-submit { margin-top:12px; }
 .login-profile-copy { min-width:0; }
 .login-profile-copy b,.login-profile-copy small { display:block; }
 .login-profile-copy b { font-size:11px; font-weight:700; }
