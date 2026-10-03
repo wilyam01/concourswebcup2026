@@ -514,16 +514,27 @@ app.patch('/api/accounts/:id/role', authenticate, allowRoles('ADMIN'), (req, res
   res.json({ id: target.id, profile: req.body.profile });
 });
 
-app.get('/api/audit-logs', authenticate, allowRoles('ADMIN'), (req, res) => {
-  const categories = {
-    auth: 'auth.%', account: 'account.%', report: 'citizen_request.%', contact: 'contact_message.%',
-    announcement: 'announcement.%', service: 'service.%', appointment: 'appointment.%', privacy: 'privacy_request.%', official: 'official_requests.%',
+app.get('/api/audit-logs', authenticate, allowRoles('ADMIN', 'AGENT'), (req, res) => {
+  const isAdmin = req.user.role === 'ADMIN';
+  const adminCategories = {
+    auth: ['auth.%'], account: ['account.%'], report: ['citizen_request.%'], contact: ['contact_message.%'],
+    announcement: ['announcement.%'], service: ['service.%'], appointment: ['appointment.%'], privacy: ['privacy_request.%'], official: ['official_requests.%'],
   };
+  const agentCategories = {
+    access: ['account.access_changed', 'account.role_changed'], report: ['citizen_request.%'],
+    announcement: ['announcement.%'], service: ['service.%'], appointment: ['appointment.%'], official: ['official_requests.%'],
+  };
+  const categories = isAdmin ? adminCategories : agentCategories;
   const conditions = [];
   const parameters = [];
   const category = clean(req.query?.category, 30);
-  if (category && !categories[category]) return res.status(400).json({ error: 'INVALID_CATEGORY' });
-  if (category && categories[category]) { conditions.push('action LIKE ?'); parameters.push(categories[category]); }
+  if (category && !categories[category]) return res.status(isAdmin ? 400 : 403).json({ error: isAdmin ? 'INVALID_CATEGORY' : 'FORBIDDEN' });
+  const addActionFilter = (patterns) => {
+    conditions.push(`(${patterns.map((pattern) => pattern.includes('%') ? 'action LIKE ?' : 'action = ?').join(' OR ')})`);
+    parameters.push(...patterns);
+  };
+  if (category) addActionFilter(categories[category]);
+  else if (!isAdmin) addActionFilter(Object.values(agentCategories).flat());
   const actor = clean(req.query?.actor, 254).toLowerCase();
   if (actor) { conditions.push('lower(actor_email)=?'); parameters.push(actor); }
   const before = Number(req.query?.before);

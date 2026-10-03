@@ -5,6 +5,7 @@
   const accountHost = document.querySelector('#managedAccounts');
   const announcementHost = document.querySelector('#managedAnnouncements');
   const auditCard = document.querySelector('#auditTrailCard');
+  const auditNavLink = document.querySelector('#auditNavLink');
   const privacyCard = document.querySelector('#privacyRequestsCard');
   const privacyHost = document.querySelector('#privacyRequestsList');
   const privacyFeedback = document.querySelector('#privacyRequestsFeedback');
@@ -76,21 +77,33 @@
         ? 'Suspend or restore resident access. Administrators can also assign agent and administrator roles.'
         : 'Suspends ou rétablis un accès citoyen. Les administrateurs peuvent aussi attribuer les rôles agent et administrateur.';
     }
-    if (user.profile === 'admin') {
-      if (!auditCategory.querySelector('option[value="privacy"]')) auditCategory.add(new Option('Confidentialit\u00e9', 'privacy'));
+    const isAdmin = user.profile === 'admin';
+  if (isAdmin && !auditCategory.querySelector('option[value="privacy"]')) auditCategory.add(new Option('Confidentialité', 'privacy'));
+    if (isAdmin || user.profile === 'agent') {
       auditCard.hidden = false;
-      auditCard.querySelector('.kicker').textContent = english ? 'F47 · F48 · ACTION TRACE' : 'F47 · F48 · TRACE DES ACTIONS';
-      auditCard.querySelector('h3').textContent = english ? 'Security and audit log' : 'Journal de sécurité et d’audit';
+      auditNavLink.hidden = false;
+      auditNavLink.textContent = isAdmin
+        ? (english ? 'Security audit log' : 'Journal de sécurité')
+        : (english ? 'Activity history' : 'Journal d’activité');
+      auditCard.querySelector('.kicker').textContent = isAdmin
+        ? (english ? 'F47 · F48 · ACTION TRACE' : 'F47 · F48 · TRACE DES ACTIONS')
+        : (english ? 'F48 · ADMINISTRATION CHANGES' : 'F48 · CHANGEMENTS ADMINISTRATIFS');
+      auditCard.querySelector('h3').textContent = isAdmin
+        ? (english ? 'Security and audit log' : 'Journal de sécurité et d’audit')
+        : (english ? 'Who changed what?' : 'Qui a modifié quoi ?');
       document.querySelector('#auditIntro').textContent = window.NovaTerraApi?.enabled
-        ? (english ? 'Review who changed accounts, requests, announcements, service states and appointments.' : 'Consulte qui a modifié les comptes, demandes, annonces, statuts des services et rendez-vous.')
-        : (english ? 'Connect the Nova Terra backend to keep and review a secure audit trail.' : 'Connecte le backend Nova Terra pour conserver et consulter le journal sécurisé.');
+        ? (isAdmin
+          ? (english ? 'Review who changed accounts, requests, announcements, service states and appointments.' : 'Consulte qui a modifié les comptes, demandes, annonces, statuts des services et rendez-vous.')
+          : (english ? 'Follow operational changes and account access updates made by administrators and agents.' : 'Suis les changements opérationnels et les accès modifiés par les administrateurs et les agents.'))
+        : (english ? 'Connect the Nova Terra backend to keep and review the audit trail.' : 'Connecte le backend Nova Terra pour conserver et consulter le journal.');
       const categoryLabel = auditCategory.labels[0];
       categoryLabel.firstChild.textContent = english ? 'Filter the log' : 'Filtrer le journal';
       [...auditCategory.options].forEach((option) => {
         const labels = english
-          ? { '': 'All actions', auth: 'Sign-ins', account: 'Accounts and roles', report: 'Requests', contact: 'Citizen messages', announcement: 'Announcements', service: 'Service status', appointment: 'Appointments', official: 'API sync' }
-          : { '': 'Toutes les actions', auth: 'Connexions', account: 'Comptes et rôles', report: 'Demandes', contact: 'Messages citoyens', announcement: 'Annonces', service: 'Statuts des services', appointment: 'Rendez-vous', official: 'Synchronisation API' };
-        option.textContent = labels[option.value] || (option.value === 'privacy' ? (english ? 'Privacy requests' : 'Confidentialit\u00e9') : '');
+          ? { '': 'All actions', auth: 'Sign-ins', account: 'Accounts and roles', access: 'Access and roles', report: 'Requests', contact: 'Citizen messages', announcement: 'Announcements', service: 'Service status', appointment: 'Appointments', privacy: 'Privacy requests', official: 'API sync' }
+          : { '': 'Toutes les actions', auth: 'Connexions', account: 'Comptes et rôles', access: 'Accès et rôles', report: 'Demandes', contact: 'Messages citoyens', announcement: 'Annonces', service: 'Statuts des services', appointment: 'Rendez-vous', privacy: 'Confidentialité', official: 'Synchronisation API' };
+        option.textContent = labels[option.value] || option.textContent;
+        option.hidden = isAdmin ? option.value === 'access' : ['auth', 'account', 'contact', 'privacy'].includes(option.value);
       });
       document.querySelector('#refreshAudit').textContent = english ? 'Refresh' : 'Actualiser';
       auditLoadMore.textContent = english ? 'Load more' : 'Charger plus';
@@ -265,6 +278,9 @@
     const roleLabels = english()
       ? { ADMIN: 'Administrator', AGENT: 'Agent', CITOYEN: 'Citizen', ANONYMOUS: 'Visitor', SYSTEM: 'System' }
       : { ADMIN: 'Administrateur', AGENT: 'Agent', CITOYEN: 'Citoyen', ANONYMOUS: 'Visiteur', SYSTEM: 'Système' };
+    const entityLabels = english()
+      ? { account: 'Account', citizen_request: 'Citizen request', announcement: 'Announcement', service: 'Service', appointment: 'Appointment', request_feed: 'Official request feed' }
+      : { account: 'Compte', citizen_request: 'Demande citoyenne', announcement: 'Annonce', service: 'Service', appointment: 'Rendez-vous', request_feed: 'Flux de demandes officielles' };
     auditHost.replaceChildren(...auditEvents.map((event) => {
       const row = element('article', 'audit-log-entry');
       const heading = element('div', 'audit-log-heading');
@@ -273,7 +289,7 @@
       time.dateTime = event.occurredAt;
       heading.append(time);
       const actor = element('p', 'audit-log-actor', `${event.actorEmail || (roleLabels[event.actorRole] || event.actorRole)} · ${roleLabels[event.actorRole] || event.actorRole}`);
-      const entity = element('small', 'audit-log-entity', `${event.action} · ${event.entityType}${event.entityId ? ` · ${event.entityId}` : ''}`);
+      const entity = element('small', 'audit-log-entity', `${entityLabels[event.entityType] || event.entityType.replace(/_/g, ' ')}${event.entityId ? ` · ${event.entityId}` : ''}`);
       const metadata = event.metadata && Object.keys(event.metadata).length
         ? element('small', 'audit-log-metadata', Object.entries(event.metadata).map(([key, value]) => `${key}: ${typeof value === 'object' ? JSON.stringify(value) : String(value)}`).join(' · '))
         : null;
@@ -284,7 +300,7 @@
   }
 
   async function renderAuditLogs(append = false) {
-    if (user.profile !== 'admin' || !window.NovaTerraApi?.enabled || auditLoading) return;
+    if (!['admin', 'agent'].includes(user.profile) || !window.NovaTerraApi?.enabled || auditLoading) return;
     if (append && !auditCursor) return;
     auditLoading = true;
     auditFeedback.textContent = english() ? 'Loading audit history…' : 'Chargement du journal…';

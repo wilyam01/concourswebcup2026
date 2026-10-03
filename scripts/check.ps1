@@ -35,6 +35,8 @@ foreach ($sourceFile in $sourceFiles) {
 }
 
 $agentMarkup = Get-Content -LiteralPath (Join-Path $projectRoot "agent/dashboard/index.html") -Raw
+$agentAdminScript = Get-Content -LiteralPath (Join-Path $projectRoot "agent/dashboard/agent-admin.js") -Raw
+$backendServer = Get-Content -LiteralPath (Join-Path $projectRoot "backend/src/server.js") -Raw
 $dashboardMarkup = Get-Content -LiteralPath (Join-Path $projectRoot "dashboard.html") -Raw
 $agentScript = Get-Content -LiteralPath (Join-Path $projectRoot "agent/dashboard/agent.js") -Raw
 $publicScript = Get-Content -LiteralPath (Join-Path $projectRoot "app.js") -Raw
@@ -55,6 +57,10 @@ $apiCollectionRaw = Get-Content -LiteralPath $apiCollectionPath -Raw
 $apiCollection = $apiCollectionRaw | ConvertFrom-Json
 
 if ($agentMarkup -notmatch 'id="kanban"') { throw "Kanban agent introuvable." }
+if ($agentMarkup -notmatch 'id="auditNavLink"' -or $agentAdminScript -notmatch "auditCard.hidden = false" -or $agentAdminScript -notmatch "user.profile === 'agent'") { throw "Le journal F48 doit être visible et accessible aux agents." }
+if ($backendServer -notmatch "app.get\('/api/audit-logs', authenticate, allowRoles\('ADMIN', 'AGENT'\)" -or $backendServer -notmatch "const agentCategories") { throw "L'API d'audit doit autoriser les agents avec une liste de catégories dédiée." }
+$agentAuditPolicy = [regex]::Match($backendServer, '(?s)const agentCategories = \{(.*?)\};').Groups[1].Value
+if (-not $agentAuditPolicy -or $agentAuditPolicy -match '\b(auth|contact|account):' -or $agentAuditPolicy -notmatch "account\.access_changed" -or $agentAuditPolicy -notmatch "account\.role_changed") { throw "L'API d'audit agent doit limiter les événements aux changements opérationnels et d'accès." }
 if ($contactMarkup -notmatch 'id="contact-form"') { throw "Formulaire citoyen introuvable." }
 if ($contactMarkup -notmatch 'id="delivery-mode"' -or $contactScript -notmatch "apiBaseUrl") { throw "Le formulaire de contact doit distinguer le mode demo de la transmission API." }
 if ($contactStyles -notmatch '\.contact-page \.community-inbox-trigger \.community-inbox-label\s*\{\s*display:\s*none' -or $contactStyles -notmatch '\.contact-page \.assistant-panel\s*\{\s*right:\s*10px;\s*bottom:\s*64px') { throw "Les commandes mobiles de contact doivent rester compactes sans recouvrir le formulaire." }
