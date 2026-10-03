@@ -15,7 +15,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Verify project structure
+        shell: powershell
+        run: powershell -ExecutionPolicy Bypass -File .\scripts\check.ps1
   deploy:
+    needs: check
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

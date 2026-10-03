@@ -7,6 +7,7 @@ MVP statique pour les citoyens et les agents municipaux de Terra Nova.
 Ouvrir `index.html` dans un navigateur, ou utiliser un serveur statique :
 
 ```powershell
+# Necessite Node.js LTS : https://nodejs.org/
 npx serve .
 ```
 
@@ -15,6 +16,9 @@ npx serve .
 ```powershell
 # Verifier les fichiers indispensables avant de livrer
 powershell -ExecutionPolicy Bypass -File .\scripts\check.ps1
+
+# Equivalent lorsque Node.js est installe
+npm test
 
 # Recuperer le travail publie par les autres avant de modifier
 git pull --rebase origin main
@@ -37,7 +41,7 @@ git push origin main
 - `agent/dashboard/index.html` : back-office agents, Kanban et messages reçus
 - `presentation.html` : support visuel de présentation
 
-Le script `npm test` affiche actuellement un message de configuration ; aucun test applicatif n'est encore configuré.
+`npm test` execute le controle de structure du projet. Il ne remplace pas encore des tests de navigateur complets.
 
 ## Configuration et branchement API Nova Terra
 
