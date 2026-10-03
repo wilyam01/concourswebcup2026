@@ -1,0 +1,37 @@
+.presentation-skip-link {
+  position: fixed;
+  z-index: 20;
+  top: -60px;
+  left: 12px;
+  padding: 10px 14px;
+  border: 2px solid #bca9ff;
+  border-radius: 6px;
+  color: #fff;
+  background: #090b15;
+}
+
+.presentation-skip-link:focus {
+  top: 12px;
+}
+
+@media (max-width: 750px) {
+  .hero-content h1 {
+    font-size: clamp(36px, 11vw, 52px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deck-body {
+    scroll-behavior: auto;
+    scroll-snap-type: none;
+  }
+
+  .deck-body *,
+  .deck-body *::before,
+  .deck-body *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

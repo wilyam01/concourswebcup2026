@@ -8,6 +8,9 @@ $requiredFiles = @(
   "api/requests.js",
   "docs/webcup-api.md",
   "docs/demo-pitch.md",
+  "presentation.html",
+  "presentation.css",
+  "presentation-a11y.css",
   "postman/terra-nova-api.postman_collection.json",
   "postman/terra-nova.postman_environment.template.json",
   "contact/index.html",
@@ -39,6 +42,8 @@ $contactMarkup = Get-Content -LiteralPath (Join-Path $projectRoot "contact/index
 $contactScript = Get-Content -LiteralPath (Join-Path $projectRoot "contact/contact.js") -Raw
 $homeMarkup = Get-Content -LiteralPath (Join-Path $projectRoot "index.html") -Raw
 $homeScript = Get-Content -LiteralPath (Join-Path $projectRoot "public.js") -Raw
+$presentationMarkup = Get-Content -LiteralPath (Join-Path $projectRoot "presentation.html") -Raw
+$presentationA11yStyles = Get-Content -LiteralPath (Join-Path $projectRoot "presentation-a11y.css") -Raw
 $apiAdapter = Get-Content -LiteralPath (Join-Path $projectRoot "nova-terra.js") -Raw
 $apiProxy = Get-Content -LiteralPath (Join-Path $projectRoot "api/requests.js") -Raw
 $apiCollectionPath = Join-Path $projectRoot "postman/terra-nova-api.postman_collection.json"
@@ -80,5 +85,7 @@ if ($publicScript -notmatch "Dernière réponse en mémoire" -or $publicScript -
 if ($dashboardMarkup -notmatch "LECTURE SEULE" -or $dashboardMarkup -notmatch "Statuts non modifiables via l’API actuelle") { throw "Le Haut Conseil doit expliquer les limites d'ecriture de l'API." }
 if ($homeMarkup -notmatch 'aria-controls="publicNav"' -or $homeMarkup -notmatch 'aria-expanded="false"') { throw "Le menu mobile public doit exposer son etat et son controle." }
 if ($homeScript -notmatch "event.key === 'Escape'" -or $homeScript -notmatch "Fermer le menu") { throw "Le menu public doit etre accessible au clavier et annoncer son etat." }
+if ($presentationMarkup -notmatch 'href="#main-content"' -or $presentationMarkup -notmatch 'id="main-content"') { throw "La présentation doit offrir un lien clavier vers le contenu principal." }
+if ($presentationA11yStyles -notmatch 'font-size:\s*clamp\(36px,\s*11vw,\s*52px\)' -or $presentationA11yStyles -notmatch 'prefers-reduced-motion:\s*reduce') { throw "La présentation doit s’adapter aux petits écrans et respecter la réduction des animations." }
 
 Write-Host "Verification Terra Nova reussie : structure et routes attendues presentes."
