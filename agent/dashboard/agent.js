@@ -28,11 +28,11 @@ function renderMetrics() {
 }
 
 function requestCard(request) {
-  return `<button class="request-card ${escapeHtml(request.priority)}" type="button" data-id="${escapeHtml(request.id)}" title="Faire avancer le dossier">
+  return `<article class="request-card ${escapeHtml(request.priority)}">
     <p class="request-meta"><span>${escapeHtml(request.id)}</span><span>${escapeHtml(request.updatedAt)}</span></p>
     <h4>${escapeHtml(request.title)}</h4><p class="request-place">${escapeHtml(request.district)}</p>
-    <footer><span class="type-label">${escapeHtml(request.type)}</span><span class="priority-label ${escapeHtml(request.priority)}">${priorityLabel[request.priority] || "Normale"}</span></footer>
-  </button>`;
+    <footer><span><span class="type-label">${escapeHtml(request.type)}</span><span class="priority-label ${escapeHtml(request.priority)}">${priorityLabel[request.priority] || "Normale"}</span></span><label class="status-select">Statut<select class="request-status" data-id="${escapeHtml(request.id)}" aria-label="Statut du dossier ${escapeHtml(request.id)}"><option value="todo" ${request.status === "todo" ? "selected" : ""}>A traiter</option><option value="in_progress" ${request.status === "in_progress" ? "selected" : ""}>En cours</option><option value="done" ${request.status === "done" ? "selected" : ""}>Termine</option></select></label></footer>
+  </article>`;
 }
 
 function renderKanban() {
@@ -51,14 +51,22 @@ function renderMessages() {
 
 function render() { renderMetrics(); renderKanban(); renderMessages(); }
 
+function showDashboardError(message) {
+  const error = document.querySelector("#dashboard-error");
+  error.textContent = message;
+  error.hidden = !message;
+}
+
 async function loadDashboard() {
   const stateLabel = document.querySelector("#api-state");
   stateLabel.textContent = "Synchronisation...";
   try {
     [state.requests, state.messages] = await Promise.all([window.NovaTerra.getRequests(), window.NovaTerra.getMessages()]);
     stateLabel.textContent = window.NovaTerra.usingDemoData() ? "Donnees de demonstration" : "API Nova Terra connectee";
+    showDashboardError("");
   } catch {
     stateLabel.textContent = "API indisponible";
+    showDashboardError("Les donnees Nova Terra ne sont pas disponibles. Verifiez l'URL API et les autorisations CORS, puis actualisez.");
   }
   render();
 }
@@ -66,14 +74,14 @@ async function loadDashboard() {
 document.querySelector("#request-search").addEventListener("input", renderKanban);
 document.querySelector("#priority-filter").addEventListener("change", renderKanban);
 document.querySelector("#refresh-data").addEventListener("click", loadDashboard);
-document.querySelector("#kanban").addEventListener("click", async (event) => {
-  const card = event.target.closest("[data-id]");
-  if (!card) return;
-  const request = state.requests.find((item) => item.id === card.dataset.id);
-  const next = { todo:"in_progress", in_progress:"done", done:"todo" }[request.status];
-  card.disabled = true;
-  try { await window.NovaTerra.updateRequestStatus(request.id, next); request.status = next; request.updatedAt = "A l'instant"; render(); }
-  catch { card.disabled = false; }
+document.querySelector("#kanban").addEventListener("change", async (event) => {
+  const control = event.target.closest(".request-status");
+  if (!control) return;
+  const request = state.requests.find((item) => item.id === control.dataset.id);
+  const previousStatus = request.status;
+  control.disabled = true;
+  try { await window.NovaTerra.updateRequestStatus(request.id, control.value); request.status = control.value; request.updatedAt = "A l'instant"; showDashboardError(""); render(); }
+  catch { control.value = previousStatus; control.disabled = false; showDashboardError("La mise a jour du statut a echoue. Reessayez dans un instant."); }
 });
 
 loadDashboard();
