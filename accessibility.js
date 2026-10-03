@@ -18,7 +18,7 @@
   dialog.setAttribute('aria-labelledby', 'a11yTitle');
   dialog.innerHTML = `
     <div class="a11y-dialog-heading"><div><p class="a11y-kicker">NOVA TERRA · CONFORT DE LECTURE</p><h2 id="a11yTitle">Langue et accessibilité</h2></div><button class="a11y-close" type="button" aria-label="Fermer les préférences">×</button></div>
-    <label class="a11y-setting" for="interfaceLanguage"><span><b>Langue de l’interface</b><small>Choisis la langue des commandes et repères.</small></span><select id="interfaceLanguage"><option value="fr">Français</option><option value="en">English</option></select></label>
+    <label class="a11y-setting" for="interfaceLanguage"><span><b>Langue de l’interface</b><small>Choisis une langue pour l’interface.</small></span><select id="interfaceLanguage"><option value="fr">🇫🇷 Français</option><option value="en">🇬🇧 English</option><option value="zh">🇨🇳 中文 (Mandarin)</option><option value="es">🇪🇸 Español</option><option value="it">🇮🇹 Italiano</option><option value="pt">🇵🇹 Português</option><option value="de">🇩🇪 Deutsch</option></select></label>
     <label class="a11y-contrast-setting" for="highContrast"><span><b>Contraste élevé</b><small>Renforce les contours et la lisibilité.</small></span><input id="highContrast" type="checkbox" /></label>
     <label class="a11y-setting a11y-color-setting" for="colorVisionMode"><span><b>Palette de couleurs</b><small>Choisis des repères mieux différenciés pour le daltonisme.</small></span><select id="colorVisionMode"><option value="normal">Standard</option><option value="safe">Daltonisme · contrastée</option></select></label>
     <label class="a11y-contrast-setting" for="simplifiedInterface"><span><b>Interface simplifiée</b><small>Allège les décors et facilite le repérage.</small></span><input id="simplifiedInterface" type="checkbox" /></label>
@@ -48,7 +48,7 @@
   let language = safeRead(storageKeys.language, 'fr');
   let contrast = safeRead(storageKeys.contrast, 'off') === 'on';
   let textSize = safeRead(storageKeys.textSize, 'normal');
-  if (!['fr', 'en'].includes(language)) language = 'fr';
+  if (!['fr', 'en', 'zh', 'es', 'it', 'pt', 'de'].includes(language)) language = 'fr';
   if (!['normal', 'large', 'largest'].includes(textSize)) textSize = 'normal';
   const languageSelect = dialog.querySelector('#interfaceLanguage');
   const contrastToggle = dialog.querySelector('#highContrast');
