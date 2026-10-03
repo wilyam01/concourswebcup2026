@@ -520,8 +520,6 @@ const profilePhotoButtons = [...document.querySelectorAll('.profile-photo-trigge
 const topProfileButton = document.querySelector('.top-avatar.profile-photo-trigger');
 const profilePhotoStorageKey = `novaTerraProfilePhoto.v1:${encodeURIComponent(currentUser.email)}`;
 const legacyProfilePhotoStorageKey = 'novaTerraProfilePhoto';
-const profileName = document.querySelector('#profileName');
-const profileSector = document.querySelector('#profileSector');
 const profileDialog = document.querySelector('#profileDialog');
 const profileForm = document.querySelector('#profileForm');
 const profileNameInput = document.querySelector('#profileNameInput');
@@ -532,9 +530,6 @@ topProfileButton.setAttribute('aria-label', 'Personnaliser le profil');
 topProfileButton.title = 'Personnaliser le profil';
 
 function renderProfile(user) {
-  profileName.textContent = user.name;
-  const profileLabels = { citizen: 'Citoyen', agent: 'Agent', admin: 'Administrateur' };
-  profileSector.textContent = `${profileLabels[user.profile] || 'Citoyen'} · ${user.sector}`;
   const initials = user.name.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
   profilePhotoButtons.forEach((button) => {
     if (!button.classList.contains('has-profile-photo')) button.textContent = initials || 'NT';
@@ -579,7 +574,6 @@ function openProfileDialog() {
   profileDialog.showModal();
 }
 
-document.querySelector('#editProfileButton').addEventListener('click', openProfileDialog);
 topProfileButton.addEventListener('click', openProfileDialog);
 document.querySelector('#profileDialogPhoto').addEventListener('click', () => profilePhotoInput.click());
 document.querySelector('#closeProfileDialog').addEventListener('click', () => profileDialog.close());
@@ -614,10 +608,6 @@ profileForm.addEventListener('submit', (event) => {
 profilePhotoButtons
   .filter((button) => button !== topProfileButton)
   .forEach((button) => button.addEventListener('click', () => profilePhotoInput.click()));
-document.querySelector('#logoutButton').addEventListener('click', () => {
-  window.NovaTerraAuth.signOut();
-  window.location.replace('connexion.html');
-});
 profilePhotoInput.addEventListener('change', () => {
   const photo = profilePhotoInput.files?.[0];
   profilePhotoInput.value = '';
