@@ -157,12 +157,10 @@ test('public project proposal reports local storage and connected delivery truth
   assert.equal(form.wasReset, true);
 
   let request;
-  window.NovaTerraApi = {
-    enabled: true,
-    request: async (path, options) => {
+  window.NovaTerraApi.enabled = true;
+  window.NovaTerraApi.request = async (path, options) => {
       request = { path, options };
       return { idea: { reference: 'IDEA-QA123', createdAt: '2026-10-01T12:00:00.000Z' } };
-    },
   };
   form.wasReset = false;
   await form.listeners.get('submit')({ preventDefault() {}, currentTarget: form });
