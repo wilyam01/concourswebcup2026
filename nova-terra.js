@@ -1,5 +1,6 @@
 const terraNovaConfig = window.TERRA_NOVA_CONFIG || {};
 const NOVA_TERRA_API_BASE_URL = (terraNovaConfig.apiBaseUrl || "").replace(/\/$/, "");
+const NOVA_TERRA_REQUESTS_API_URL = (terraNovaConfig.requestsApiUrl || "").replace(/\/$/, "");
 const NOVA_TERRA_ENDPOINTS = {
   requests: "/requests",
   messages: "/citizen-messages",
@@ -56,26 +57,42 @@ function normalizeRequest(item) {
     type: item.type || item.category || "Demande",
     priority: normalizePriority(item.priority),
     status: normalizeStatus(item.status),
-    updatedAt: item.updatedAt || item.createdAt || "A l'instant",
+    updatedAt: item.updatedAt || item.createdAt || "Date non précisée",
     description: item.description || item.message || "Aucune description fournie."
   };
 }
 
 function extractCollection(payload, preferredKey) {
-  if (Array.isArray(payload)) return payload;
-  return payload[preferredKey] || payload.data || payload.items || [];
+  const collection = Array.isArray(payload)
+    ? payload
+    : payload?.[preferredKey] || payload?.data || payload?.items;
+  if (!Array.isArray(collection)) throw new Error("API response does not contain a valid collection");
+  return collection;
 }
 
-async function getFromApi(path, preferredKey) {
-  const response = await fetch(`${NOVA_TERRA_API_BASE_URL}${path}`);
+async function getCollectionFromUrl(url, preferredKey) {
+  const response = await fetch(url, { headers: { Accept: "application/json" } });
   if (!response.ok) throw new Error("Nova Terra API unavailable");
   return extractCollection(await response.json(), preferredKey);
 }
 
+async function getFromApi(path, preferredKey) {
+  return getCollectionFromUrl(`${NOVA_TERRA_API_BASE_URL}${path}`, preferredKey);
+}
+
 window.NovaTerra = {
-  usingDemoData: () => !NOVA_TERRA_API_BASE_URL,
+  usingDemoData: () => !NOVA_TERRA_API_BASE_URL && !NOVA_TERRA_REQUESTS_API_URL,
+  canUpdateRequestStatus: () => !NOVA_TERRA_REQUESTS_API_URL,
+  getDataSourceLabel() {
+    if (NOVA_TERRA_REQUESTS_API_URL) return "API WebCup · demandes en lecture seule, messages de démo";
+    return NOVA_TERRA_API_BASE_URL ? "API Nova Terra connectée" : "Données de démonstration";
+  },
 
   async getRequests() {
+    if (NOVA_TERRA_REQUESTS_API_URL) {
+      const payload = await getCollectionFromUrl(NOVA_TERRA_REQUESTS_API_URL, "requests");
+      return payload.map(normalizeRequest);
+    }
     if (NOVA_TERRA_API_BASE_URL) {
       const payload = await getFromApi(NOVA_TERRA_ENDPOINTS.requests, "requests");
       return payload.map(normalizeRequest);
@@ -106,6 +123,9 @@ window.NovaTerra = {
   },
 
   async updateRequestStatus(id, status) {
+    if (NOVA_TERRA_REQUESTS_API_URL) {
+      throw new Error("The configured WebCup API is read-only for request status updates");
+    }
     if (NOVA_TERRA_API_BASE_URL) {
       const response = await fetch(`${NOVA_TERRA_API_BASE_URL}${NOVA_TERRA_ENDPOINTS.requests}/${encodeURIComponent(id)}`, {
         method: "PATCH",
