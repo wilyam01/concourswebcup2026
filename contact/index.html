@@ -22,19 +22,20 @@
       <section class="intro">
         <p class="kicker">SERVICE CITOYEN</p>
         <h1>Parlons de votre quartier.</h1>
-        <p>Envoyez un message aux services municipaux. Une equipe le prendra en charge et vous repondra a l'adresse indiquee.</p>
+        <p id="contact-intro-description">Le mode de transmission est en cours de vérification. Pour une urgence, contactez les services d'urgence locaux.</p>
       </section>
       <section class="contact-layout" aria-label="Formulaire de contact">
         <aside class="service-note">
           <span class="signal"></span>
           <p class="kicker">CANAL OUVERT</p>
           <h2>Une demande, un suivi clair.</h2>
-          <p>Les messages sont transmis au poste de coordination Terra Nova. Pour une urgence immediate, contactez les services d'urgence locaux.</p>
-          <dl><div><dt>Delai indicatif</dt><dd>1 jour ouvrable</dd></div><div><dt>Suivi</dt><dd>Par email</dd></div></dl>
+          <p id="service-description">Chargement du canal de contact…</p>
+          <dl><div><dt>Delai indicatif</dt><dd>Selon le canal</dd></div><div><dt>Suivi</dt><dd id="follow-up-method">Selon le service</dd></div></dl>
         </aside>
         <div class="form-card" id="form-card">
           <form id="contact-form">
             <div class="form-heading"><p class="kicker">NOUVEAU MESSAGE</p><h2>Contacter les services</h2></div>
+            <p class="delivery-note" id="delivery-mode" role="status" aria-live="polite"></p>
             <div class="two-fields">
               <label>Votre nom<input name="name" autocomplete="name" required maxlength="60" placeholder="Ex. Alex Morgan" /></label>
               <label>Votre email<input name="email" type="email" autocomplete="email" required maxlength="120" placeholder="vous@exemple.fr" /></label>
@@ -45,7 +46,7 @@
             <div class="form-footer"><span>Les champs sont obligatoires.</span><button type="submit">Envoyer le message</button></div>
           </form>
           <section class="success" id="success-message" hidden aria-live="polite">
-            <span class="success-mark">OK</span><p class="kicker">MESSAGE TRANSMIS</p><h2>Merci, votre message est bien parti.</h2><p>Les services municipaux ont recu votre demande. Une reponse sera envoyee a votre adresse email.</p><button type="button" id="new-message">Envoyer un autre message</button>
+            <span class="success-mark">OK</span><p class="kicker">MESSAGE TRANSMIS</p><h2>Votre message a été transmis.</h2><p>La transmission a été acceptée par le service. Les modalités de suivi dépendent de l’équipe municipale.</p><button type="button" id="new-message">Envoyer un autre message</button>
           </section>
           <p class="form-error" id="form-error" role="alert" hidden></p>
         </div>
