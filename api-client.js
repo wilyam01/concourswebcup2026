@@ -18,7 +18,10 @@
     } catch (_) {
       throw new Error('api_unavailable');
     }
-    const payload = response.status === 204 ? null : await response.json().catch(() => null);
+    const payload = response.status === 204 ? null : await response.json().catch(() => {
+      if (response.ok) throw new Error('invalid_api_response');
+      return null;
+    });
     if (!response.ok) {
       const error = new Error(payload?.error || `http_${response.status}`);
       error.status = response.status;
