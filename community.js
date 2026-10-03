@@ -86,6 +86,16 @@
     return window.NovaTerraCity.getAnnouncements({ sector });
   }
 
+  async function markAnnouncementRead(item) {
+    if (window.NovaTerraApi?.enabled && user) {
+      await window.NovaTerraApi.request('/announcements/read', {
+        method: 'POST', body: JSON.stringify({ ids: [item.id] }),
+      });
+      return;
+    }
+    try { localStorage.setItem(readKey, JSON.stringify([...new Set([...readIds(), item.id])].slice(-200))); } catch (_) { /* Keep the current view usable when storage is unavailable. */ }
+  }
+
   function requestStatusName(status) {
     const names = english()
       ? { todo: 'Received', in_progress: 'In progress', done: 'Resolved' }
@@ -245,7 +255,9 @@
   }
 
   async function renderBanners() {
-    const items = (await announcementItems()).filter((item) => item.kind === 'general' || item.kind === 'flood' || item.kind === 'health' || (item.kind === 'service_status' && item.serviceStatus !== 'operational'));
+    const seen = new Set(readIds());
+    const items = (await announcementItems()).filter((item) => item.kind === 'general' || item.kind === 'flood' || item.kind === 'health' || (item.kind === 'service_status' && item.serviceStatus !== 'operational'))
+      .filter((item) => item.read !== true && !seen.has(item.id));
     const banners = items.slice(0, 3).map((item) => {
       const banner = document.createElement('article');
       banner.className = `community-alert ${item.kind}`;
@@ -269,7 +281,24 @@
       open.setAttribute('aria-label', english() ? 'Open alert centre' : 'Ouvrir le centre des alertes');
       open.textContent = '↗';
       open.addEventListener('click', () => dialog.showModal());
-      banner.append(mark, copy, open);
+      const actions = document.createElement('div');
+      actions.className = 'community-alert-actions';
+      const acknowledge = document.createElement('button');
+      acknowledge.className = 'community-alert-acknowledge';
+      acknowledge.type = 'button';
+      acknowledge.textContent = english() ? 'I’ve read this' : 'J’ai pris connaissance';
+      acknowledge.addEventListener('click', async () => {
+        acknowledge.disabled = true;
+        try {
+          await markAnnouncementRead(item);
+          await Promise.all([renderBanners(), renderInbox()]);
+        } catch (_) {
+          acknowledge.disabled = false;
+          acknowledge.textContent = english() ? 'Could not confirm' : 'Confirmation impossible';
+        }
+      });
+      actions.append(open, acknowledge);
+      banner.append(mark, copy, actions);
       return banner;
     });
     if (new URLSearchParams(location.search).get('account') === 'deleted') {
@@ -339,6 +368,7 @@
       try { localStorage.setItem(readKey, JSON.stringify([...new Set([...readIds(), ...items.map((item) => item.id)])].slice(-200))); } catch (_) { /* Reading notices does not depend on persistence. */ }
     }
     await renderInbox();
+    await renderBanners();
   });
   close.addEventListener('click', () => dialog.close());
   dialog.addEventListener('click', (event) => { if (event.target === dialog) dialog.close(); });

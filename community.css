@@ -8,7 +8,11 @@
 .community-alert-copy b { display:block; font-size:12px; }
 .community-alert-copy p { margin:4px 0 0; color:#c3cfdf; font-size:10px; line-height:1.6; white-space:pre-wrap; }
 .community-alert-meta { display:block; margin-top:5px; color:#8796aa; font:8px var(--mono,monospace); }
+.community-alert-actions { display:grid; justify-items:end; gap:5px; }
 .community-alert-close { border:0; color:#aab8ca; background:transparent; font-size:18px; }
+.community-alert-acknowledge { min-height:30px; padding:5px 8px; border:1px solid #75dff066; border-radius:7px; color:#dffbff; background:#42c8d015; font-size:9px; font-weight:700; white-space:nowrap; }
+.community-alert-acknowledge:hover { border-color:#75dff0; background:#42c8d02b; }
+.community-alert-acknowledge:disabled { opacity:.6; cursor:wait; }
 .community-inbox-trigger { position:fixed; z-index:80; right:22px; bottom:74px; display:flex; align-items:center; gap:8px; min-height:42px; padding:0 13px; border:1px solid #7fa7ff66; border-radius:999px; color:#f0f5ff; background:#182640f5; box-shadow:0 12px 38px #0006; font:10px var(--sans,Arial,sans-serif); }
 .community-inbox-trigger:hover { border-color:#75dff0; transform:translateY(-2px); }
 .notification i { display:none; }
