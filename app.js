@@ -11,6 +11,18 @@ let lastPublicReportsSuccessAt = 0;
 let displayedReportCount = 5;
 let reportDataSourceLabel = "Chargement des signalements…";
 const reportsPageSize = 5;
+let personalRequestFilter = "all";
+const personalRequestsPanel = document.querySelector("#my-requests");
+const personalRequestsDialog = document.querySelector("#reportFormDialog");
+const citizenReportForm = document.querySelector("#citizenReportForm");
+let reportFormTrigger = null;
+let lastCitizenReportId = "";
+let citizenReportErrorKey = "";
+const serviceForReportCategory = {
+  road: "mobility", lighting: "energy", water: "water", waste: "water",
+  mobility: "mobility", safety: "solidarity", health: "health", other: "civic",
+};
+
 function notify(message) {
   toast.textContent = message;
   toast.classList.add('show');
@@ -135,6 +147,163 @@ function renderPublicReports() {
 function normalizePublicSearch(value) {
   return String(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
+
+function personalRequestLabels() {
+  return document.documentElement.lang === "en" ? {
+    empty: "No personal requests yet. Use the button above to report an issue.",
+    emptyFilter: "There are no requests in this section yet.",
+    updated: "Updated",
+    status: { todo: "Received", in_progress: "In progress", done: "Resolved" },
+    priority: { high: "Urgent priority", normal: "Standard priority", low: "Low priority" },
+    service: { water: "Water and environment", health: "Health and wellbeing", energy: "Energy and housing", mobility: "Mobility", civic: "Civic life", solidarity: "Support and assistance", other: "Other service" },
+    type: { road: "Roads and sidewalks", lighting: "Public lighting", water: "Water and sanitation", waste: "Waste and cleanliness", mobility: "Transport and mobility", safety: "Safety", health: "Health and support", other: "Other" },
+  } : {
+    empty: "Aucune demande personnelle pour le moment. Utilise le bouton ci-dessus pour signaler un problème.",
+    emptyFilter: "Aucune demande dans cette partie de l’historique.",
+    updated: "Mise à jour",
+    status: { todo: "Reçue", in_progress: "En cours", done: "Résolue" },
+    priority: { high: "Priorité urgente", normal: "Priorité normale", low: "Priorité faible" },
+    service: { water: "Eau et environnement", health: "Santé et bien-être", energy: "Énergie et habitat", mobility: "Mobilité", civic: "Vie citoyenne", solidarity: "Aide et accompagnement", other: "Autre service" },
+    type: { road: "Voirie et trottoirs", lighting: "Éclairage public", water: "Eau et assainissement", waste: "Déchets et propreté", mobility: "Transports et mobilité", safety: "Sécurité", health: "Santé et solidarité", other: "Autre" },
+  };
+}
+
+function renderPersonalRequests() {
+  if (!personalRequestsPanel || personalRequestsPanel.hidden) return;
+  const english = document.documentElement.lang === "en";
+  const labels = personalRequestLabels();
+  const requests = window.NovaTerra.getLocalCitizenRequests(currentUser.email)
+    .sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt));
+  const openCount = requests.filter((request) => request.status !== "done").length;
+  const historyCount = requests.length - openCount;
+  document.querySelector("#myRequestCountAll").textContent = requests.length;
+  document.querySelector("#myRequestCountOpen").textContent = openCount;
+  document.querySelector("#myRequestCountHistory").textContent = historyCount;
+  document.querySelector("#my-requests-nav-count").textContent = requests.length;
+  document.querySelectorAll("[data-personal-filter]").forEach((button) => {
+    const active = button.dataset.personalFilter === personalRequestFilter;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  const visibleRequests = requests.filter((request) => personalRequestFilter === "all"
+    || (personalRequestFilter === "open" && request.status !== "done")
+    || (personalRequestFilter === "history" && request.status === "done"));
+  const list = document.querySelector("#personalRequestList");
+  list.replaceChildren(...visibleRequests.map((request) => {
+    const card = document.createElement("article");
+    card.className = "personal-request-card";
+    const top = document.createElement("div");
+    top.className = "personal-request-top";
+    const reference = document.createElement("span");
+    reference.className = "personal-request-reference";
+    reference.textContent = request.id;
+    const date = document.createElement("time");
+    date.className = "personal-request-date";
+    date.dateTime = request.updatedAt;
+    date.textContent = `${labels.updated} · ${new Intl.DateTimeFormat(english ? "en" : "fr", { dateStyle: "medium", timeStyle: "short" }).format(new Date(request.updatedAt))}`;
+    top.append(reference, date);
+    const title = document.createElement("h3");
+    title.className = "personal-request-title";
+    title.textContent = request.title;
+    const description = document.createElement("p");
+    description.className = "personal-request-description";
+    description.textContent = request.description;
+    const bottom = document.createElement("div");
+    bottom.className = "personal-request-bottom";
+    const status = document.createElement("span");
+    status.className = `status ${request.status === "done" ? "status-resolved" : "status-progress"}`;
+    status.textContent = labels.status[request.status];
+    const service = document.createElement("span");
+    service.className = "personal-request-service";
+    service.textContent = labels.service[request.service] || labels.service.other;
+    const category = document.createElement("span");
+    category.className = "personal-request-type";
+    category.textContent = labels.type[request.type] || request.type;
+    const priority = document.createElement("span");
+    priority.className = `personal-request-priority ${request.priority}`;
+    priority.textContent = labels.priority[request.priority] || labels.priority.normal;
+    bottom.append(status, service, category, priority);
+    card.append(top, title, description, bottom);
+    return card;
+  }));
+  document.querySelector("#personalRequestEmpty").textContent = requests.length ? labels.emptyFilter : labels.empty;
+  document.querySelector("#personalRequestEmpty").hidden = visibleRequests.length > 0;
+}
+
+function openCitizenReportForm(trigger) {
+  reportFormTrigger = trigger;
+  citizenReportErrorKey = "";
+  document.querySelector("#citizenReportError").hidden = true;
+  citizenReportForm.reset();
+  document.querySelector("#reportDistrictInput").value = currentUser.sector || "";
+  personalRequestsDialog.showModal();
+}
+
+function renderPersonalRequestFeedback() {
+  if (!lastCitizenReportId) return;
+  const english = document.documentElement.lang === "en";
+  document.querySelector("#personalRequestFeedback").textContent = english
+    ? `Report ${lastCitizenReportId} was saved on this device. Follow its status in your request history.`
+    : `Le signalement ${lastCitizenReportId} est enregistré sur cet appareil. Suis son état dans ton historique.`;
+}
+
+function renderCitizenReportError() {
+  if (!citizenReportErrorKey) return;
+  const error = document.querySelector("#citizenReportError");
+  error.textContent = document.documentElement.lang === "en"
+    ? "The report could not be saved in this browser. Check available storage and try again."
+    : "Le signalement n’a pas pu être enregistré dans ce navigateur. Vérifie l’espace disponible puis réessaie.";
+}
+
+personalRequestsPanel.hidden = currentUser.profile !== "citizen";
+document.querySelector('.nav-item[href="#my-requests"]').hidden = personalRequestsPanel.hidden;
+if (!personalRequestsPanel.hidden) renderPersonalRequests();
+document.querySelector("#openReportForm").addEventListener("click", (event) => openCitizenReportForm(event.currentTarget));
+document.querySelector("#closeReportForm").addEventListener("click", () => personalRequestsDialog.close());
+document.querySelector("#cancelReportForm").addEventListener("click", () => personalRequestsDialog.close());
+document.querySelector("#reportCategory").addEventListener("change", (event) => {
+  const service = serviceForReportCategory[event.currentTarget.value];
+  if (service) document.querySelector("#reportService").value = service;
+});
+personalRequestsDialog.addEventListener("close", () => {
+  if (reportFormTrigger?.isConnected) reportFormTrigger.focus();
+});
+citizenReportForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const error = document.querySelector("#citizenReportError");
+  citizenReportErrorKey = "";
+  error.hidden = true;
+  const values = Object.fromEntries(new FormData(citizenReportForm));
+  try {
+    const request = window.NovaTerra.createCitizenRequest({ ...values, ownerEmail: currentUser.email });
+    renderPersonalRequests();
+    const feedback = document.querySelector("#personalRequestFeedback");
+    lastCitizenReportId = request.id;
+    renderPersonalRequestFeedback();
+    feedback.hidden = false;
+    personalRequestFilter = "all";
+    renderPersonalRequests();
+    citizenReportForm.reset();
+    personalRequestsDialog.close();
+  } catch {
+    citizenReportErrorKey = "save-failed";
+    renderCitizenReportError();
+    error.hidden = false;
+  }
+});
+document.querySelectorAll("[data-personal-filter]").forEach((button) => button.addEventListener("click", () => {
+  personalRequestFilter = button.dataset.personalFilter;
+  renderPersonalRequests();
+}));
+window.addEventListener("terra-nova:citizen-requests-updated", renderPersonalRequests);
+window.addEventListener("storage", (event) => {
+  if (event.key === window.NovaTerra.citizenRequestsStorageKey) renderPersonalRequests();
+});
+window.addEventListener("nova:language-change", () => {
+  renderPersonalRequests();
+  renderPersonalRequestFeedback();
+  renderCitizenReportError();
+});
 
 const reportDialog = document.querySelector("#reportDialog");
 const reportDialogStatusLabels = { todo: "À traiter", urgent: "Urgent", progress: "En cours", resolved: "Résolu" };

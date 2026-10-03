@@ -39,16 +39,16 @@
             <div class="form-heading"><p class="kicker">NOUVEAU MESSAGE</p><h2>Contacter les services</h2></div>
             <p class="delivery-note" id="delivery-mode" role="status" aria-live="polite"></p>
             <div class="two-fields">
-              <label>Votre nom<input name="name" autocomplete="name" required maxlength="60" placeholder="Ex. Alex Morgan" /></label>
-              <label>Votre email<input name="email" type="email" autocomplete="email" required maxlength="120" placeholder="vous@exemple.fr" /></label>
+              <label id="contactNameLabel">Votre nom<input name="name" autocomplete="name" required maxlength="60" placeholder="Ex. Alex Morgan" /></label>
+              <label id="contactEmailLabel">Votre email<input name="email" type="email" autocomplete="email" required maxlength="120" placeholder="vous@exemple.fr" /></label>
             </div>
-            <label>Type de demande<select name="category"><option>Information</option><option>Accompagnement</option><option>Suggestion</option><option>Probleme de quartier</option><option>Autre</option></select></label>
-            <label>Sujet<input name="subject" required maxlength="100" placeholder="Resumez votre demande" /></label>
-            <label>Votre message<textarea name="message" required maxlength="1000" placeholder="Precisez les informations utiles a notre equipe."></textarea></label>
+            <label id="contactCategoryLabel">Type de demande<select name="category"><option id="contactCategoryInfo">Information</option><option id="contactCategorySupport">Accompagnement</option><option id="contactCategorySuggestion">Suggestion</option><option id="contactCategoryIssue">Problème de quartier</option><option id="contactCategoryOther">Autre</option></select></label>
+            <label id="contactSubjectLabel">Sujet<input name="subject" required maxlength="100" placeholder="Résumez votre demande" /></label>
+            <label id="contactMessageLabel">Votre message<textarea name="message" required maxlength="1000" placeholder="Précisez les informations utiles à notre équipe."></textarea></label>
             <div class="form-footer"><span>Les champs sont obligatoires.</span><button type="submit">Envoyer le message</button></div>
           </form>
           <section class="success" id="success-message" hidden aria-live="polite">
-            <span class="success-mark">OK</span><p class="kicker">MESSAGE TRANSMIS</p><h2>Votre message a été transmis.</h2><p>La transmission a été acceptée par le service. Les modalités de suivi dépendent de l’équipe municipale.</p><button type="button" id="new-message">Envoyer un autre message</button>
+            <span class="success-mark">OK</span><p class="kicker" id="contactSuccessKicker">MESSAGE TRANSMIS</p><h2 id="contactSuccessTitle">Votre message a été transmis.</h2><p id="contactSuccessDescription">La transmission a été acceptée par le service. Les modalités de suivi dépendent de l’équipe municipale.</p><button type="button" id="new-message">Envoyer un autre message</button>
           </section>
           <p class="form-error" id="form-error" role="alert" hidden></p>
         </div>
@@ -56,7 +56,7 @@
     </main>
     <script src="../config.js"></script>
     <script src="../nova-terra.js"></script>
-    <script src="contact.js?v=contact-delivery-1"></script>
+    <script src="contact.js?v=contact-delivery-2"></script>
     <script src="../accessibility.js"></script>
   </body>
 </html>

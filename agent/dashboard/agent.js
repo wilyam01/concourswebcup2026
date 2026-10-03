@@ -6,7 +6,13 @@ const agentInitials = agentUser.name.trim().split(/\s+/).map((part) => part[0]).
 document.querySelector('#agentAvatar').textContent = agentInitials || 'AG';
 document.querySelector('#agentName').textContent = agentUser.name;
 document.querySelector('#agentGreetingName').textContent = agentUser.name.split(/\s+/)[0];
-const state = { requests: window.NovaTerra.getCachedRequests(), messages: [] };
+function includeCitizenSubmissions(requests) {
+  const existingIds = new Set(requests.map((request) => request.id));
+  const localRequests = window.NovaTerra.getLocalCitizenRequests();
+  return [...localRequests.filter((request) => !existingIds.has(request.id)), ...requests];
+}
+
+const state = { requests: includeCitizenSubmissions(window.NovaTerra.getCachedRequests()), messages: [] };
 let dashboardLoading = false;
 let lastSuccessfulSyncAt = 0;
 const columns = [
@@ -17,6 +23,8 @@ const columns = [
 
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[character]));
 const priorityLabel = { high:"Haute", normal:"Normale", low:"Basse" };
+const citizenCategoryLabel = { road:"Voirie et trottoirs", lighting:"Éclairage public", water:"Eau et assainissement", waste:"Déchets et propreté", mobility:"Transports et mobilité", safety:"Sécurité", health:"Santé et solidarité", other:"Autre" };
+const citizenServiceLabel = { water:"Eau et environnement", health:"Santé et bien-être", energy:"Énergie et habitat", mobility:"Mobilité", civic:"Vie citoyenne", solidarity:"Aide et accompagnement", other:"Autre service" };
 
 function normalizeSearchText(value) {
   return String(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -53,7 +61,7 @@ function renderTypeOptions() {
   const types = [...new Set(state.requests.map((request) => request.type).filter(Boolean))]
     .sort((left, right) => left.localeCompare(right, "fr"));
   select.replaceChildren(new Option("Toutes les catégories", "all"));
-  types.forEach((type) => select.add(new Option(type, type)));
+  types.forEach((type) => select.add(new Option(citizenCategoryLabel[type] || type, type)));
   select.value = types.includes(selectedType) ? selectedType : "all";
 }
 
@@ -68,11 +76,14 @@ function renderMetrics() {
 }
 
 function requestCard(request) {
-  const statusDisabled = window.NovaTerra.canUpdateRequestStatus() ? "" : "disabled";
+  const statusDisabled = request.source === "citizen-local" || window.NovaTerra.canUpdateRequestStatus() ? "" : "disabled";
+  const updatedAt = request.source === "citizen-local"
+    ? new Intl.DateTimeFormat(document.documentElement.lang === "en" ? "en" : "fr", { dateStyle: "medium", timeStyle: "short" }).format(new Date(request.updatedAt))
+    : request.updatedAt;
   return `<article class="request-card ${escapeHtml(request.priority)}">
-    <p class="request-meta"><span>${escapeHtml(request.id)}</span><span>${escapeHtml(request.updatedAt)}</span></p>
-    <h4>${escapeHtml(request.title)}</h4><p class="request-place">${escapeHtml(request.district)}</p>
-    <footer><span><span class="type-label">${escapeHtml(request.type)}</span><span class="priority-label ${escapeHtml(request.priority)}">${priorityLabel[request.priority] || "Normale"}</span></span><label class="status-select">Statut<select class="request-status" data-id="${escapeHtml(request.id)}" aria-label="Statut du dossier ${escapeHtml(request.id)}" ${statusDisabled}><option value="todo" ${request.status === "todo" ? "selected" : ""}>A traiter</option><option value="in_progress" ${request.status === "in_progress" ? "selected" : ""}>En cours</option><option value="done" ${request.status === "done" ? "selected" : ""}>Termine</option></select></label></footer>
+    <p class="request-meta"><span>${escapeHtml(request.id)}</span><span>${escapeHtml(updatedAt)}</span></p>
+    <h4>${escapeHtml(request.title)}</h4><p class="request-place">${escapeHtml(request.district)}</p><p class="request-description">${escapeHtml(request.description)}</p>
+    <footer><span class="request-badges"><span class="type-label">${escapeHtml(citizenCategoryLabel[request.type] || request.type)}</span>${request.service ? `<span class="service-label">${escapeHtml(citizenServiceLabel[request.service] || request.service)}</span>` : ""}<span class="priority-label ${escapeHtml(request.priority)}">${priorityLabel[request.priority] || "Normale"}</span></span><label class="status-select">Statut<select class="request-status" data-id="${escapeHtml(request.id)}" aria-label="Statut du dossier ${escapeHtml(request.id)}" ${statusDisabled}><option value="todo" ${request.status === "todo" ? "selected" : ""}>À traiter</option><option value="in_progress" ${request.status === "in_progress" ? "selected" : ""}>En cours</option><option value="done" ${request.status === "done" ? "selected" : ""}>Terminé</option></select></label></footer>
   </article>`;
 }
 
@@ -114,7 +125,7 @@ async function loadDashboard() {
       window.NovaTerra.getMessages()
     ]);
     const failures = [];
-    if (requestsResult.status === "fulfilled") state.requests = requestsResult.value;
+    if (requestsResult.status === "fulfilled") state.requests = includeCitizenSubmissions(requestsResult.value);
     else {
       const cacheTime = window.NovaTerra.getRequestsCacheTime();
       const cacheStamp = cacheTime ? ` (${new Date(cacheTime).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })})` : "";
@@ -159,11 +170,23 @@ document.querySelector("#kanban").addEventListener("change", async (event) => {
   const control = event.target.closest(".request-status");
   if (!control) return;
   const request = state.requests.find((item) => item.id === control.dataset.id);
-  if (!request || !window.NovaTerra.canUpdateRequestStatus()) return;
+  if (!request || (request.source !== "citizen-local" && !window.NovaTerra.canUpdateRequestStatus())) return;
   const previousStatus = request.status;
   control.disabled = true;
-  try { await window.NovaTerra.updateRequestStatus(request.id, control.value); request.status = control.value; request.updatedAt = "A l'instant"; showDashboardError(""); render(); }
+  try {
+    if (request.source === "citizen-local") Object.assign(request, window.NovaTerra.updateLocalCitizenRequestStatus(request.id, control.value));
+    else Object.assign(request, await window.NovaTerra.updateRequestStatus(request.id, control.value));
+    showDashboardError("");
+    render();
+  }
   catch { control.value = previousStatus; control.disabled = false; showDashboardError("La mise a jour du statut a echoue. Reessayez dans un instant."); }
+});
+
+window.addEventListener("storage", (event) => {
+  if (event.key !== window.NovaTerra.citizenRequestsStorageKey) return;
+  state.requests = includeCitizenSubmissions(state.requests.filter((request) => request.source !== "citizen-local"));
+  renderTypeOptions();
+  render();
 });
 
 renderTypeOptions();

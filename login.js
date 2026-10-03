@@ -45,11 +45,30 @@ const loginProfiles = {
   },
 };
 let activeProfile = null;
+let loginMessageKey = '';
+const loginMessages = {
+  profile_required: ['Choisis un profil avant de te connecter.', 'Choose a profile before signing in.'],
+  verifying: ['Vérification des identifiants…', 'Checking your sign-in details…'],
+  success: ['Connexion réussie. Ouverture de ton espace…', 'Signed in. Opening your space…'],
+  invalid_credentials: ['Adresse e-mail ou mot de passe incorrect.', 'Incorrect email address or password.'],
+  crypto_unavailable: ['Le navigateur ne permet pas la vérification. Ouvre le site en HTTPS ou sur localhost.', 'This browser cannot verify accounts. Open the site using HTTPS or localhost.'],
+  storage_unavailable: ['Impossible de lire le compte dans ce navigateur.', 'The account could not be read in this browser.'],
+  invalid_profile: ['Le profil choisi n’est pas valide.', 'The selected profile is not valid.'],
+  failed: ['La connexion a échoué. Réessaie.', 'Sign-in failed. Please try again.'],
+  forgot: ['Les comptes locaux ne peuvent pas être récupérés. Crée un nouveau compte avec une autre adresse e-mail.', 'Local demo accounts cannot be recovered. Create a new account with a different email address.'],
+};
 
-function showLoginMessage(message) {
+function isEnglish() { return document.documentElement.lang === 'en'; }
+
+function showLoginMessage(key) {
+  loginMessageKey = key;
   loginMessage.hidden = false;
-  loginMessage.textContent = message;
+  loginMessage.textContent = loginMessages[key][isEnglish() ? 1 : 0];
 }
+
+window.addEventListener('nova:language-change', () => {
+  if (loginMessageKey && !loginMessage.hidden) loginMessage.textContent = loginMessages[loginMessageKey][isEnglish() ? 1 : 0];
+});
 
 function chooseLoginProfile(profileId) {
   const profile = loginProfiles[profileId];
@@ -67,6 +86,7 @@ function chooseLoginProfile(profileId) {
   if (notice) notice.innerHTML = profile.notice;
   loginMessage.hidden = true;
   loginMessage.textContent = '';
+  loginMessageKey = '';
   window.dispatchEvent(new Event('nova:profile-change'));
   window.setTimeout(() => document.querySelector('#loginEmail').focus(), 0);
 }
@@ -81,6 +101,7 @@ document.querySelector('#changeLoginProfile').addEventListener('click', () => {
   passwordInput.value = '';
   loginMessage.hidden = true;
   loginMessage.textContent = '';
+  loginMessageKey = '';
 });
 
 const requestedProfile = new URLSearchParams(window.location.search).get('profile');
@@ -101,13 +122,13 @@ togglePassword.addEventListener('click', () => {
 loginForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!activeProfile) {
-    showLoginMessage('Choisissez un profil avant de vous connecter.');
+    showLoginMessage('profile_required');
     return;
   }
   if (!loginForm.reportValidity()) return;
   const submittedProfile = activeProfile;
   loginButton.disabled = true;
-  showLoginMessage('Vérification des identifiants...');
+  showLoginMessage('verifying');
   const result = await window.NovaTerraAuth.signIn({
     email: loginForm.elements.email.value,
     password: passwordInput.value,
@@ -116,20 +137,15 @@ loginForm.addEventListener('submit', async (event) => {
   });
 
   if (result.ok) {
-    showLoginMessage('Connexion réussie. Ouverture de votre espace...');
+    showLoginMessage('success');
     window.location.assign(loginProfiles[submittedProfile].destination);
     return;
   }
 
-  const errors = {
-    invalid_credentials: 'Adresse e-mail ou mot de passe incorrect.',
-    crypto_unavailable: 'Le navigateur ne permet pas la vérification. Ouvrez le site en HTTPS ou sur localhost.',
-    storage_unavailable: 'Impossible de lire le compte dans ce navigateur.',
-  };
-  showLoginMessage(errors[result.error] || 'La connexion a échoué. Réessayez.');
+  showLoginMessage(loginMessages[result.error] ? result.error : 'failed');
   loginButton.disabled = false;
 });
 
 document.querySelector('#forgotPassword').addEventListener('click', () => {
-  showLoginMessage('Les comptes locaux ne peuvent pas être récupérés. Créez un nouveau compte avec une autre adresse e-mail.');
+  showLoginMessage('forgot');
 });

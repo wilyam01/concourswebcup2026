@@ -27,6 +27,7 @@
       <nav class="nav-list" aria-label="Navigation principale">
         <a class="nav-item active" href="#overview"><span class="nav-icon">◉</span>Vue d’ensemble<span class="nav-dot"></span></a>
         <a class="nav-item" href="#reports"><span class="nav-icon">⌖</span>Signalements<span class="nav-count" id="nav-open-report-count">0</span></a>
+        <a class="nav-item" href="#my-requests"><span class="nav-icon">▤</span>Mes demandes<span class="nav-count" id="my-requests-nav-count">0</span></a>
         <a class="nav-item" href="#planet"><span class="nav-icon">◌</span>État de la planète</a>
         <a class="nav-item" href="#council"><span class="nav-icon">⌘</span>Haut Conseil<span class="nav-lock">✦</span></a>
         <a class="nav-item" href="contact/index.html"><span class="nav-icon">＋</span>Contact citoyen</a>
@@ -83,6 +84,22 @@
           </article>
         </section>
 
+        <section class="panel personal-requests-panel" id="my-requests" aria-labelledby="myRequestsTitle">
+          <div class="panel-heading personal-requests-heading">
+            <div><div class="panel-kicker" id="myRequestsKicker">ESPACE PERSONNEL · DÉMARCHES LOCALES</div><h2 id="myRequestsTitle">Mes demandes &amp; mon historique</h2></div>
+            <button class="btn-primary" id="openReportForm" type="button">＋ Signaler un problème</button>
+          </div>
+          <p class="personal-requests-note" id="myRequestsNote">Suivez les signalements créés depuis ce compte. Ils restent enregistrés dans ce navigateur et ne sont pas transmis à la mairie dans cette version.</p>
+          <div class="personal-request-filters" role="group" aria-label="Filtrer mes demandes">
+            <button class="personal-request-filter active" type="button" data-personal-filter="all" aria-pressed="true">Toutes <span id="myRequestCountAll">0</span></button>
+            <button class="personal-request-filter" type="button" data-personal-filter="open" aria-pressed="false">En cours <span id="myRequestCountOpen">0</span></button>
+            <button class="personal-request-filter" type="button" data-personal-filter="history" aria-pressed="false">Historique <span id="myRequestCountHistory">0</span></button>
+          </div>
+          <p class="personal-request-feedback" id="personalRequestFeedback" role="status" aria-live="polite" hidden></p>
+          <div class="personal-request-list" id="personalRequestList" aria-live="polite"></div>
+          <p class="personal-request-empty" id="personalRequestEmpty" role="status" hidden></p>
+        </section>
+
         <section class="bottom-grid">
           <article class="panel reports-panel" id="reports"><div class="panel-heading reports-heading"><div><div class="panel-kicker">VIE DE LA COMMUNAUTÉ <span class="count-badge" id="report-total-count">0</span></div><h2>Signalements récents</h2></div><div><button class="text-button" id="refreshReports" type="button">Actualiser <b>↻</b></button><button class="text-button" id="allReports" type="button">Voir tout <b>↗</b></button></div></div>
             <div class="filters" role="group" aria-label="Filtrer les signalements"><button class="filter active" data-filter="all">Tous <span id="report-count-all">0</span></button><button class="filter" data-filter="urgent"><i class="filter-dot urgent-dot"></i>Urgents <span id="report-count-urgent">0</span></button><button class="filter" data-filter="progress">En cours <span id="report-count-progress">0</span></button><button class="filter" data-filter="resolved">Résolus <span id="report-count-resolved">0</span></button></div>
@@ -110,6 +127,27 @@
     <p class="detail-dialog-description" id="reportDialogDescription"></p>
     <p class="detail-dialog-location" id="reportDialogLocation"></p>
     <div class="detail-dialog-actions"><button class="profile-secondary-button" id="closeReportDialogAction" type="button">Fermer</button></div>
+  </dialog>
+  <dialog class="profile-dialog report-form-dialog" id="reportFormDialog" aria-labelledby="reportFormTitle" aria-describedby="reportFormNote">
+    <div class="profile-dialog-heading">
+      <div><div class="panel-kicker" id="reportFormKicker">SIGNALEMENT CITOYEN</div><h2 id="reportFormTitle">Signaler un problème urbain</h2></div>
+      <button class="profile-dialog-close" id="closeReportForm" type="button" aria-label="Fermer">×</button>
+    </div>
+    <p class="profile-dialog-intro" id="reportFormNote">Décris le problème et choisis le service concerné. Ce formulaire conserve le signalement sur cet appareil; il n’est pas transmis à la mairie. Pour une urgence immédiate, appelle le <a href="tel:112">112</a>.</p>
+    <form class="profile-form" id="citizenReportForm">
+      <label for="reportTitleInput" id="reportTitleLabel">Résumé<input id="reportTitleInput" name="title" type="text" maxlength="100" required placeholder="Ex. Éclairage en panne rue des Étoiles" /></label>
+      <label for="reportCategory" id="reportCategoryLabel">Type de problème<select id="reportCategory" name="type" required>
+        <option value="" disabled selected>Choisir une catégorie</option><option value="road">Voirie et trottoirs</option><option value="lighting">Éclairage public</option><option value="water">Eau et assainissement</option><option value="waste">Déchets et propreté</option><option value="mobility">Transports et mobilité</option><option value="safety">Sécurité</option><option value="health">Santé et solidarité</option><option value="other">Autre</option>
+      </select></label>
+      <label for="reportService" id="reportServiceLabel">Service municipal<select id="reportService" name="service" required>
+        <option value="" disabled selected>Choisir un service</option><option value="water">Eau et environnement</option><option value="health">Santé et bien-être</option><option value="energy">Énergie et habitat</option><option value="mobility">Mobilité</option><option value="civic">Vie citoyenne</option><option value="solidarity">Aide et accompagnement</option><option value="other">Autre service</option>
+      </select></label>
+      <label for="reportDistrictInput" id="reportDistrictLabel">Secteur ou adresse<input id="reportDistrictInput" name="district" type="text" maxlength="120" required placeholder="Ex. Secteur 04, place des Étoiles" /></label>
+      <label for="reportPriority" id="reportPriorityLabel">Niveau de priorité<select id="reportPriority" name="priority"><option value="normal">Normal</option><option value="high">Urgent</option></select></label>
+      <label for="reportDescriptionInput" id="reportDescriptionLabel">Description<textarea id="reportDescriptionInput" name="description" rows="4" maxlength="1000" required placeholder="Ajoute les détails qui aideront les équipes à intervenir."></textarea></label>
+      <p class="profile-form-error" id="citizenReportError" role="alert" hidden></p>
+      <div class="profile-dialog-actions"><button class="profile-secondary-button" id="cancelReportForm" type="button">Annuler</button><button class="profile-save-button" type="submit">Enregistrer le signalement <span>→</span></button></div>
+    </form>
   </dialog>
   <dialog class="profile-dialog" id="profileDialog" aria-labelledby="profileDialogTitle">
     <div class="profile-dialog-heading">

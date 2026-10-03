@@ -11,6 +11,7 @@ const NOVA_TERRA_REQUESTS_KEY = "terra-nova.requests";
 const NOVA_TERRA_MESSAGES_KEY = "terra-nova.citizen-messages";
 const NOVA_TERRA_REQUESTS_CACHE_KEY = "terra-nova.requests.cache.v1";
 const NOVA_TERRA_REQUESTS_CACHE_TIME_KEY = "terra-nova.requests.cache-time.v1";
+const NOVA_TERRA_CITIZEN_REQUESTS_KEY = "terra-nova.citizen-requests.v1";
 const NOVA_TERRA_FETCH_TIMEOUT_MS = 12000;
 
 const demoRequests = [
@@ -83,6 +84,38 @@ function normalizeRequest(item) {
   };
 }
 
+const localRequestServices = new Set(["water", "health", "energy", "mobility", "civic", "solidarity", "other"]);
+
+function normalizeCitizenRequest(item) {
+  const source = item && typeof item === "object" && !Array.isArray(item) ? item : {};
+  if (typeof source.ownerEmail !== "string" || !source.ownerEmail.trim()) throw new Error("Citizen request is missing its owner");
+  const normalized = normalizeRequest(source);
+  if (!localRequestServices.has(source.service)) throw new Error("Citizen request has an unsupported service");
+  const createdDate = new Date(source.createdAt);
+  const updatedDate = new Date(source.updatedAt || source.createdAt);
+  return {
+    ...normalized,
+    type: toSafeText(source.type, "Autre", 80),
+    service: source.service,
+    ownerEmail: source.ownerEmail.trim().toLowerCase().slice(0, 254),
+    createdAt: Number.isNaN(createdDate.getTime()) ? new Date().toISOString() : createdDate.toISOString(),
+    updatedAt: Number.isNaN(updatedDate.getTime()) ? new Date().toISOString() : updatedDate.toISOString(),
+    source: "citizen-local"
+  };
+}
+
+function readCitizenRequests() {
+  return readStored(NOVA_TERRA_CITIZEN_REQUESTS_KEY, []).flatMap((item) => {
+    try { return [normalizeCitizenRequest(item)]; }
+    catch { return []; }
+  });
+}
+
+function saveCitizenRequests(requests) {
+  saveStored(NOVA_TERRA_CITIZEN_REQUESTS_KEY, requests);
+  window.dispatchEvent(new CustomEvent("terra-nova:citizen-requests-updated"));
+}
+
 function extractCollection(payload, preferredKey) {
   const collection = Array.isArray(payload)
     ? payload
@@ -152,6 +185,7 @@ async function getFromApi(path, preferredKey) {
 }
 
 window.NovaTerra = {
+  citizenRequestsStorageKey: NOVA_TERRA_CITIZEN_REQUESTS_KEY,
   usingDemoData: () => !NOVA_TERRA_API_BASE_URL && !NOVA_TERRA_REQUESTS_API_URL,
   canUpdateRequestStatus: () => !NOVA_TERRA_REQUESTS_API_URL,
   getDemoRequests() {
@@ -161,6 +195,51 @@ window.NovaTerra = {
     });
   },
   getCachedRequests,
+  getLocalCitizenRequests(ownerEmail = null) {
+    const requests = readCitizenRequests();
+    if (ownerEmail === null) return requests;
+    const normalizedEmail = String(ownerEmail).trim().toLowerCase();
+    return requests.filter((request) => request.ownerEmail === normalizedEmail);
+  },
+  createCitizenRequest({ ownerEmail, title, district, type, service, priority = "normal", description }) {
+    const normalizedEmail = String(ownerEmail || "").trim().toLowerCase();
+    const normalizedTitle = toSafeText(title, "", 100);
+    const normalizedDistrict = toSafeText(district, "", 120);
+    const normalizedType = toSafeText(type, "", 80);
+    const normalizedDescription = toSafeText(description, "", 1000);
+    if (!normalizedEmail || !normalizedTitle || !normalizedDistrict || !normalizedType || !normalizedDescription) {
+      throw new Error("Citizen request is missing required details");
+    }
+    if (!localRequestServices.has(service)) throw new Error("Choose a valid municipal service");
+    const normalizedPriority = normalizePriority(priority);
+    const createdAt = new Date().toISOString();
+    const suffix = globalThis.crypto?.randomUUID?.().slice(0, 8).toUpperCase() || Math.random().toString(36).slice(2, 10).toUpperCase();
+    const request = normalizeCitizenRequest({
+      id: `NT-${Date.now().toString(36).toUpperCase()}-${suffix}`,
+      ownerEmail: normalizedEmail,
+      title: normalizedTitle,
+      district: normalizedDistrict,
+      type: normalizedType,
+      service,
+      priority: normalizedPriority,
+      status: "todo",
+      createdAt,
+      updatedAt: createdAt,
+      description: normalizedDescription
+    });
+    saveCitizenRequests([request, ...readCitizenRequests()]);
+    return request;
+  },
+  updateLocalCitizenRequestStatus(id, status) {
+    const normalizedStatus = normalizeStatus(status);
+    const requests = readCitizenRequests();
+    const request = requests.find((item) => item.id === id);
+    if (!request) throw new Error("Local citizen request not found");
+    request.status = normalizedStatus;
+    request.updatedAt = new Date().toISOString();
+    saveCitizenRequests(requests);
+    return request;
+  },
   getRequestsCacheTime() {
     try {
       const value = Number(localStorage.getItem(NOVA_TERRA_REQUESTS_CACHE_TIME_KEY));

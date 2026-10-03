@@ -393,10 +393,15 @@ html[data-theme="light"] .login-profile-back { color:#596d83; }
 .detail-dialog button:focus-visible,
 .profile-dialog button:focus-visible,
 .profile-dialog input:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+.profile-dialog select:focus-visible,
+.profile-dialog textarea:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
 .profile-dialog-intro { margin: 14px 0 18px; color: var(--soft); font-size: 12px; line-height: 1.6; }
 .profile-form { display: grid; gap: 14px; }
 .profile-form > label { display: grid; gap: 7px; color: var(--soft); font-size: 11px; }
-.profile-form input { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: var(--surface); color: var(--text); font: 12px var(--sans); }
+.profile-form input,
+.profile-form select,
+.profile-form textarea { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: var(--surface); color: var(--text); font: 12px var(--sans); }
+.profile-form textarea { min-height: 100px; resize: vertical; line-height: 1.6; }
 .profile-photo-setting { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 9px; }
 .profile-photo-setting b,
 .profile-photo-setting small { display: block; }
@@ -421,7 +426,9 @@ html[data-theme="light"] .detail-dialog-close,
 html[data-theme="light"] .profile-dialog-close,
 html[data-theme="light"] .profile-secondary-button,
 html[data-theme="light"] .detail-dialog-actions .profile-secondary-button { border-color: #d1dbe4; background: #f3f6f9; color: #1c2b3d; }
-html[data-theme="light"] .profile-form input { border-color: #d1dbe4; background: #fff; color: #1c2b3d; }
+html[data-theme="light"] .profile-form input,
+html[data-theme="light"] .profile-form select,
+html[data-theme="light"] .profile-form textarea { border-color: #d1dbe4; background: #fff; color: #1c2b3d; }
 html[data-theme="light"] .profile-photo-setting { border-color: #d1dbe4; }
 html[data-theme="light"] .profile-photo-setting b { color: #1c2b3d; }
 html[data-theme="light"] .profile-photo-setting small { color: #65778a; }
