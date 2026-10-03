@@ -99,6 +99,16 @@
       </div>
     </main>
   </div>
+  <dialog class="detail-dialog" id="reportDialog" aria-labelledby="reportDialogTitle" aria-describedby="reportDialogDescription">
+    <div class="detail-dialog-heading">
+      <div><div class="panel-kicker" id="reportDialogReference"></div><h2 id="reportDialogTitle"></h2></div>
+      <button class="detail-dialog-close" id="closeReportDialog" type="button" aria-label="Fermer le détail du signalement">×</button>
+    </div>
+    <div class="detail-dialog-meta"><span id="reportDialogStatus"></span><span id="reportDialogPriority"></span><span id="reportDialogUpdated"></span></div>
+    <p class="detail-dialog-description" id="reportDialogDescription"></p>
+    <p class="detail-dialog-location" id="reportDialogLocation"></p>
+    <div class="detail-dialog-actions"><button class="profile-secondary-button" id="closeReportDialogAction" type="button">Fermer</button></div>
+  </dialog>
   <dialog class="profile-dialog" id="profileDialog" aria-labelledby="profileDialogTitle">
     <div class="profile-dialog-heading">
       <div><div class="panel-kicker">ESPACE CITOYEN</div><h2 id="profileDialogTitle">Personnaliser mon profil</h2></div>

@@ -51,6 +51,8 @@ function createReportRow(request) {
   const openButton = document.createElement("button");
   openButton.className = "row-arrow";
   openButton.type = "button";
+  openButton.dataset.requestId = request.id;
+  openButton.setAttribute("aria-haspopup", "dialog");
   openButton.setAttribute("aria-label", `Ouvrir le signalement ${request.id}`);
   openButton.textContent = "↗";
 
@@ -131,6 +133,33 @@ function renderPublicReports() {
 
 function normalizePublicSearch(value) {
   return String(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+const reportDialog = document.querySelector("#reportDialog");
+const reportDialogStatusLabels = { todo: "À traiter", urgent: "Urgent", progress: "En cours", resolved: "Résolu" };
+const reportDialogPriorityLabels = { high: "Haute priorité", normal: "Priorité normale", low: "Priorité basse" };
+
+function openReportDetails(requestId, trigger) {
+  const request = publicRequests.find((item) => item.id === requestId);
+  if (!request) {
+    notify("Ce signalement n’est plus disponible. Actualise la liste puis réessaie.");
+    return;
+  }
+
+  const status = reportFilterStatus(request);
+  document.querySelector("#reportDialogReference").textContent = `SIGNALEMENT ${request.id}`;
+  document.querySelector("#reportDialogTitle").textContent = request.title;
+  document.querySelector("#reportDialogStatus").textContent = reportDialogStatusLabels[status];
+  document.querySelector("#reportDialogStatus").className = `detail-badge status-${status === "todo" ? "progress" : status}`;
+  document.querySelector("#reportDialogPriority").textContent = reportDialogPriorityLabels[request.priority];
+  document.querySelector("#reportDialogUpdated").textContent = request.updatedAt;
+  document.querySelector("#reportDialogDescription").textContent = request.description;
+  document.querySelector("#reportDialogLocation").textContent = `${request.district} · ${request.type}`;
+  reportDialog.returnValue = "";
+  reportDialog.showModal();
+  reportDialog.addEventListener("close", () => {
+    if (trigger.isConnected) trigger.focus();
+  }, { once: true });
 }
 
 async function loadPublicReports() {
@@ -254,6 +283,15 @@ document.querySelector("#reports-search").addEventListener("input", () => {
 document.querySelector("#loadMoreReports").addEventListener("click", () => {
   displayedReportCount += reportsPageSize;
   renderPublicReports();
+});
+document.querySelector(".report-list").addEventListener("click", (event) => {
+  const trigger = event.target.closest(".row-arrow[data-request-id]");
+  if (trigger) openReportDetails(trigger.dataset.requestId, trigger);
+});
+document.querySelector("#closeReportDialog").addEventListener("click", () => reportDialog.close());
+document.querySelector("#closeReportDialogAction").addEventListener("click", () => reportDialog.close());
+reportDialog.addEventListener("click", (event) => {
+  if (event.target === reportDialog) reportDialog.close();
 });
 document.querySelector("#reviewUrgentReports").addEventListener("click", () => {
   document.querySelector('[data-filter="urgent"]').click();

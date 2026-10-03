@@ -64,8 +64,14 @@ foreach ($filterId in @("request-search", "status-filter", "priority-filter", "t
 foreach ($reportId in @("api-status", "reports-search", "loadMoreReports", "reports-empty", "reports-loading", "open-report-count", "nav-open-report-count")) {
   if ($dashboardMarkup -notmatch "id=`"$reportId`"") { throw "Surface publique des signalements absente : $reportId." }
 }
+foreach ($detailId in @("reportDialog", "reportDialogReference", "reportDialogTitle", "reportDialogDescription", "reportDialogStatus", "reportDialogPriority", "reportDialogUpdated", "reportDialogLocation", "closeReportDialog", "closeReportDialogAction")) {
+  if ($dashboardMarkup -notmatch "id=`"$detailId`"") { throw "Détail du signalement absent : $detailId." }
+}
 if ($agentScript -notmatch "description") { throw "La recherche agent doit inclure la description des demandes." }
 if ($publicScript -notmatch "normalizePublicSearch") { throw "La recherche publique normalisee est absente." }
+if ($publicScript -notmatch "openReportDetails" -or $publicScript -notmatch 'row-arrow\[data-request-id\]') { throw "Les signalements publics doivent pouvoir afficher leur détail." }
+$themeStyles = Get-Content -LiteralPath (Join-Path $projectRoot "theme.css") -Raw
+if ($themeStyles -notmatch "\.detail-dialog" -or $themeStyles -notmatch "\.profile-dialog") { throw "Les fenêtres de détail et de profil doivent avoir une presentation dediee." }
 foreach ($councilId in @("council-source", "council-priority-title", "council-priority-meta", "council-urgent-count", "council-open-summary", "reviewUrgentReports")) {
   if ($dashboardMarkup -notmatch "id=`"$councilId`"") { throw "Indicateur ou action du Haut Conseil absent : $councilId." }
 }
