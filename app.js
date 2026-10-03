@@ -575,6 +575,10 @@ function openProfileDialog() {
 }
 
 topProfileButton.addEventListener('click', openProfileDialog);
+document.querySelector('#logoutButton').addEventListener('click', () => {
+  window.NovaTerraAuth.signOut();
+  window.location.replace('connexion.html');
+});
 document.querySelector('#profileDialogPhoto').addEventListener('click', () => profilePhotoInput.click());
 document.querySelector('#closeProfileDialog').addEventListener('click', () => profileDialog.close());
 document.querySelector('#cancelProfileEdit').addEventListener('click', () => profileDialog.close());

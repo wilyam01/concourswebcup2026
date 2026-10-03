@@ -412,6 +412,7 @@ html[data-theme="light"] .login-profile-back { color:#596d83; }
 .profile-save-button { border-color: #7564b5; background: #302741; color: #e2d8ff; }
 .profile-form-error { margin: 0; color: #ffb4a9; font-size: 11px; line-height: 1.5; }
 .profile-dialog-actions { display: flex; justify-content: flex-end; gap: 9px; padding-top: 14px; border-top: 1px solid var(--line); }
+.profile-dialog-actions #logoutButton { margin-right: auto; }
 .row-arrow { display: grid; width: 30px; height: 30px; flex: none; place-items: center; border: 1px solid transparent; border-radius: 7px; }
 .row-arrow:hover { border-color: var(--line); background: #ffffff08; }
 
