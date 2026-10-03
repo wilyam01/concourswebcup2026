@@ -58,15 +58,65 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
+const newsSection = document.querySelector('#actualites');
+const newsSearch = document.createElement('input');
+const newsSearchLabel = document.createElement('label');
+const newsSearchTools = document.createElement('div');
+const newsSearchFeedback = document.createElement('p');
+const newsEmpty = document.createElement('p');
+let newsExpanded = false;
+if (newsSection) {
+  newsSearch.type = 'search';
+  newsSearch.id = 'newsSearch';
+  newsSearch.setAttribute('aria-controls', 'news-list');
+  newsSearchLabel.className = 'news-search';
+  newsSearchLabel.append(newsSearch);
+  newsSearchTools.className = 'news-tools';
+  newsSearchTools.append(newsSearchLabel, newsSearchFeedback);
+  newsSearchFeedback.setAttribute('role', 'status');
+  newsSearchFeedback.setAttribute('aria-live', 'polite');
+  newsEmpty.className = 'news-search-empty';
+  newsEmpty.setAttribute('role', 'status');
+  newsEmpty.hidden = true;
+  const newsLayout = newsSection.querySelector('.news-layout');
+  newsLayout?.before(newsSearchTools, newsEmpty);
+  const english = document.documentElement.lang === 'en';
+  newsSearch.setAttribute('aria-label', english ? 'Search municipal announcements' : 'Rechercher une annonce municipale');
+  newsSearch.placeholder = english ? 'Search announcements…' : 'Rechercher une annonce…';
+  newsEmpty.textContent = english ? 'No announcements match your search.' : 'Aucune annonce ne correspond à votre recherche.';
+}
+
+function renderNewsSearch() {
+  if (!newsSection) return;
+  const query = normalizeServiceText(newsSearch.value);
+  const cards = [...newsSection.querySelectorAll('.news-item')];
+  const lead = newsSection.querySelector('.news-lead');
+  const searchableText = (entry) => normalizeServiceText(`${entry.textContent} ${entry.querySelector('time')?.dateTime || ''}`);
+  let visibleCount = 0;
+  cards.forEach((entry) => {
+    const matches = !query || searchableText(entry).includes(query);
+    entry.hidden = !matches || (entry.classList.contains('archived-news') && !newsExpanded && !query);
+    if (!entry.hidden) visibleCount += 1;
+  });
+  if (lead) {
+    lead.hidden = Boolean(query && !searchableText(lead).includes(query));
+    if (!lead.hidden) visibleCount += 1;
+  }
+  newsSearchFeedback.textContent = document.documentElement.lang === 'en'
+    ? `${visibleCount} announcement${visibleCount === 1 ? '' : 's'}`
+    : `${visibleCount} annonce${visibleCount === 1 ? '' : 's'}`;
+  newsEmpty.hidden = visibleCount > 0;
+  const link = document.querySelector('#allNews');
+  if (link) link.setAttribute('aria-expanded', String(newsExpanded));
+  updateNewsToggleLabel();
+}
+
 document.querySelector('#allNews')?.addEventListener('click', (event) => {
   event.preventDefault();
-  const link = event.currentTarget;
-  const entries = [...document.querySelectorAll('.archived-news')];
-  const isExpanded = link.getAttribute('aria-expanded') === 'true';
-  entries.forEach((entry) => { entry.hidden = isExpanded; });
-  link.setAttribute('aria-expanded', String(!isExpanded));
-  updateNewsToggleLabel();
+  newsExpanded = !newsExpanded;
+  renderNewsSearch();
 });
+newsSearch.addEventListener('input', renderNewsSearch);
 
 const serviceSearch = document.querySelector('#serviceSearch');
 const serviceCards = [...document.querySelectorAll('.service-card[data-service-id]')];
@@ -121,6 +171,7 @@ function renderServiceSearch() {
     const searchable = normalizeServiceText([
       card.querySelector('h3')?.textContent,
       card.querySelector('p')?.textContent,
+      card.querySelector('.service-info')?.textContent,
       card.dataset.searchTerms,
     ].join(' '));
     const matches = !query || matchesServiceQuery(searchable, query);
@@ -226,6 +277,10 @@ serviceSearch?.addEventListener('input', renderServiceSearch);
 window.addEventListener('nova:language-change', () => {
   renderServiceSearch();
   renderServicePopularity();
+  newsSearch.setAttribute('aria-label', document.documentElement.lang === 'en' ? 'Search municipal announcements' : 'Rechercher une annonce municipale');
+  newsSearch.placeholder = document.documentElement.lang === 'en' ? 'Search announcements…' : 'Rechercher une annonce…';
+  newsEmpty.textContent = document.documentElement.lang === 'en' ? 'No announcements match your search.' : 'Aucune annonce ne correspond à votre recherche.';
+  renderNewsSearch();
   updateNewsToggleLabel();
 });
 window.addEventListener('storage', (event) => {
@@ -233,5 +288,6 @@ window.addEventListener('storage', (event) => {
 });
 renderServiceSearch();
 renderServicePopularity();
+renderNewsSearch();
 void loadServicePopularity();
 if (window.NovaTerraApi?.enabled) window.NovaTerraEco.schedulePolling(loadServicePopularity);

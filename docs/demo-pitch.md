@@ -4,6 +4,8 @@ Ce guide présente le produit livré sans confondre les fonctions disponibles av
 
 ## Ce que Nova Terra permet
 
+- **D05 — Consulter le catalogue des services :** depuis la vitrine publique, parcourir les services municipaux et accéder aux informations utiles.
+- **D06 — Consulter les annonces municipales :** depuis la vitrine publique, consulter les annonces et actualités municipales.
 - **Côté citoyen :** consulter et rechercher les signalements, filtrer par statut et urgence, déposer un signalement et suivre sa référence dans son historique.
 - **Côté agents et Haut Conseil :** ouvrir la vue de suivi adaptée à leur rôle, repérer les demandes prioritaires et préparer leur traitement.
 - **Rendez-vous municipaux :** consulter et gérer les rendez-vous selon son rôle. Les agents et administrateurs peuvent ajouter une note interne (jusqu’à 1 000 caractères) ; cette note n’est pas renvoyée au compte citoyen.
