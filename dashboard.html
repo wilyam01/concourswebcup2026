@@ -33,7 +33,7 @@
       <div class="side-bottom">
         <div class="side-label">RÉSEAU</div>
         <div class="network"><span class="live-dot"></span><span><b>Réseau opérationnel</b><small>Latence 18 ms</small></span><span class="network-signal">▂▅▇</span></div>
-        <div class="profile"><div class="avatar">AM</div><div><b>Alex Morgan</b><small>Citoyen · Niveau 04</small></div><button aria-label="Options du profil">···</button></div>
+        <div class="profile"><button class="avatar profile-photo-trigger" type="button" aria-label="Ajouter une photo de profil" title="Ajouter une photo de profil">AM</button><div><b>Alex Morgan</b><small>Citoyen · Niveau 04</small></div><button aria-label="Options du profil">···</button></div>
       </div>
     </aside>
 
@@ -41,7 +41,7 @@
       <header class="topbar">
         <button class="mobile-menu" id="menuButton" aria-label="Ouvrir le menu">☰</button>
         <div class="breadcrumbs"><span>Nouvelle Aurore</span><span class="crumb-slash">/</span><b>Vue d’ensemble</b></div>
-        <div class="top-actions"><span class="sync"><span class="live-dot"></span>SYNC. EN DIRECT</span><span class="top-divider"></span><span class="date-label">SOL 184 · 14:32 UTC</span><button class="theme-toggle" type="button" data-theme-toggle aria-label="Changer le thème"><span class="theme-symbol" aria-hidden="true">☼</span></button><button class="icon-button notification" aria-label="Notifications">♧<i></i></button><div class="avatar top-avatar">AM</div></div>
+        <div class="top-actions"><span class="sync"><span class="live-dot"></span>SYNC. EN DIRECT</span><span class="top-divider"></span><span class="date-label">SOL 184 · 14:32 UTC</span><button class="theme-toggle" type="button" data-theme-toggle aria-label="Changer le thème"><span class="theme-symbol" aria-hidden="true">☼</span></button><button class="icon-button notification" aria-label="Notifications">♧<i></i></button><button class="avatar top-avatar profile-photo-trigger" type="button" aria-label="Ajouter une photo de profil" title="Ajouter une photo de profil">AM</button></div>
       </header>
 
       <div class="content" id="overview">
@@ -97,6 +97,7 @@
     </main>
   </div>
   <div class="toast" id="toast" role="status"></div>
+  <input id="profilePhotoInput" type="file" accept="image/*" hidden />
   <script src="app.js"></script>
 </body>
 </html>

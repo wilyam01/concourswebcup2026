@@ -70,7 +70,7 @@ POST  {API_BASE_URL}/citizen-messages       body: { name, email, category, subje
 }
 ```
 
-En l'absence d'API, les donnees de demonstration restent actives. Les formulaires et deplacements de cartes Kanban sont alors memorises dans le navigateur avec `localStorage`.
+En l'absence d'API, les donnees de demonstration restent actives. Les formulaires et deplacements de cartes Kanban sont alors memorises dans le navigateur avec `localStorage`. La photo de profil du tableau de bord est reduite puis conservee localement dans le navigateur; elle n'est pas envoyee au serveur.
 
 ## Deploiement GitHub Pages
 
