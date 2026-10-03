@@ -50,6 +50,9 @@ const serviceCards = [...document.querySelectorAll('.service-card[data-service-i
 const serviceSearchEmpty = document.querySelector('#serviceSearchEmpty');
 const serviceSearchFeedback = document.querySelector('#serviceSearchFeedback');
 const servicePopularityNote = document.querySelector('#servicePopularityNote');
+let serverServicePopularity = null;
+let servicePopularityLoaded = !window.NovaTerraApi?.enabled;
+let servicePopularityLoading = false;
 
 function normalizeServiceText(value) {
   return String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
@@ -109,7 +112,7 @@ function renderServiceSearch() {
   serviceSearchEmpty.hidden = visibleCount > 0;
 }
 
-function renderServicePopularity() {
+function renderLocalServicePopularity() {
   let requests = [];
   try {
     const saved = JSON.parse(localStorage.getItem('terra-nova.citizen-requests.v1') || '[]');
@@ -136,6 +139,56 @@ function renderServicePopularity() {
     : (english ? 'Popularity labels will appear after reports are saved on this device.' : 'Les indicateurs de popularité apparaîtront après les premiers signalements enregistrés sur cet appareil.');
 }
 
+function renderServicePopularity() {
+  const english = document.documentElement.lang === 'en';
+  if (window.NovaTerraApi?.enabled && !servicePopularityLoaded) {
+    serviceCards.forEach((card) => { card.querySelector('[data-popularity-badge]').hidden = true; });
+    servicePopularityNote.textContent = english ? 'Loading service demand indicators…' : 'Chargement des indicateurs de demande par service…';
+    return;
+  }
+  if (!window.NovaTerraApi?.enabled || !Array.isArray(serverServicePopularity)) {
+    renderLocalServicePopularity();
+    return;
+  }
+  const counts = new Map(serviceCards.map((card) => [card.dataset.serviceId, 0]));
+  serverServicePopularity.forEach(({ service, count }) => { if (counts.has(service)) counts.set(service, count); });
+  const ranked = [...counts.entries()].filter(([, count]) => count > 0)
+    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]));
+  const winners = new Map(ranked.slice(0, 3).map(([serviceId, count], index) => [serviceId, { count, rank: index + 1 }]));
+  serviceCards.forEach((card) => {
+    const badge = card.querySelector('[data-popularity-badge]');
+    const item = winners.get(card.dataset.serviceId);
+    badge.hidden = !item;
+    if (item) badge.textContent = english
+      ? `${item.rank === 1 ? 'MOST REQUESTED' : `POPULAR #${item.rank}`} · ${item.count}`
+      : `${item.rank === 1 ? 'LE PLUS DEMANDÉ' : `POPULAIRE Nº ${item.rank}`} · ${item.count}`;
+  });
+  const total = [...counts.values()].reduce((sum, value) => sum + value, 0);
+  servicePopularityNote.textContent = total
+    ? (english ? 'Priority labels use aggregated citizen reports received by Nova Terra.' : 'Les services prioritaires sont calculés à partir des signalements citoyens reçus par Nova Terra.')
+    : (english ? 'Priority labels will appear when the city receives its first citizen reports.' : 'Les services seront mis en avant après les premiers signalements reçus par la ville.');
+}
+
+async function loadServicePopularity() {
+  if (!window.NovaTerraApi?.enabled || servicePopularityLoading) return;
+  servicePopularityLoading = true;
+  try {
+    const result = await window.NovaTerraApi.request('/service-popularity');
+    if (!Array.isArray(result.services)) throw new Error('invalid_service_popularity');
+    serverServicePopularity = result.services.flatMap((item) => (
+      item && typeof item.service === 'string' && Number.isSafeInteger(item.count) && item.count >= 0
+        ? [{ service: item.service, count: item.count }]
+        : []
+    ));
+  } catch (_) {
+    // Keep the last API aggregate while offline; the initial failure falls back to browser-local counts.
+  } finally {
+    servicePopularityLoaded = true;
+    servicePopularityLoading = false;
+    renderServicePopularity();
+  }
+}
+
 function updateNewsToggleLabel() {
   const link = document.querySelector('#allNews');
   if (!link) return;
@@ -157,3 +210,7 @@ window.addEventListener('storage', (event) => {
 });
 renderServiceSearch();
 renderServicePopularity();
+void loadServicePopularity();
+if (window.NovaTerraApi?.enabled) window.setInterval(() => {
+  if (!document.hidden) void loadServicePopularity();
+}, 60_000);

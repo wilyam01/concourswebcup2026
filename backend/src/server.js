@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import { randomUUID } from 'node:crypto';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -7,6 +8,8 @@ import bcrypt from 'bcryptjs';
 import { db } from './db.js';
 import { allowRoles, authenticate, issueToken, newId, optionalAuth, publicUser } from './auth.js';
 import { getRequests, startPolling, syncRequests } from './terraNova.js';
+import { recordAudit } from './audit.js';
+import { logEvent } from './logger.js';
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) throw new Error('JWT_SECRET must contain at least 32 characters');
 const app = express();
@@ -20,6 +23,16 @@ const isoNow = () => new Date().toISOString();
 
 app.disable('x-powered-by');
 app.use(helmet());
+app.use((req, res, next) => {
+  req.requestId = randomUUID();
+  res.setHeader('X-Request-Id', req.requestId);
+  const startedAt = process.hrtime.bigint();
+  res.on('finish', () => logEvent('info', 'http.request.completed', {
+    requestId: req.requestId, method: req.method, path: req.path, status: res.statusCode,
+    durationMs: Math.round(Number(process.hrtime.bigint() - startedAt) / 1e6),
+  }));
+  next();
+});
 app.use(cors({ origin: (process.env.CORS_ORIGIN || 'http://localhost:5500').split(',').map((value) => value.trim()) }));
 app.use(express.json({ limit: '512kb' }));
 app.use('/api', (_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
@@ -39,6 +52,7 @@ app.post('/api/auth/signup', asyncRoute(async (req, res) => {
   const user = { id: newId(), email, display_name: name, sector, password_hash: await bcrypt.hash(password, 12), role: 'CITOYEN', enabled: 1, created_at: isoNow() };
   try { db.prepare('INSERT INTO users(id,email,display_name,sector,password_hash,role) VALUES(@id,@email,@display_name,@sector,@password_hash,@role)').run(user); }
   catch (error) { if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') return res.status(409).json({ error: 'EMAIL_IN_USE' }); throw error; }
+  recordAudit(req, { actor: { id: user.id, email: user.email, role: user.role }, action: 'account.signup', entityType: 'account', entityId: user.id, summary: 'Citizen account created', metadata: { role: user.role } });
   res.status(201).json({ user: publicUser(user), token: issueToken(user) });
 }));
 
@@ -46,17 +60,26 @@ app.post('/api/auth/signin', asyncRoute(async (req, res) => {
   const email = clean(req.body?.email, 254).toLowerCase();
   const password = req.body?.password;
   const attempt = db.prepare('SELECT attempts,locked_until FROM login_failures WHERE email=?').get(email);
-  if (attempt?.locked_until > Date.now()) return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS' });
+  if (attempt?.locked_until > Date.now()) {
+    logEvent('warn', 'auth.signin.blocked', { requestId: req.requestId, reason: 'active_lockout' });
+    return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS' });
+  }
   const user = db.prepare('SELECT * FROM users WHERE email=?').get(email);
   if (!user || typeof password !== 'string' || !(await bcrypt.compare(password, user.password_hash)) || !user.enabled) {
     const count = attempt?.locked_until ? 1 : (attempt?.attempts || 0) + 1;
     const lockedUntil = count >= 5 ? Date.now() + 15 * 60 * 1000 : 0;
     db.prepare(`INSERT INTO login_failures(email,attempts,locked_until) VALUES(?,?,?)
       ON CONFLICT(email) DO UPDATE SET attempts=excluded.attempts,locked_until=excluded.locked_until`).run(email, count, lockedUntil);
-    if (lockedUntil) return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS' });
+    logEvent(lockedUntil ? 'warn' : 'info', lockedUntil ? 'auth.signin.lockout_started' : 'auth.signin.failed', { requestId: req.requestId, failedAttempts: count });
+    if (lockedUntil) {
+      const maskedEmail = email.includes('@') ? `${email.slice(0, 1)}***@${email.split('@').at(-1)}` : 'unknown';
+      recordAudit(req, { actorEmail: maskedEmail, actorRole: 'ANONYMOUS', action: 'auth.signin.lockout_started', entityType: 'login_lockout', summary: 'Suspicious sign-in attempts triggered a temporary lockout', metadata: { failedAttempts: count, durationMinutes: 15 } });
+      return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS' });
+    }
     return res.status(401).json({ error: 'INVALID_CREDENTIALS' });
   }
   db.prepare('DELETE FROM login_failures WHERE email=?').run(email);
+  recordAudit(req, { actor: user, action: 'auth.signin.succeeded', entityType: 'account', entityId: user.id, summary: 'Account signed in', metadata: { role: user.role } });
   res.json({ user: publicUser(user), token: issueToken(user) });
 }));
 
@@ -70,14 +93,20 @@ app.patch('/api/auth/me/avatar', authenticate, (req, res) => {
   if (typeof dataUrl !== 'string' || (dataUrl && (!/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+=*$/.test(dataUrl) || dataUrl.length > 400000))) {
     return res.status(400).json({ error: 'INVALID_AVATAR' });
   }
+  const previous = db.prepare('SELECT avatar_data FROM users WHERE id=?').get(req.user.id)?.avatar_data || '';
   db.prepare('UPDATE users SET avatar_data=? WHERE id=?').run(dataUrl, req.user.id);
+  if (previous !== dataUrl) recordAudit(req, { action: 'account.avatar_changed', entityType: 'account', entityId: req.user.id, summary: 'Profile photo changed', metadata: { field: 'avatar' } });
   res.json({ ok: true });
 });
 app.patch('/api/auth/me', authenticate, (req, res) => {
   const name = clean(req.body?.name, 80);
   const sector = clean(req.body?.sector, 120);
   if (name.length < 2 || !sector) return res.status(400).json({ error: 'INVALID_INPUT' });
+  const changedFields = [];
+  if (name !== req.user.display_name) changedFields.push('display_name');
+  if (sector !== req.user.sector) changedFields.push('sector');
   db.prepare('UPDATE users SET display_name=?,sector=? WHERE id=?').run(name, sector, req.user.id);
+  if (changedFields.length) recordAudit(req, { action: 'account.profile_updated', entityType: 'account', entityId: req.user.id, summary: 'Account profile updated', metadata: { changedFields } });
   const user = db.prepare('SELECT id,email,display_name,sector,role,enabled,created_at FROM users WHERE id=?').get(req.user.id);
   res.json({ user: publicUser(user) });
 });
@@ -85,6 +114,7 @@ app.delete('/api/auth/me', authenticate, allowRoles('CITOYEN'), asyncRoute(async
   const user = db.prepare('SELECT password_hash FROM users WHERE id=?').get(req.user.id);
   if (typeof req.body?.password !== 'string' || !(await bcrypt.compare(req.body.password, user.password_hash))) return res.status(401).json({ error: 'INVALID_PASSWORD' });
   db.transaction(() => {
+    recordAudit(req, { action: 'account.self_deleted', entityType: 'account', entityId: req.user.id, summary: 'Citizen account deleted by its owner', metadata: { role: req.user.role } });
     db.prepare('DELETE FROM messages WHERE lower(email)=lower(?)').run(req.user.email);
     db.prepare('DELETE FROM users WHERE id=?').run(req.user.id);
   })();
@@ -92,9 +122,16 @@ app.delete('/api/auth/me', authenticate, allowRoles('CITOYEN'), asyncRoute(async
 }));
 
 app.get('/api/requests', authenticate, (_req, res) => res.json(getRequests()));
-app.post('/api/requests/sync', authenticate, allowRoles('AGENT', 'ADMIN'), asyncRoute(async (_req, res) => {
-  try { res.json({ synced: await syncRequests(), ...getRequests().sync }); }
-  catch (error) { res.status(503).json({ error: 'TERRA_NOVA_UNAVAILABLE', message: error.message, ...getRequests().sync }); }
+app.post('/api/requests/sync', authenticate, allowRoles('AGENT', 'ADMIN'), asyncRoute(async (req, res) => {
+  try {
+    const synced = await syncRequests();
+    recordAudit(req, { action: 'official_requests.sync_completed', entityType: 'request_feed', entityId: 'webcup', summary: 'Official request feed synchronized', metadata: { records: synced } });
+    res.json({ synced, ...getRequests().sync });
+  }
+  catch (error) {
+    logEvent('warn', 'terra_nova.sync.failed', { requestId: req.requestId, errorType: error?.name || 'Error' });
+    res.status(503).json({ error: 'TERRA_NOVA_UNAVAILABLE', message: 'The official request feed is unavailable.', ...getRequests().sync });
+  }
 }));
 
 function citizenRequest(row) {
@@ -118,14 +155,19 @@ app.post('/api/citizen-requests', authenticate, allowRoles('CITOYEN'), (req, res
   const timestamp = isoNow(), requestId = id('NT');
   db.prepare(`INSERT INTO citizen_requests(id,owner_id,title,district,type,service,priority,status,description,created_at,updated_at)
     VALUES(?,?,?,?,?,?,?,'todo',?,?,?)`).run(requestId, req.user.id, title, district, type, service, priority, description, timestamp, timestamp);
+  recordAudit(req, { action: 'citizen_request.created', entityType: 'citizen_request', entityId: requestId, summary: 'Citizen report submitted', metadata: { service, priority, status: 'todo' } });
   const created = db.prepare(`${requestColumns} WHERE r.id=?`).get(requestId);
   res.status(201).json({ request: citizenRequest(created) });
 });
 app.patch('/api/citizen-requests/:id', authenticate, allowRoles('AGENT', 'ADMIN'), (req, res) => {
   const status = req.body?.status;
   if (!['todo', 'in_progress', 'done'].includes(status)) return res.status(400).json({ error: 'INVALID_STATUS' });
-  const result = db.prepare('UPDATE citizen_requests SET status=?,updated_at=? WHERE id=?').run(status, isoNow(), req.params.id);
-  if (!result.changes) return res.status(404).json({ error: 'REQUEST_NOT_FOUND' });
+  const current = db.prepare('SELECT status FROM citizen_requests WHERE id=?').get(req.params.id);
+  if (!current) return res.status(404).json({ error: 'REQUEST_NOT_FOUND' });
+  db.transaction(() => {
+    db.prepare('UPDATE citizen_requests SET status=?,updated_at=? WHERE id=?').run(status, isoNow(), req.params.id);
+    if (current.status !== status) recordAudit(req, { action: 'citizen_request.status_changed', entityType: 'citizen_request', entityId: req.params.id, summary: 'Citizen report status changed', metadata: { from: current.status, to: status } });
+  })();
   res.json({ request: citizenRequest(db.prepare(`${requestColumns} WHERE r.id=?`).get(req.params.id)) });
 });
 
@@ -138,6 +180,7 @@ app.post('/api/citizen-messages', (req, res) => {
   if (name.length < 2 || !/^\S+@\S+\.\S+$/.test(email) || !category || !subject || !message) return res.status(400).json({ error: 'INVALID_INPUT' });
   const messageId = id('MSG');
   db.prepare('INSERT INTO messages(id,name,email,category,subject,message,created_at) VALUES(?,?,?,?,?,?,?)').run(messageId, name, email, category, subject, message, isoNow());
+  recordAudit(req, { actorEmail: email, actorRole: 'ANONYMOUS', action: 'contact_message.received', entityType: 'contact_message', entityId: messageId, summary: 'Citizen contact message received', metadata: { category } });
   res.status(201).json({ id: messageId, name, email, category, subject, message, createdAt: isoNow(), unread: true });
 });
 
@@ -167,7 +210,13 @@ app.post('/api/announcements', authenticate, allowRoles('AGENT', 'ADMIN'), (req,
   if (kind === 'service_status' && (!services.has(service) || !states.has(serviceStatus))) return res.status(400).json({ error: 'INVALID_SERVICE_STATUS' });
   const announcementId = id('INFO'), createdAt = isoNow();
   const publish = db.transaction(() => {
-    if (kind === 'service_status') db.prepare("UPDATE announcements SET active=0 WHERE kind='service_status' AND service=?").run(service);
+    if (kind === 'service_status') {
+      const previous = db.prepare("SELECT service_status FROM announcements WHERE kind='service_status' AND service=? AND active=1 ORDER BY created_at DESC LIMIT 1").get(service);
+      db.prepare("UPDATE announcements SET active=0 WHERE kind='service_status' AND service=?").run(service);
+      recordAudit(req, { action: 'service.status_changed', entityType: 'service', entityId: service, summary: 'Municipal service status changed', metadata: { from: previous?.service_status || 'unknown', to: serviceStatus } });
+    } else {
+      recordAudit(req, { action: 'announcement.published', entityType: 'announcement', entityId: announcementId, summary: 'City information published', metadata: { kind, targetSector: targetSector || 'all' } });
+    }
     db.prepare(`INSERT INTO announcements(id,kind,title,body,target_sector,service,service_status,author_id,created_at,expires_at)
       VALUES(?,?,?,?,?,?,?,?,?,?)`).run(announcementId, kind, title, body, kind === 'service_status' ? '' : targetSector, kind === 'service_status' ? service : '', kind === 'service_status' ? serviceStatus : '', req.user.id, createdAt, expiresAt?.toISOString() || null);
   });
@@ -175,8 +224,12 @@ app.post('/api/announcements', authenticate, allowRoles('AGENT', 'ADMIN'), (req,
   res.status(201).json({ announcement: { id: announcementId, kind, title, body, targetSector: kind === 'service_status' ? '' : targetSector, service: kind === 'service_status' ? service : '', serviceStatus: kind === 'service_status' ? serviceStatus : '', createdAt, expiresAt: expiresAt?.toISOString() || '', active: true } });
 });
 app.patch('/api/announcements/:id/close', authenticate, allowRoles('AGENT', 'ADMIN'), (req, res) => {
-  const result = db.prepare('UPDATE announcements SET active=0 WHERE id=? AND active=1').run(req.params.id);
-  if (!result.changes) return res.status(404).json({ error: 'ANNOUNCEMENT_NOT_FOUND' });
+  const current = db.prepare('SELECT id,kind,service,service_status FROM announcements WHERE id=? AND active=1').get(req.params.id);
+  if (!current) return res.status(404).json({ error: 'ANNOUNCEMENT_NOT_FOUND' });
+  db.transaction(() => {
+    db.prepare('UPDATE announcements SET active=0 WHERE id=? AND active=1').run(req.params.id);
+    recordAudit(req, { action: current.kind === 'service_status' ? 'service.status_closed' : 'announcement.closed', entityType: current.kind === 'service_status' ? 'service' : 'announcement', entityId: current.kind === 'service_status' ? current.service : current.id, summary: current.kind === 'service_status' ? 'Municipal service status cleared' : 'City information closed', metadata: { kind: current.kind, previousStatus: current.service_status } });
+  })();
   res.status(204).end();
 });
 app.post('/api/announcements/read', authenticate, (req, res) => {
@@ -192,6 +245,20 @@ app.get('/api/service-statuses', optionalAuth, (req, res) => {
   const statuses = {};
   rows.forEach((row) => { if (row.service && !statuses[row.service]) statuses[row.service] = announcement(row); });
   res.json({ statuses, sector });
+});
+
+app.get('/api/service-popularity', (_req, res) => {
+  const services = db.prepare(`SELECT service,COUNT(*) AS count FROM citizen_requests
+    GROUP BY service ORDER BY count DESC,service ASC LIMIT 3`).all();
+  res.json({ services });
+});
+
+app.get('/api/transit/schedules', (_req, res) => {
+  const routes = db.prepare(`SELECT id,line_code AS lineCode,line_name AS lineName,line_name_en AS lineNameEn,
+    origin,origin_en AS originEn,destination,destination_en AS destinationEn,start_time AS startTime,
+    end_time AS endTime,frequency_minutes AS frequencyMinutes,accessibility,accessibility_en AS accessibilityEn,
+    source,updated_at AS updatedAt FROM transit_schedules ORDER BY line_code`).all();
+  res.json({ routes, source: routes.length > 0 && routes.every((route) => route.source === 'official') ? 'official' : 'demo', updatedAt: routes.reduce((latest, route) => route.updatedAt > latest ? route.updatedAt : latest, '') });
 });
 
 app.get('/api/appointments/agents', authenticate, (req, res) => {
@@ -248,6 +315,7 @@ app.post('/api/appointments', authenticate, allowRoles('CITOYEN'), (req, res) =>
     if (collision) throw new Error('SLOT_UNAVAILABLE');
     db.prepare(`INSERT INTO appointments(id,owner_id,agent_id,agent_name,sector,service,purpose,scheduled_at,created_at,updated_at)
       VALUES(?,?,?,?,?,?,?,?,?,?)`).run(appointmentId, req.user.id, chosen.id, chosen.display_name, req.user.sector, service, purpose, scheduled.toISOString(), timestamp, timestamp);
+    recordAudit(req, { action: 'appointment.booked', entityType: 'appointment', entityId: appointmentId, summary: 'Municipal appointment booked', metadata: { service, scheduledAt: scheduled.toISOString(), agentId: chosen.id } });
   });
   try { create(); } catch (error) { if (error.message === 'SLOT_UNAVAILABLE') return res.status(409).json({ error: error.message }); throw error; }
   res.status(201).json({ appointment: appointment(db.prepare(`${appointmentColumns} WHERE a.id=?`).get(appointmentId)) });
@@ -260,12 +328,17 @@ app.patch('/api/appointments/:id', authenticate, (req, res) => {
   const staff = ['AGENT', 'ADMIN'].includes(req.user.role);
   if (req.user.role === 'AGENT' && current.agent_id !== req.user.id) return res.status(403).json({ error: 'FORBIDDEN' });
   if (!staff && (current.owner_id !== req.user.id || nextStatus !== 'cancelled' || current.status !== 'booked')) return res.status(403).json({ error: 'FORBIDDEN' });
-  db.prepare('UPDATE appointments SET status=?,updated_at=? WHERE id=?').run(nextStatus, isoNow(), req.params.id);
+  db.transaction(() => {
+    db.prepare('UPDATE appointments SET status=?,updated_at=? WHERE id=?').run(nextStatus, isoNow(), req.params.id);
+    if (current.status !== nextStatus) recordAudit(req, { action: `appointment.${nextStatus}`, entityType: 'appointment', entityId: req.params.id, summary: nextStatus === 'cancelled' ? 'Municipal appointment cancelled' : 'Municipal appointment completed', metadata: { from: current.status, to: nextStatus } });
+  })();
   res.json({ appointment: appointment(db.prepare(`${appointmentColumns} WHERE a.id=?`).get(req.params.id)) });
 });
 app.post('/api/appointments/:id/reminder', authenticate, allowRoles('CITOYEN'), (req, res) => {
-  const result = db.prepare("UPDATE appointments SET reminder_sent_at=?,updated_at=? WHERE id=? AND owner_id=? AND status='booked'").run(isoNow(), isoNow(), req.params.id, req.user.id);
+  const reminderAt = isoNow();
+  const result = db.prepare("UPDATE appointments SET reminder_sent_at=?,updated_at=? WHERE id=? AND owner_id=? AND status='booked'").run(reminderAt, reminderAt, req.params.id, req.user.id);
   if (!result.changes) return res.status(404).json({ error: 'APPOINTMENT_NOT_FOUND' });
+  recordAudit(req, { action: 'appointment.reminder_marked', entityType: 'appointment', entityId: req.params.id, summary: 'Appointment reminder recorded' });
   res.status(204).end();
 });
 
@@ -278,13 +351,15 @@ app.get('/api/accounts', authenticate, allowRoles('AGENT', 'ADMIN'), (req, res) 
 app.patch('/api/accounts/:id/access', authenticate, allowRoles('AGENT', 'ADMIN'), (req, res) => {
   if (typeof req.body?.enabled !== 'boolean') return res.status(400).json({ error: 'INVALID_INPUT' });
   if (req.params.id === req.user.id) return res.status(409).json({ error: 'CANNOT_CHANGE_SELF' });
-  const target = db.prepare('SELECT id,role FROM users WHERE id=? OR lower(email)=lower(?)').get(req.params.id, req.params.id);
+  const target = db.prepare('SELECT id,role,enabled FROM users WHERE id=? OR lower(email)=lower(?)').get(req.params.id, req.params.id);
   if (!target) return res.status(404).json({ error: 'ACCOUNT_NOT_FOUND' });
   if (req.user.role !== 'ADMIN' && target.role !== 'CITOYEN') return res.status(403).json({ error: 'FORBIDDEN' });
   const updateAccess = db.transaction(() => {
     db.prepare('UPDATE users SET enabled=? WHERE id=?').run(req.body.enabled ? 1 : 0, target.id);
+    if (Boolean(target.enabled) !== req.body.enabled) recordAudit(req, { action: 'account.access_changed', entityType: 'account', entityId: target.id, summary: 'Account access changed', metadata: { from: Boolean(target.enabled), to: req.body.enabled } });
     if (!req.body.enabled && target.role === 'AGENT') {
-      db.prepare("UPDATE appointments SET status='cancelled',updated_at=? WHERE agent_id=? AND status='booked'").run(isoNow(), target.id);
+      const cancelled = db.prepare("UPDATE appointments SET status='cancelled',updated_at=? WHERE agent_id=? AND status='booked'").run(isoNow(), target.id);
+      if (cancelled.changes) recordAudit(req, { action: 'appointment.agent_bookings_cancelled', entityType: 'account', entityId: target.id, summary: 'Agent appointments cancelled after access suspension', metadata: { appointments: cancelled.changes } });
     }
   });
   updateAccess();
@@ -294,15 +369,47 @@ app.patch('/api/accounts/:id/role', authenticate, allowRoles('ADMIN'), (req, res
   const role = ({ citizen: 'CITOYEN', agent: 'AGENT', admin: 'ADMIN' })[req.body?.profile];
   if (!role) return res.status(400).json({ error: 'INVALID_ROLE' });
   if (req.params.id === req.user.id) return res.status(409).json({ error: 'CANNOT_CHANGE_SELF' });
-  const target = db.prepare('SELECT id FROM users WHERE id=? OR lower(email)=lower(?)').get(req.params.id, req.params.id);
+  const target = db.prepare('SELECT id,role FROM users WHERE id=? OR lower(email)=lower(?)').get(req.params.id, req.params.id);
   if (!target) return res.status(404).json({ error: 'ACCOUNT_NOT_FOUND' });
-  db.prepare('UPDATE users SET role=? WHERE id=?').run(role, target.id);
+  db.transaction(() => {
+    db.prepare('UPDATE users SET role=? WHERE id=?').run(role, target.id);
+    if (target.role !== role) recordAudit(req, { action: 'account.role_changed', entityType: 'account', entityId: target.id, summary: 'Account role changed by administrator', metadata: { from: target.role, to: role } });
+  })();
   res.json({ id: target.id, profile: req.body.profile });
 });
 
-app.use((error, _req, res, _next) => {
-  console.error(error);
+app.get('/api/audit-logs', authenticate, allowRoles('ADMIN'), (req, res) => {
+  const categories = {
+    auth: 'auth.%', account: 'account.%', report: 'citizen_request.%', contact: 'contact_message.%',
+    announcement: 'announcement.%', service: 'service.%', appointment: 'appointment.%', official: 'official_requests.%',
+  };
+  const conditions = [];
+  const parameters = [];
+  const category = clean(req.query?.category, 30);
+  if (category && !categories[category]) return res.status(400).json({ error: 'INVALID_CATEGORY' });
+  if (category && categories[category]) { conditions.push('action LIKE ?'); parameters.push(categories[category]); }
+  const actor = clean(req.query?.actor, 254).toLowerCase();
+  if (actor) { conditions.push('lower(actor_email)=?'); parameters.push(actor); }
+  const before = Number(req.query?.before);
+  if (Number.isSafeInteger(before) && before > 0) { conditions.push('id<?'); parameters.push(before); }
+  const parsedLimit = Number(req.query?.limit);
+  const limit = Number.isSafeInteger(parsedLimit) ? Math.max(1, Math.min(100, parsedLimit)) : 50;
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const rows = db.prepare(`SELECT id,occurred_at AS occurredAt,actor_email AS actorEmail,actor_role AS actorRole,
+    action,entity_type AS entityType,entity_id AS entityId,summary,metadata_json AS metadataJson
+    FROM audit_events ${where} ORDER BY id DESC LIMIT ?`).all(...parameters, limit + 1);
+  const hasMore = rows.length > limit;
+  const events = rows.slice(0, limit).map(({ metadataJson, ...event }) => {
+    let metadata = {};
+    try { metadata = JSON.parse(metadataJson); } catch (_) { /* Keep an empty safe metadata object. */ }
+    return { ...event, metadata };
+  });
+  res.json({ events, nextBefore: hasMore ? events.at(-1)?.id || null : null });
+});
+
+app.use((error, req, res, _next) => {
+  logEvent('error', 'http.request.failed', { requestId: req.requestId, errorType: error?.name || 'Error' });
   res.status(500).json({ error: 'INTERNAL_SERVER_ERROR' });
 });
 const port = Number(process.env.PORT) || 3000;
-app.listen(port, () => { console.log(`Nova Terra API listening on http://localhost:${port}`); startPolling(); });
+app.listen(port, () => { logEvent('info', 'server.started', { port }); startPolling(); });

@@ -14,13 +14,14 @@
   <link rel="stylesheet" href="theme.css" />
   <link rel="stylesheet" href="accessibility.css" />
   <link rel="stylesheet" href="community.css" />
+  <link rel="stylesheet" href="emergency-map.css" />
 </head>
 <body>
   <a class="skip-link" href="#main-content">Aller au contenu principal</a>
   <header class="public-header">
     <a class="public-brand" href="#accueil" aria-label="Nova Terra, accueil"><span class="brand-symbol"><i></i><i></i><i></i><i></i></span><span><b>NOVA <em>TERRA</em></b><small>VILLE · PLANÈTE · COMMUNAUTÉ</small></span></a>
     <button class="menu-toggle" id="menuToggle" type="button" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="publicNav">☰</button>
-    <nav class="public-nav" id="publicNav" aria-label="Navigation principale"><a href="#services">Services</a><a href="#actualites">Actualités</a><a href="#communaute">La communauté</a></nav>
+    <nav class="public-nav" id="publicNav" aria-label="Navigation principale"><a href="#services">Services</a><a href="#actualites">Actualités</a><a href="#communaute">La communauté</a><a href="#urgences" id="emergencyNavLink">Urgences</a></nav>
     <div class="header-actions"><button class="theme-toggle" type="button" data-theme-toggle aria-label="Changer le thème"><span class="theme-symbol" aria-hidden="true">☼</span></button><a class="login-link" href="connexion.html">Connexion <span>↗</span></a><a class="button button-small" href="inscription.html">Rejoindre Nova Terra <span>→</span></a></div>
   </header>
 
@@ -34,6 +35,33 @@
     </section>
 
     <section class="pulse-strip" id="communaute" aria-label="Indicateurs illustratifs de la cité"><div class="pulse-intro"><i></i><span>APERÇU ILLUSTRATIF</span></div><div class="pulse-stat"><b>24 892</b><span>citoyen·nes actif·ves</span></div><div class="pulse-stat"><b>86<span class="stat-unit">/100</span></b><span>indice de bien-être</span></div><div class="pulse-stat"><b>94<span class="stat-unit">%</span></b><span>ressources disponibles</span></div><div class="pulse-stat pulse-status"><i></i><span>Réseau de démonstration<br /><small>Données non connectées</small></span></div></section>
+
+    <section class="emergency-section" id="urgences" aria-labelledby="emergencyTitle">
+      <div class="emergency-shell">
+        <div class="emergency-heading"><div><p class="section-kicker" id="emergencyKicker"><span>00</span> SANTÉ &amp; SÉCURITÉ</p><h2 id="emergencyTitle">Urgences et lieux de soin</h2><p id="emergencyIntro">Repère les centres de soin, postes de secours et lieux de fraîcheur de la cité.</p></div><a class="emergency-call" href="tel:112" id="emergencyCallLink">Danger immédiat ? Appelle le 112</a></div>
+        <div class="emergency-filters" id="emergencyFilters" role="group" aria-label="Filtrer les lieux sur la carte">
+          <button type="button" data-emergency-filter="all" aria-pressed="true">Tous les lieux</button>
+          <button type="button" data-emergency-filter="hospital" aria-pressed="false">Hôpitaux &amp; soins</button>
+          <button type="button" data-emergency-filter="rescue" aria-pressed="false">Secours</button>
+          <button type="button" data-emergency-filter="cooling" aria-pressed="false">Lieux frais</button>
+        </div>
+        <div class="emergency-layout">
+          <div class="emergency-map" id="emergencyMap" role="group" aria-label="Carte schématique interactive des urgences et hôpitaux">
+            <svg class="emergency-roads" viewBox="0 0 700 390" preserveAspectRatio="none" aria-hidden="true"><path d="M0 260 120 220 214 246 328 172 418 190 536 104 700 125M40 0 112 92 214 246 304 358M240 0 258 96 328 172 424 390M470 0 442 104 536 104 578 248 700 304M0 344 180 306 328 172 578 248 700 212"/><path d="M120 220 112 92 258 96 442 104 536 104M214 246 180 306 304 358 578 248"/></svg>
+            <span class="emergency-district district-north" id="emergencyNorth">District Boréal</span><span class="emergency-district district-center" id="emergencyCenter">Centre civique</span><span class="emergency-district district-south" id="emergencySouth">Serres du Sud</span>
+            <div class="emergency-marker-layer" id="emergencyMarkers"></div>
+            <span class="emergency-map-caption" id="emergencyMapCaption">CARTE SCHÉMATIQUE · DÉMO</span>
+          </div>
+          <p class="sr-only" id="emergencySelectedPlace" role="status" aria-live="polite"></p>
+          <section class="emergency-facility-panel" aria-labelledby="emergencyLocationsTitle">
+            <div class="emergency-list-heading"><h3 id="emergencyLocationsTitle">Lieux répertoriés</h3><span id="emergencyResultCount" role="status" aria-live="polite"></span></div>
+            <div class="emergency-facility-list" id="emergencyFacilityList" aria-live="polite"></div>
+            <p class="emergency-empty" id="emergencyEmpty" hidden>Aucun lieu dans cette catégorie.</p>
+          </section>
+        </div>
+        <p class="emergency-disclaimer" id="emergencyDisclaimer">Maquette illustrative : les emplacements, horaires et disponibilités ne sont pas des données officielles. En situation réelle, appelle le 112.</p>
+      </div>
+    </section>
 
     <section class="section services-section" id="services"><div class="section-heading"><div><div class="section-kicker"><span>01</span> VOTRE VILLE, À PORTÉE DE MAIN</div><h2>Les services qui<br /><em>font la cité.</em></h2></div><div class="section-aside"><p>Les ressources essentielles et les équipes municipales, réunies dans un même lieu.</p><a href="dashboard.html#planet" class="arrow-link">Voir le tableau de bord <span>↗</span></a></div></div>
       <div class="service-tools"><label class="service-search"><span class="sr-only" id="serviceSearchLabel">Rechercher un service par nom ou besoin</span><input id="serviceSearch" type="search" placeholder="Rechercher un service…" aria-controls="serviceGrid" /></label><p id="serviceSearchFeedback" role="status" aria-live="polite"></p></div>
@@ -56,7 +84,7 @@
         <article class="mobility-route"><div class="mobility-route-top"><span class="route-line route-green">B</span><span id="mobilityGreenLabel">LIGNE VERTE</span></div><h3 id="mobilityGreenRoute">Serres du Sud ↔ Centre civique</h3><div class="mobility-route-meta"><span id="mobilityGreenHours">Service · 06:00–20:00</span><b id="mobilityGreenFrequency">Toutes les 20 min</b></div><p id="mobilityGreenAccess">Arrêt des serres · correspondance avec la ligne A</p></article>
         <article class="mobility-route"><div class="mobility-route-top"><span class="route-line route-gold">C</span><span id="mobilityGoldLabel">LIGNE DORÉE</span></div><h3 id="mobilityGoldRoute">Centre de santé ↔ District Boréal</h3><div class="mobility-route-meta"><span id="mobilityGoldHours">Service · 06:00–23:00</span><b id="mobilityGoldFrequency">Toutes les 15 min</b></div><p id="mobilityGoldAccess">Ligne à plancher bas · dessert le pôle médical</p></article>
       </div>
-      <p class="mobility-demo-note" id="mobilityDemoNote" role="note">Horaires illustratifs de démonstration — consultez le réseau municipal pour les informations en temps réel.</p>
+      <p class="mobility-demo-note" id="mobilityDemoNote" role="status" aria-live="polite">Horaires illustratifs de démonstration — consultez le réseau municipal pour les informations en temps réel.</p>
     </div></section>
 
     <section class="news-section" id="actualites"><div class="news-orb"></div><div class="section news-inner"><div class="section-heading news-heading"><div><div class="section-kicker"><span>02</span> LE JOURNAL DE LA CITÉ</div><h2>À la une de<br /><em>Nova Terra.</em></h2></div><div class="section-aside"><p>Les nouvelles municipales, les décisions du Conseil et les moments de la communauté.</p><a href="#actualites" class="arrow-link" id="allNews" aria-expanded="false" aria-controls="news-list">Toutes les actualités <span>↗</span></a></div></div>
@@ -76,7 +104,9 @@
   <script src="auth.js"></script>
   <script src="city-data.js"></script>
   <script src="public.js"></script>
+  <script src="transit.js"></script>
   <script src="community.js"></script>
+  <script src="emergency-map.js"></script>
   <script src="assistant.js"></script>
   <script src="accessibility.js"></script>
 </body>

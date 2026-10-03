@@ -10,9 +10,18 @@ Express API with SQLite, bcrypt password hashing, JWT sessions, role checks, and
 - `GET/POST /api/citizen-messages` for contact form submissions and agent inbox
 - `GET/POST /api/announcements`, `PATCH /api/announcements/:id/close`, `POST /api/announcements/read`
 - `GET /api/service-statuses`
+- `GET /api/service-popularity` for anonymous service totals only (no citizen or report details)
 - `GET /api/appointments`, `POST /api/appointments`, `PATCH /api/appointments/:id`, `POST /api/appointments/:id/reminder`
 - `GET /api/appointments/agents`
 - `GET /api/accounts`, `PATCH /api/accounts/:id/access`, `PATCH /api/accounts/:id/role` (role changes are admin-only)
 - `GET/PATCH /api/auth/me/avatar` for the signed-in user's resized profile photo
+- `GET /api/transit/schedules` for the current bilingual timetable catalog
+- `GET /api/audit-logs` (admin-only, paginated, category filter) for account, sign-in, request, announcement, service, appointment, and official-feed history
 
 Use `Authorization: Bearer <token>` on protected routes. Citizen signup never accepts a role. Bootstrap the first administrator using temporary `ADMIN_EMAIL` and `ADMIN_PASSWORD` environment variables, then remove them. SQLite storage is suitable for local development or one persistent server instance; use a managed persistent database for multi-instance production.
+
+## Security and data notes
+
+The server applies role checks on protected endpoints, rate-limits authentication and contact requests, and temporarily locks an email after five failed sign-ins. Lockout events and successful sign-ins are recorded in the admin audit feed; routine failures and HTTP request outcomes are emitted as structured JSON to stdout/stderr for the hosting platform's log collector. Audit records keep actor snapshots so they remain attributable after account deletion. Audit metadata omits credentials and message bodies.
+
+Transit schedules are served by the API and stored in SQLite, but the included line times are demonstration records. Replace or update them from a verified municipal transit feed before presenting them as live information.

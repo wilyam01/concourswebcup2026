@@ -4,10 +4,18 @@
   const form = document.querySelector('#announcementForm');
   const accountHost = document.querySelector('#managedAccounts');
   const announcementHost = document.querySelector('#managedAnnouncements');
+  const auditCard = document.querySelector('#auditTrailCard');
+  const auditHost = document.querySelector('#auditLogList');
+  const auditFeedback = document.querySelector('#auditFeedback');
+  const auditCategory = document.querySelector('#auditCategory');
+  const auditLoadMore = document.querySelector('#auditLoadMore');
   const kindSelect = document.querySelector('#announcementKind');
   const serviceFields = document.querySelector('#announcementServiceFields');
   const targetSelect = form.elements.targetSector;
   const bodyInput = form.elements.body;
+  let auditCursor = null;
+  let auditEvents = [];
+  let auditLoading = false;
   const english = () => document.documentElement.lang === 'en';
   const serviceLabels = () => english()
     ? { water: 'Water and environment', health: 'Health and wellbeing', energy: 'Energy and housing', mobility: 'Mobility', civic: 'Civic life', solidarity: 'Support and assistance', other: 'Other service' }
@@ -33,15 +41,37 @@
   }
 
   function updateManagementCopy() {
-    if (!window.NovaTerraApi?.enabled) return;
     const english = document.documentElement.lang === 'en';
-    document.querySelector('#city-management .section-heading>span').textContent = english ? 'Nova Terra API · synchronized' : 'API Nova Terra · synchronisée';
-    document.querySelector('#city-management .management-card:nth-child(1)>p:not(.kicker)').textContent = english
-      ? 'Residents will see this notice in the alert centre; new announcements also appear in the public news feed.'
-      : 'Les habitants verront cette information dans le centre des alertes; les annonces seront aussi publiées dans le fil d’actualités.';
-    document.querySelector('#city-management .management-card:nth-child(2)>p:not(.kicker)').textContent = english
-      ? 'Suspend or restore resident access. Administrators can also assign agent and administrator roles.'
-      : 'Suspends ou rétablis un accès citoyen. Les administrateurs peuvent aussi attribuer les rôles agent et administrateur.';
+    if (window.NovaTerraApi?.enabled) {
+      document.querySelector('#city-management .section-heading>span').textContent = english ? 'Nova Terra API · synchronized' : 'API Nova Terra · synchronisée';
+      document.querySelector('#city-management .management-card:nth-child(1)>p:not(.kicker)').textContent = english
+        ? 'Residents will see this notice in the alert centre; new announcements also appear in the public news feed.'
+        : 'Les habitants verront cette information dans le centre des alertes; les annonces seront aussi publiées dans le fil d’actualités.';
+      document.querySelector('#city-management .management-card:nth-child(2)>p:not(.kicker)').textContent = english
+        ? 'Suspend or restore resident access. Administrators can also assign agent and administrator roles.'
+        : 'Suspends ou rétablis un accès citoyen. Les administrateurs peuvent aussi attribuer les rôles agent et administrateur.';
+    }
+    if (user.profile === 'admin') {
+      auditCard.hidden = false;
+      auditCard.querySelector('.kicker').textContent = english ? 'F47 · F48 · ACTION TRACE' : 'F47 · F48 · TRACE DES ACTIONS';
+      auditCard.querySelector('h3').textContent = english ? 'Security and audit log' : 'Journal de sécurité et d’audit';
+      document.querySelector('#auditIntro').textContent = window.NovaTerraApi?.enabled
+        ? (english ? 'Review who changed accounts, requests, announcements, service states and appointments.' : 'Consulte qui a modifié les comptes, demandes, annonces, statuts des services et rendez-vous.')
+        : (english ? 'Connect the Nova Terra backend to keep and review a secure audit trail.' : 'Connecte le backend Nova Terra pour conserver et consulter le journal sécurisé.');
+      const categoryLabel = auditCategory.labels[0];
+      categoryLabel.firstChild.textContent = english ? 'Filter the log' : 'Filtrer le journal';
+      [...auditCategory.options].forEach((option) => {
+        const labels = english
+          ? { '': 'All actions', auth: 'Sign-ins', account: 'Accounts and roles', report: 'Requests', contact: 'Citizen messages', announcement: 'Announcements', service: 'Service status', appointment: 'Appointments', official: 'API sync' }
+          : { '': 'Toutes les actions', auth: 'Connexions', account: 'Comptes et rôles', report: 'Demandes', contact: 'Messages citoyens', announcement: 'Annonces', service: 'Statuts des services', appointment: 'Rendez-vous', official: 'Synchronisation API' };
+        option.textContent = labels[option.value];
+      });
+      document.querySelector('#refreshAudit').textContent = english ? 'Refresh' : 'Actualiser';
+      auditLoadMore.textContent = english ? 'Load more' : 'Charger plus';
+      auditCategory.disabled = !window.NovaTerraApi?.enabled;
+      document.querySelector('#refreshAudit').disabled = !window.NovaTerraApi?.enabled;
+      if (!window.NovaTerraApi?.enabled) auditFeedback.textContent = english ? 'Audit storage is available in server mode.' : 'Le journal d’audit est disponible en mode serveur.';
+    }
   }
 
   async function renderAnnouncements() {
@@ -68,6 +98,7 @@
         try {
           await window.NovaTerraCity.closeAnnouncement(item.id);
           renderAnnouncements();
+          renderAuditLogs();
         } catch (_) {
           document.querySelector('#announcementFeedback').textContent = english() ? 'The announcement could not be closed.' : 'L’annonce n’a pas pu être clôturée.';
         }
@@ -111,6 +142,7 @@
             : (english() ? 'The role could not be changed.' : 'Le rôle n’a pas pu être modifié.');
           await renderAccounts();
           feedback.textContent = message;
+          renderAuditLogs();
         });
       }
       const control = element('button', '', account.enabled ? (english() ? 'Suspend access' : 'Suspendre') : (english() ? 'Restore access' : 'Rétablir'));
@@ -127,12 +159,88 @@
         }
         await renderAccounts();
         feedback.textContent = english() ? `Access updated for ${account.name}.` : `Accès mis à jour pour ${account.name}.`;
+        renderAuditLogs();
       });
       row.append(copy);
       if (roleSelect) row.append(roleSelect);
       row.append(control);
       accountHost.append(row);
     });
+  }
+
+  function auditActionLabel(event) {
+    const labels = english()
+      ? {
+        'account.signup': 'Citizen account created', 'auth.signin.succeeded': 'Account signed in', 'auth.signin.lockout_started': 'Sign-in lockout started',
+        'account.avatar_changed': 'Profile photo changed', 'account.profile_updated': 'Account profile updated', 'account.self_deleted': 'Citizen account deleted',
+        'account.access_changed': 'Account access changed', 'account.role_changed': 'Account role changed', 'citizen_request.created': 'Citizen report submitted',
+        'citizen_request.status_changed': 'Citizen report status changed', 'contact_message.received': 'Contact message received',
+        'announcement.published': 'City information published', 'announcement.closed': 'City information closed',
+        'service.status_changed': 'Service status changed', 'service.status_closed': 'Service status cleared',
+        'appointment.booked': 'Appointment booked', 'appointment.cancelled': 'Appointment cancelled',
+        'appointment.completed': 'Appointment completed', 'appointment.reminder_marked': 'Appointment reminder recorded',
+        'appointment.agent_bookings_cancelled': 'Agent appointments cancelled', 'official_requests.sync_completed': 'Official requests synchronized',
+      }
+      : {
+        'account.signup': 'Compte citoyen créé', 'auth.signin.succeeded': 'Connexion réussie', 'auth.signin.lockout_started': 'Blocage temporaire de connexion déclenché',
+        'account.avatar_changed': 'Photo de profil modifiée', 'account.profile_updated': 'Profil modifié', 'account.self_deleted': 'Compte citoyen supprimé',
+        'account.access_changed': 'Accès au compte modifié', 'account.role_changed': 'Rôle du compte modifié', 'citizen_request.created': 'Signalement citoyen envoyé',
+        'citizen_request.status_changed': 'Statut du signalement modifié', 'contact_message.received': 'Message citoyen reçu',
+        'announcement.published': 'Information municipale publiée', 'announcement.closed': 'Information municipale clôturée',
+        'service.status_changed': 'Statut de service modifié', 'service.status_closed': 'Statut de service retiré',
+        'appointment.booked': 'Rendez-vous réservé', 'appointment.cancelled': 'Rendez-vous annulé',
+        'appointment.completed': 'Rendez-vous terminé', 'appointment.reminder_marked': 'Rappel de rendez-vous noté',
+        'appointment.agent_bookings_cancelled': 'Rendez-vous de l’agent annulés', 'official_requests.sync_completed': 'Demandes officielles synchronisées',
+      };
+    if (event.action === 'official_requests.feed_changed') return english() ? 'Official request feed changed' : 'Flux des demandes officielles mis à jour';
+    return labels[event.action] || event.summary || event.action;
+  }
+
+  function renderAuditRows() {
+    const roleLabels = english()
+      ? { ADMIN: 'Administrator', AGENT: 'Agent', CITOYEN: 'Citizen', ANONYMOUS: 'Visitor', SYSTEM: 'System' }
+      : { ADMIN: 'Administrateur', AGENT: 'Agent', CITOYEN: 'Citoyen', ANONYMOUS: 'Visiteur', SYSTEM: 'Système' };
+    auditHost.replaceChildren(...auditEvents.map((event) => {
+      const row = element('article', 'audit-log-entry');
+      const heading = element('div', 'audit-log-heading');
+      heading.append(element('b', '', auditActionLabel(event)));
+      const time = element('time', '', new Intl.DateTimeFormat(english() ? 'en' : 'fr', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(event.occurredAt)));
+      time.dateTime = event.occurredAt;
+      heading.append(time);
+      const actor = element('p', 'audit-log-actor', `${event.actorEmail || (roleLabels[event.actorRole] || event.actorRole)} · ${roleLabels[event.actorRole] || event.actorRole}`);
+      const entity = element('small', 'audit-log-entity', `${event.action} · ${event.entityType}${event.entityId ? ` · ${event.entityId}` : ''}`);
+      const metadata = event.metadata && Object.keys(event.metadata).length
+        ? element('small', 'audit-log-metadata', Object.entries(event.metadata).map(([key, value]) => `${key}: ${typeof value === 'object' ? JSON.stringify(value) : String(value)}`).join(' · '))
+        : null;
+      row.append(heading, actor, entity);
+      if (metadata) row.append(metadata);
+      return row;
+    }));
+  }
+
+  async function renderAuditLogs(append = false) {
+    if (user.profile !== 'admin' || !window.NovaTerraApi?.enabled || auditLoading) return;
+    if (append && !auditCursor) return;
+    auditLoading = true;
+    auditFeedback.textContent = english() ? 'Loading audit history…' : 'Chargement du journal…';
+    const query = new URLSearchParams({ limit: '50' });
+    if (auditCategory.value) query.set('category', auditCategory.value);
+    if (append && auditCursor) query.set('before', String(auditCursor));
+    try {
+      const result = await window.NovaTerraApi.request(`/audit-logs?${query.toString()}`);
+      if (!Array.isArray(result.events)) throw new Error('invalid_audit_response');
+      auditEvents = append ? [...auditEvents, ...result.events] : result.events;
+      auditCursor = result.nextBefore || null;
+      renderAuditRows();
+      auditLoadMore.hidden = !auditCursor;
+      auditFeedback.textContent = result.events.length
+        ? (english() ? `${auditEvents.length} events shown.` : `${auditEvents.length} événements affichés.`)
+        : (english() ? 'No matching audit events.' : 'Aucun événement correspondant.');
+    } catch (_) {
+      auditFeedback.textContent = english() ? 'Audit history could not be loaded.' : 'Le journal d’audit n’a pas pu être chargé.';
+    } finally {
+      auditLoading = false;
+    }
   }
 
   kindSelect.addEventListener('change', () => {
@@ -179,6 +287,7 @@
       serviceFields.hidden = selectedKind !== 'service_status';
       targetSelect.disabled = selectedKind === 'service_status';
       renderAnnouncements();
+      renderAuditLogs();
     } catch (error) {
       const messages = english()
         ? { invalid_text: 'Add a title and message within the field limits.', invalid_expiry: 'Choose an expiration time in the future.', invalid_service_status: 'Choose a service and its status.' }
@@ -187,6 +296,19 @@
       feedback.hidden = false;
     }
   });
+
+  document.querySelector('#refreshAudit').addEventListener('click', () => {
+    auditCursor = null;
+    auditEvents = [];
+    renderAuditLogs();
+  });
+  auditCategory.addEventListener('change', () => {
+    auditCursor = null;
+    auditEvents = [];
+    renderAuditRows();
+    renderAuditLogs();
+  });
+  auditLoadMore.addEventListener('click', () => renderAuditLogs(true));
 
   window.addEventListener('terra-nova:announcements-updated', renderAnnouncements);
   window.addEventListener('terra-nova:accounts-updated', renderAccounts);
@@ -198,15 +320,19 @@
     updateManagementCopy();
     renderAccounts();
     renderAnnouncements();
+    renderAuditRows();
+    renderAuditLogs();
     kindSelect.dispatchEvent(new Event('change'));
   });
   window.setInterval(() => {
     if (!document.hidden && window.NovaTerraApi?.enabled) {
       renderAnnouncements();
       renderAccounts();
+      renderAuditLogs();
     }
   }, 60_000);
   updateManagementCopy();
   renderAnnouncements();
   renderAccounts();
+  renderAuditLogs();
 })();

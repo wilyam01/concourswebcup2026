@@ -42,6 +42,12 @@ git push origin main
 - `agent/dashboard/index.html` : back-office agents, Kanban et messages reçus
 - `presentation.html` : support visuel de présentation
 
+## Accessibilité et repères d’urgence
+
+Le bouton « Aa » regroupe les préférences déjà présentes : navigation clavier avec repère de saut et focus visible, mode contraste élevé, agrandissement du texte, langue et fil d’Ariane. La palette daltonisme prolonge le contraste existant; l’interface simplifiée et le petit glossaire ajoutent les fonctions D13. Le fil d’actualités, les annonces prioritaires, les alertes crue/canicule et les repères de navigation sont déjà couverts : D15, D18/F30, F29/F31, F41/F42/D20 et F44 réutilisent les composants en place au lieu d’ajouter des copies.
+
+La section **Urgences** de l’accueil ajoute la carte filtrable des hôpitaux, postes de secours et lieux frais (F45/F46). Ses emplacements et horaires sont illustratifs, non officiels; appeler le 112 en cas d’urgence réelle. Une source cartographique municipale pourra remplacer ces exemples si elle est fournie.
+
 ## Relier l’application au backend Nova Terra
 
 Un backend Express/SQLite optionnel est fourni dans `backend/`. Il permet de partager les comptes, les rôles, les signalements citoyens, les messages de contact, les annonces/alertes, les états des services et les rendez-vous entre appareils. Le mode local du navigateur reste disponible pour la démonstration hors ligne.
@@ -130,6 +136,14 @@ Les exemples locaux restent disponibles avec `localStorage` quand aucune API n'e
 ## Déploiement GitHub Pages
 
 Le workflow `.github/workflows/deploy-pages.yml` peut toujours publier la version statique à chaque commit sur `main`. Dans GitHub, activez `Settings` > `Pages` > `Source: GitHub Actions`. Cette version reste en mode démonstration tant que `DEPLOYED_API_BASE_URL` ne pointe pas vers un backend Node.js externe hébergé en HTTPS.
+
+## Couverture backend et audit
+
+Le backend couvrait déjà D01/D03 (inscription et session), D08/D09 (rôles et contrôles RBAC), F33/F34 (suppression autonome et gestion des comptes) et F38 (états des services). F37 réutilise le verrouillage après cinq échecs et la limitation des requêtes; les blocages sont maintenant consultables dans l'audit admin. Ces fonctions gardent leurs endpoints existants.
+
+Les nouvelles routes sont `GET /api/audit-logs` (admin uniquement, pagination et filtres) pour F47/F48, et `GET /api/transit/schedules` pour F36. L'audit enregistre les actions de compte, demandes, annonces, services, rendez-vous et changements du flux officiel; les logs HTTP et d'erreur sortent en JSON vers les logs de l'hébergeur. Les horaires inclus sont des exemples bilingues en base SQLite, pas un flux municipal en temps réel.
+
+Les fonctions D04, D11/F26, D12/F35, D14/F27, D16, F25, D17, D19 et F22 étaient déjà présentes dans les pages citoyennes et le back-office. F28 existait en mode local; `GET /api/service-popularity` le relie maintenant aux demandes du backend et ne renvoie que les totaux par service, sans détail de dossier ni identité.
 
 ## Securite de l'espace agent
 
