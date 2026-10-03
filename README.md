@@ -42,7 +42,7 @@ git push origin main
 - `agent/dashboard/index.html` : back-office agents, Kanban et messages reçus
 - `presentation.html` : support visuel de présentation
 
-`npm test` execute le controle de structure et de presence des filtres de signalements. Il ne remplace pas encore une suite de tests navigateur automatisee.
+`npm test` execute le controle de structure et les tests du proxy WebCup avec le runner integre a Node.js ; aucune dependance npm n'est necessaire pour ces tests. Sous Windows PowerShell, si la politique d'execution bloque `npm.ps1`, utiliser `npm.cmd test`. Ces tests ne remplacent pas encore une suite de tests navigateur automatisee.
 
 Le rôle Fullstack / logique métier / présentation, le déroulé de démonstration, le pitch, les scénarios de secours et les commandes de vérification et de déploiement sont détaillés dans [docs/demo-pitch.md](docs/demo-pitch.md).
 

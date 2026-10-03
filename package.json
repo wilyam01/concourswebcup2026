@@ -2,6 +2,6 @@
   "name": "terra-nova-webcup",
   "version": "1.0.0",
   "scripts": {
-    "test": "powershell -ExecutionPolicy Bypass -File .\\scripts\\check.ps1"
+    "test": "powershell -ExecutionPolicy Bypass -File .\\scripts\\check.ps1 && node --test .\\tests\\api-requests.test.js"
   }
 }
