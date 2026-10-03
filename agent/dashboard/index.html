@@ -11,15 +11,17 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="agent.css" />
     <link rel="stylesheet" href="../../theme.css" />
+    <link rel="stylesheet" href="../../accessibility.css" />
   </head>
   <body class="agent-page">
+    <a class="skip-link" href="#dashboard">Aller au contenu principal</a>
     <aside class="sidebar">
       <a class="brand" href="../../"><span>TN</span><b>Terra Nova<small>ESPACE AGENT</small></b></a>
       <nav aria-label="Navigation agent"><a class="active" href="#dashboard">Tableau de bord</a><a href="#demandes">Demandes</a><a href="#messages">Messages citoyens <span id="unread-count">0</span></a></nav>
-      <div class="agent-profile"><span>AM</span><div><b>Alex Morgan</b><small>Agent municipal</small></div></div>
+      <div class="agent-profile"><span id="agentAvatar">AM</span><div><b id="agentName">Alex Morgan</b><small>Agent municipal</small></div></div>
     </aside>
     <main id="dashboard">
-      <header class="topbar"><div><p class="kicker">NOUVELLE AURORE / COORDINATION</p><h1>Bonjour, Alex.</h1></div><div class="top-actions"><span id="api-state" class="api-state">Chargement...</span><a href="../../contact/">Voir le contact citoyen</a><button class="theme-toggle agent-theme-toggle" type="button" data-theme-toggle aria-label="Changer le thème"><span class="theme-symbol" aria-hidden="true">☼</span></button></div></header>
+      <header class="topbar"><div><p class="kicker"><span>Nouvelle Aurore</span> / <b>Coordination</b></p><h1>Bonjour, <span id="agentGreetingName">Alex</span>.</h1></div><div class="top-actions"><span id="api-state" class="api-state">Chargement...</span><a href="../../contact/">Voir le contact citoyen</a><button class="agent-logout" id="agentLogout" type="button">Déconnexion</button><button class="theme-toggle agent-theme-toggle" type="button" data-theme-toggle aria-label="Changer le thème"><span class="theme-symbol" aria-hidden="true">☼</span></button></div></header>
       <section class="metrics" aria-label="Synthese des demandes"><article><span>A traiter</span><strong id="todo-total">0</strong><small>Priorites a examiner</small></article><article><span>En cours</span><strong id="progress-total">0</strong><small>Services mobilises</small></article><article><span>Termine</span><strong id="done-total">0</strong><small>Dossiers clotures</small></article><article><span>Messages recus</span><strong id="message-total">0</strong><small>Flux citoyen</small></article></section>
       <section class="work-section" id="demandes">
         <div class="section-heading">
@@ -43,6 +45,8 @@
     <template id="empty-column"><div class="empty-column">Aucune demande dans cette colonne.</div></template>
     <script src="../../config.js"></script>
     <script src="../../nova-terra.js"></script>
+    <script src="../../auth.js"></script>
     <script src="agent.js"></script>
+    <script src="../../accessibility.js"></script>
   </body>
 </html>

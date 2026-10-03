@@ -23,13 +23,23 @@ const loginProfiles = {
     destination: 'dashboard.html',
     button: 'Se connecter',
   },
-  council: {
-    name: 'Haut Conseil',
-    description: "Vue stratégique de démonstration, sans droits d'administration supplémentaires.",
+  agent: {
+    name: 'Agent',
+    description: 'Espace de travail et suivi des demandes citoyennes.',
+    symbol: 'A',
+    kicker: 'ESPACE AGENT',
+    lead: 'Connectez-vous pour consulter les demandes et coordonner les services municipaux.',
+    notice: '<b>Espace agent de démonstration</b><br />Les profils de cette version fonctionnent dans ce navigateur.',
+    destination: 'agent/dashboard/index.html',
+    button: 'Ouvrir mon espace agent',
+  },
+  admin: {
+    name: 'Administrateur',
+    description: 'Haut Conseil · pilotage et décisions de la cité.',
     symbol: '⌘',
-    kicker: 'ESPACE HAUT CONSEIL',
-    lead: 'Connectez-vous pour ouvrir la vue stratégique et consulter les décisions collectives.',
-    notice: '<b>Vue Haut Conseil de démonstration</b><br />Utilisez un compte Nova Terra local. Cette vue ne donne pas de droits administratifs.',
+    kicker: 'ESPACE ADMINISTRATEUR',
+    lead: 'Connectez-vous pour ouvrir la vue de supervision du Haut Conseil.',
+    notice: '<b>Administration de démonstration</b><br />Les profils de cette version fonctionnent dans ce navigateur.',
     destination: 'dashboard.html?view=council',
     button: 'Ouvrir le Haut Conseil',
   },
@@ -57,6 +67,7 @@ function chooseLoginProfile(profileId) {
   if (notice) notice.innerHTML = profile.notice;
   loginMessage.hidden = true;
   loginMessage.textContent = '';
+  window.dispatchEvent(new Event('nova:profile-change'));
   window.setTimeout(() => document.querySelector('#loginEmail').focus(), 0);
 }
 
@@ -72,11 +83,18 @@ document.querySelector('#changeLoginProfile').addEventListener('click', () => {
   loginMessage.textContent = '';
 });
 
+const requestedProfile = new URLSearchParams(window.location.search).get('profile');
+const requestedProfileId = requestedProfile === 'council' ? 'admin' : requestedProfile;
+if (loginProfiles[requestedProfileId]) chooseLoginProfile(requestedProfileId);
+
 togglePassword.addEventListener('click', () => {
   const reveal = passwordInput.type === 'password';
+  const english = document.documentElement.lang === 'en';
   passwordInput.type = reveal ? 'text' : 'password';
-  togglePassword.textContent = reveal ? 'Masquer' : 'Afficher';
-  togglePassword.setAttribute('aria-label', reveal ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+  togglePassword.textContent = reveal ? (english ? 'Hide' : 'Masquer') : (english ? 'Show' : 'Afficher');
+  togglePassword.setAttribute('aria-label', reveal
+    ? (english ? 'Hide password' : 'Masquer le mot de passe')
+    : (english ? 'Show password' : 'Afficher le mot de passe'));
   togglePassword.setAttribute('aria-pressed', String(reveal));
 });
 
@@ -94,6 +112,7 @@ loginForm.addEventListener('submit', async (event) => {
     email: loginForm.elements.email.value,
     password: passwordInput.value,
     remember: loginForm.elements.remember.checked,
+    profile: submittedProfile,
   });
 
   if (result.ok) {

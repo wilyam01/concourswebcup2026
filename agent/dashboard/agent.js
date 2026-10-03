@@ -1,3 +1,11 @@
+const agentUser = window.NovaTerraAuth.getSession();
+if (!agentUser || agentUser.profile !== 'agent') {
+  window.location.replace('../../connexion.html?profile=agent');
+} else {
+const agentInitials = agentUser.name.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+document.querySelector('#agentAvatar').textContent = agentInitials || 'AG';
+document.querySelector('#agentName').textContent = agentUser.name;
+document.querySelector('#agentGreetingName').textContent = agentUser.name.split(/\s+/)[0];
 const state = { requests: window.NovaTerra.getCachedRequests(), messages: [] };
 let dashboardLoading = false;
 let lastSuccessfulSyncAt = 0;
@@ -165,4 +173,9 @@ if (!window.NovaTerra.usingDemoData()) {
   window.setInterval(() => {
     if (!document.hidden) loadDashboard();
   }, 60_000);
+}
+document.querySelector('#agentLogout').addEventListener('click', () => {
+  window.NovaTerraAuth.signOut();
+  window.location.replace('../../connexion.html');
+});
 }

@@ -11,14 +11,16 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="public.css" />
   <link rel="stylesheet" href="theme.css" />
+  <link rel="stylesheet" href="accessibility.css" />
 </head>
 <body class="signup-page login-page">
+  <a class="skip-link" href="#main-content">Aller au contenu principal</a>
   <header class="signup-header">
     <a class="public-brand" href="index.html" aria-label="Nova Terra, accueil"><span class="brand-symbol"><i></i><i></i><i></i><i></i></span><span><b>NOVA <em>TERRA</em></b><small>VILLE · PLANÈTE · COMMUNAUTÉ</small></span></a>
     <button class="theme-toggle" type="button" data-theme-toggle aria-label="Changer le thème"><span class="theme-symbol" aria-hidden="true">☼</span></button>
     <a href="index.html" class="back-home">← Retour à l’accueil</a>
   </header>
-  <main class="signup-main">
+  <main class="signup-main" id="main-content">
     <div class="signup-ambient"><div class="signup-orbit"></div><div class="signup-world">NT</div></div>
     <section class="signup-card login-card">
       <div class="login-profile-step" id="loginProfileStep">
@@ -31,9 +33,14 @@
             <span class="login-profile-copy"><b>Citoyen(ne)</b><small>Services municipaux, signalements et vie de la cité.</small></span>
             <span class="login-profile-arrow" aria-hidden="true">→</span>
           </button>
-          <button class="login-profile-option" type="button" data-login-profile="council">
+          <button class="login-profile-option" type="button" data-login-profile="agent">
+            <span class="login-profile-symbol agent-symbol" aria-hidden="true">A</span>
+            <span class="login-profile-copy"><b>Agent</b><small>Demandes citoyennes, suivi et coordination des services.</small></span>
+            <span class="login-profile-arrow" aria-hidden="true">→</span>
+          </button>
+          <button class="login-profile-option" type="button" data-login-profile="admin">
             <span class="login-profile-symbol council-symbol" aria-hidden="true">⌘</span>
-            <span class="login-profile-copy"><b>Haut Conseil</b><small>Vue stratégique et décisions collectives de la cité.</small></span>
+            <span class="login-profile-copy"><b>Administrateur</b><small>Haut Conseil · pilotage et décisions de la cité.</small></span>
             <span class="login-profile-arrow" aria-hidden="true">→</span>
           </button>
         </div>
@@ -64,5 +71,6 @@
   </main>
   <script src="auth.js"></script>
   <script src="login.js"></script>
+  <script src="accessibility.js"></script>
 </body>
 </html>

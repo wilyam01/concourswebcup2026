@@ -11,8 +11,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="theme.css" />
+  <link rel="stylesheet" href="accessibility.css" />
 </head>
 <body>
+  <a class="skip-link" href="#top">Aller au contenu principal</a>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar">
       <a class="brand" href="index.html" aria-label="Nova Terra accueil">
@@ -40,7 +42,7 @@
     <main id="top">
       <header class="topbar">
         <button class="mobile-menu" id="menuButton" type="button" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="sidebar">☰</button>
-        <div class="breadcrumbs"><span>Nouvelle Aurore</span><span class="crumb-slash">/</span><b>Vue d’ensemble</b></div>
+        <div class="breadcrumbs"><span>Nouvelle Aurore</span><span class="crumb-slash">/</span><b data-current-view="citizen">Vue d’ensemble</b></div>
         <div class="top-actions"><span class="sync" id="api-status" role="status" aria-live="polite"><span class="live-dot" aria-hidden="true"></span><span>Chargement des signalements…</span></span><span class="top-divider"></span><span class="date-label">SOL 184 · 14:32 UTC</span><button class="theme-toggle" type="button" data-theme-toggle aria-label="Changer le thème"><span class="theme-symbol" aria-hidden="true">☼</span></button><button class="icon-button notification" aria-label="Notifications">♧<i></i></button><button class="avatar top-avatar profile-photo-trigger" type="button" aria-label="Ajouter une photo de profil" title="Ajouter une photo de profil">AM</button></div>
       </header>
 
@@ -123,11 +125,21 @@
       <div class="profile-dialog-actions"><button class="profile-secondary-button" id="cancelProfileEdit" type="button">Annuler</button><button class="profile-save-button" type="submit">Enregistrer le profil <span>→</span></button></div>
     </form>
   </dialog>
+  <dialog class="welcome-guide" id="welcomeGuide" aria-labelledby="welcomeTitle">
+    <div class="welcome-guide-kicker"><span>PARCOURS NOUVEL ARRIVANT</span><span id="welcomeStepCount">01 / 04</span></div>
+    <div class="welcome-progress" aria-hidden="true"><i id="welcomeProgress"></i></div>
+    <h2 id="welcomeTitle">Bienvenue à Nova Terra.</h2>
+    <p id="welcomeCopy" aria-live="polite"></p>
+    <div class="welcome-guide-actions"><button id="welcomeSkip" class="guide-text-button" type="button">Plus tard</button><button id="welcomeBack" class="guide-text-button" type="button" hidden>Retour</button><button id="welcomeNext" class="guide-next-button" type="button">Continuer <span>→</span></button></div>
+    <button id="welcomeAction" class="welcome-action" type="button" hidden></button>
+  </dialog>
   <div class="toast" id="toast" role="status"></div>
   <input id="profilePhotoInput" type="file" accept="image/*" hidden />
   <script src="config.js"></script>
   <script src="nova-terra.js"></script>
   <script src="auth.js"></script>
   <script src="app.js"></script>
+  <script src="accessibility.js"></script>
+  <script src="onboarding.js"></script>
 </body>
 </html>

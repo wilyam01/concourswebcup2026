@@ -1,6 +1,7 @@
 const currentUser = window.NovaTerraAuth.getSession();
-if (!currentUser) {
-  window.location.replace('connexion.html');
+const requestedDashboardView = new URLSearchParams(window.location.search).get('view');
+if (!currentUser || (requestedDashboardView === 'council' && currentUser.profile !== 'admin')) {
+  window.location.replace(currentUser ? 'connexion.html?profile=admin' : 'connexion.html');
 } else {
 const toast = document.querySelector('#toast');
 let toastTimer;
@@ -257,15 +258,24 @@ document.querySelectorAll('.filter').forEach((button) => {
 
 document.querySelectorAll('.view-btn').forEach((button) => {
   button.addEventListener('click', () => {
+    const councilView = button.dataset.view === 'council';
+    if (councilView && currentUser.profile !== 'admin') {
+      notify('Cette vue est réservée au profil Administrateur.');
+      return;
+    }
     document.querySelectorAll('.view-btn').forEach((item) => item.classList.remove('selected'));
     button.classList.add('selected');
-    const councilView = button.dataset.view === 'council';
     document.querySelector('h1').innerHTML = councilView
       ? 'La cité, sous <span>contrôle.</span>'
       : 'Le pouls de <span>Terra Nova.</span>';
     document.querySelector('.subheading').textContent = councilView
       ? 'Signalements disponibles et priorités à examiner par le Haut Conseil.'
       : 'Chaque signal compte. Voici ce qui se passe dans votre cité.';
+    const breadcrumbCurrent = document.querySelector('.breadcrumbs b');
+    breadcrumbCurrent.dataset.currentView = councilView ? 'council' : 'citizen';
+    breadcrumbCurrent.textContent = councilView
+      ? (document.documentElement.lang === 'en' ? 'High Council' : 'Haut Conseil')
+      : (document.documentElement.lang === 'en' ? 'Overview' : 'Vue d’ensemble');
     document.querySelector('.nav-item.active').classList.remove('active');
     const destination = document.querySelector(councilView ? '.nav-item[href="#council"]' : '.nav-item[href="#overview"]');
     destination.classList.add('active');
@@ -350,7 +360,8 @@ const profileFormError = document.querySelector('#profileFormError');
 
 function renderProfile(user) {
   profileName.textContent = user.name;
-  profileSector.textContent = `Citoyen · ${user.sector}`;
+  const profileLabels = { citizen: 'Citoyen', agent: 'Agent', admin: 'Administrateur' };
+  profileSector.textContent = `${profileLabels[user.profile] || 'Citoyen'} · ${user.sector}`;
   const initials = user.name.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
   profilePhotoButtons.forEach((button) => {
     if (!button.classList.contains('has-profile-photo')) button.textContent = initials || 'NT';
@@ -475,7 +486,7 @@ profilePhotoInput.addEventListener('change', () => {
   reader.readAsDataURL(photo);
 });
 
-if (new URLSearchParams(window.location.search).get('view') === 'council') {
+if (requestedDashboardView === 'council' || currentUser.profile === 'admin') {
   document.querySelector('.view-btn[data-view="council"]')?.click();
 }
 

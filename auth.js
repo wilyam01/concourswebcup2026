@@ -35,7 +35,7 @@
     return accounts;
   }
 
-  function setSession(account, remember = false) {
+  function setSession(account, remember = false, profile = account.profile || 'citizen') {
     const storage = remember ? localStorage : sessionStorage;
     const otherStorage = remember ? sessionStorage : localStorage;
     otherStorage.removeItem(sessionKey);
@@ -43,6 +43,7 @@
       email: account.email,
       name: account.name,
       sector: account.sector,
+      profile,
       authenticatedAt: new Date().toISOString(),
     }));
   }
@@ -69,6 +70,7 @@
         name: normalizedName,
         email: normalizedEmail,
         sector: normalizedSector,
+        profile: 'citizen',
         salt: bytesToHex(salt),
         passwordHash: await hashPassword(password, salt),
         createdAt: new Date().toISOString(),
@@ -76,14 +78,15 @@
       accounts.push(account);
       localStorage.setItem(accountsKey, JSON.stringify(accounts));
       setSession(account);
-      return { ok: true, user: { name: account.name, email: account.email, sector: account.sector } };
+      return { ok: true, user: { name: account.name, email: account.email, sector: account.sector, profile: 'citizen' } };
     } catch (error) {
       return { ok: false, error: error.name === 'QuotaExceededError' ? 'storage_full' : 'storage_unavailable' };
     }
   }
 
-  async function signIn({ email, password, remember = false }) {
+  async function signIn({ email, password, remember = false, profile = 'citizen' }) {
     if (!globalThis.crypto?.subtle) return { ok: false, error: 'crypto_unavailable' };
+    if (!['citizen', 'agent', 'admin'].includes(profile)) return { ok: false, error: 'invalid_profile' };
 
     try {
       const normalizedEmail = email.trim().toLowerCase();
@@ -93,8 +96,8 @@
       const candidate = await hashPassword(password, hexToBytes(account.salt));
       if (candidate !== account.passwordHash) return { ok: false, error: 'invalid_credentials' };
 
-      setSession(account, remember);
-      return { ok: true, user: { name: account.name, email: account.email, sector: account.sector } };
+      setSession(account, remember, profile);
+      return { ok: true, user: { name: account.name, email: account.email, sector: account.sector, profile } };
     } catch (_) {
       return { ok: false, error: 'storage_unavailable' };
     }
@@ -103,7 +106,9 @@
   function getSession() {
     try {
       const session = JSON.parse(sessionStorage.getItem(sessionKey) || localStorage.getItem(sessionKey) || 'null');
-      return session && typeof session.email === 'string' ? session : null;
+      if (!session || typeof session.email !== 'string') return null;
+      if (!['citizen', 'agent', 'admin'].includes(session.profile)) session.profile = 'citizen';
+      return session;
     } catch (_) {
       return null;
     }
