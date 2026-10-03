@@ -156,6 +156,50 @@ test("returns a gateway error when WebCup returns invalid JSON", async () => {
   assert.deepEqual(response.body, { error: "The WebCup API returned invalid JSON" });
 });
 
+test("returns a gateway error when WebCup returns an unsupported collection", async () => {
+  const response = await invokeHandler({
+    fetchImpl: async () => ({
+      ok: true,
+      text: async () => JSON.stringify({ requests: "not-an-array" })
+    })
+  });
+
+  assert.equal(response.statusCode, 502);
+  assert.deepEqual(response.body, { error: "The WebCup API returned an unsupported request format" });
+});
+
+test("returns a gateway error when every upstream request is invalid", async () => {
+  const response = await invokeHandler({
+    fetchImpl: async () => ({
+      ok: true,
+      text: async () => JSON.stringify([{ id: "invalid", status: "unknown" }])
+    })
+  });
+
+  assert.equal(response.statusCode, 502);
+  assert.deepEqual(response.body, { error: "The WebCup API returned an unsupported request format" });
+});
+
+test("returns an empty request collection when WebCup has no requests", async () => {
+  const response = await invokeHandler({
+    fetchImpl: async () => ({ ok: true, text: async () => "[]" })
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.body, { requests: [], meta: { skippedRecords: 0 } });
+});
+
+test("returns a gateway error when the WebCup network request fails", async () => {
+  const response = await invokeHandler({
+    fetchImpl: async () => {
+      throw new Error("network unavailable");
+    }
+  });
+
+  assert.equal(response.statusCode, 502);
+  assert.deepEqual(response.body, { error: "The WebCup API is unavailable" });
+});
+
 test("returns a timeout response when the WebCup request is aborted", async () => {
   const response = await invokeHandler({
     fetchImpl: async () => {
