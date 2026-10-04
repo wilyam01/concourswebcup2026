@@ -26,7 +26,8 @@
   dialog.innerHTML = `<div class="community-dialog-heading"><div><h2 id="communityInboxTitle">Centre des alertes</h2><p id="communityInboxNote">Annonces, consignes urgentes et état des services.</p></div><button class="community-dialog-close" type="button" aria-label="Fermer">×</button></div><div class="community-notice-list" id="communityNoticeList" aria-live="polite"></div>`;
   document.body.append(dialog);
   const list = dialog.querySelector('#communityNoticeList');
-  const trigger = document.querySelector('.notification') || document.createElement('button');
+  // Keep the resident announcement inbox separate from the admin request-alert button.
+  const trigger = document.querySelector('.community-inbox-trigger') || document.createElement('button');
   const isExistingTrigger = trigger.isConnected;
   if (!isExistingTrigger) {
     trigger.className = 'community-inbox-trigger';

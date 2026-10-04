@@ -74,6 +74,14 @@ test('citizen dashboard lists municipal services and shows their current status'
   assert.match(community, /NovaTerraCity\.getServiceStatuses\(\)/);
 });
 
+test('resident announcement inbox does not reuse the admin request-alert button', () => {
+  const community = fs.readFileSync(path.join(projectRoot, 'community.js'), 'utf8');
+  const assistant = fs.readFileSync(path.join(projectRoot, 'assistant.js'), 'utf8');
+  assert.match(community, /querySelector\('\.community-inbox-trigger'\) \|\| document\.createElement\('button'\)/);
+  assert.doesNotMatch(community, /querySelector\('\.notification'\)/);
+  assert.match(assistant, /querySelector\('\.community-inbox-trigger'\)/);
+});
+
 test('role navigation shows one category and keeps administration rights on the server', () => {
   const dashboard = fs.readFileSync(path.join(projectRoot, 'dashboard.html'), 'utf8');
   const app = fs.readFileSync(path.join(projectRoot, 'app.js'), 'utf8');

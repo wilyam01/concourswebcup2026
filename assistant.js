@@ -91,7 +91,7 @@
       link = { href: route('dashboard.html#my-requests'), label: english() ? 'Open incident reports' : 'Ouvrir les signalements' };
     } else if (/annonce|alerte|notification|news/.test(query)) {
       reply = english() ? 'The alert centre lists current announcements and any service maintenance notices.' : 'Le centre des alertes rassemble les annonces en cours et les avis de maintenance.';
-      const inboxTrigger = document.querySelector('.notification, .community-inbox-trigger');
+      const inboxTrigger = document.querySelector('.community-inbox-trigger');
       inboxTrigger?.click();
       link = { href: route('index.html#actualites'), label: english() ? 'View city news' : 'Lire les actualités' };
     } else if (/bus|mobil|transport|horaire|schedule/.test(query)) {
