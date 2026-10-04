@@ -114,6 +114,15 @@ app.use((req, res, next) => {
 app.use(cors({ origin: (process.env.CORS_ORIGIN || 'http://localhost:5500').split(',').map((value) => value.trim()) }));
 app.use(express.json({ limit: '512kb' }));
 app.use('/api', (_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
+// A generous API-wide ceiling catches abusive bursts; endpoint-specific limits below remain stricter.
+app.use('/api', rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 600,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  skip: (req) => req.path === '/health' || req.method === 'OPTIONS',
+  handler: (_req, res) => res.status(429).json({ error: 'RATE_LIMIT_EXCEEDED', message: 'Trop de requêtes. Réessaie dans quelques minutes.' }),
+}));
 app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: 'draft-7', legacyHeaders: false }));
 app.use('/api/citizen-messages', rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: 'draft-7', legacyHeaders: false }));
 const privacySubmissionLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 12, standardHeaders: 'draft-7', legacyHeaders: false });

@@ -12,7 +12,7 @@ Cet audit compare les intitulés du backlog au site et au backend présents dans
 | F66 | Déjà présente | Outils de participation et avis sur des consultations; le catalogue des projets reste illustratif. |
 | F67 | Ajoutée | Les propositions citoyennes ont un état de suivi modifiable par un agent ou administrateur et visible dans l’espace citoyen connecté. |
 | F68 | Déjà présente | Boîte à idées, avec stockage serveur ou local explicitement annoncé. |
-| F69 | Partielle | Le dépôt possède des protections et un journal d’audit, mais aucun audit continu des dépendances ni mécanisme automatique de correctifs. |
+| F69 | Ajoutée | Dependabot propose des mises à jour hebdomadaires du backend et une vérification npm audit s’exécute chaque semaine, à chaque changement des dépendances et à la demande. Les correctifs sont proposés en revue, pas appliqués silencieusement en production. |
 | F70 | Déjà présente | Rôles et contrôles d’accès côté serveur; routes administratives et données privées sont restreintes. |
 | F71 | Absente | L’inscription et l’accès exigent une adresse e-mail. Retirer cette exigence implique une décision d’identité, une migration de comptes et une récupération de compte adaptée. |
 | F72 | Déjà présente | Parcours d’orientation des nouveaux comptes. |
@@ -20,7 +20,7 @@ Cet audit compare les intitulés du backlog au site et au backend présents dans
 | F74 | Ajoutée | Annuaire filtrable d’exemples d’associations et partenaires. Les entrées sont fictives et affichées comme démonstration; elles doivent être remplacées par des partenaires vérifiés. |
 | F75 | Ajoutée, heuristique | L’espace agent regroupe les demandes ouvertes qui partagent une catégorie ou un service et au moins deux mots significatifs. C’est une aide au tri, pas une décision automatique ni un modèle d’IA. |
 | F76 | Ajoutée | Après clôture, le citoyen peut donner une note et un commentaire. Le serveur rattache l’avis au propriétaire du signalement; l’agent le voit sur le dossier. |
-| F77 | Partielle | Le mode bas débit espace les rafraîchissements et certaines routes ont des limites de fréquence. Ce dépôt ne fournit pas de mécanisme global de délestage sous forte charge. |
+| F77 | Partielle, renforcée | Une limite globale protège l’API contre les rafales, en plus des limites plus strictes par route. Le compteur est en mémoire par instance; le délestage coordonné entre instances et la montée en charge restent à la charge de l’hébergement. |
 | F78 | Dépend de l’hébergement | L’API a une route de santé et SQLite en mode WAL. La redondance, la réplication et la montée en charge doivent être fournies par l’infrastructure de déploiement. |
 | F79 | Déjà présente | Recherche et filtres citoyens par statut, priorité et catégorie. |
 | F80 | Déjà présente | Filtres et colonnes de triage dans le tableau agent. |
@@ -33,4 +33,5 @@ Cet audit compare les intitulés du backlog au site et au backend présents dans
 
 - F84 nécessite `RESEND_API_KEY` et `RESEND_FROM` dans l’environnement serveur; aucune clé ne doit être placée dans le navigateur.
 - F74 utilise des exemples à remplacer par des fiches validées (nom, adresse, horaires, coordonnées et consentement de publication).
-- F69, F71 et F78 nécessitent respectivement une politique de mise à jour des dépendances, une décision produit sur l’identité sans e-mail et un hébergement adapté. Les présenter comme livrés par le seul code de la vitrine serait inexact.
+- F71 nécessite une décision produit sur l’identité sans e-mail, la récupération des comptes et la migration des comptes existants. F78 nécessite un hébergement adapté. Les présenter comme livrés par le seul code de la vitrine serait inexact.
+- F81 conserve le honeypot et les limites de fréquence. Un CAPTCHA vérifié côté serveur exige le choix et la configuration d’un fournisseur, d’un domaine autorisé et de secrets de déploiement; aucun fournisseur n’est présumé configuré.

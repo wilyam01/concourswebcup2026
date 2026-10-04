@@ -1,0 +1,32 @@
+name: Dependency audit
+
+on:
+  push:
+    paths:
+      - 'backend/package.json'
+      - 'backend/package-lock.json'
+      - '.github/workflows/dependency-audit.yml'
+  pull_request:
+    paths:
+      - 'backend/package.json'
+      - 'backend/package-lock.json'
+      - '.github/workflows/dependency-audit.yml'
+  schedule:
+    - cron: '23 7 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci --prefix backend
+      - run: npm audit --prefix backend --audit-level=high
