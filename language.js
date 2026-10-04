@@ -890,6 +890,11 @@
     ['BOITE DE RECEPTION', '收件箱', 'BANDEJA DE ENTRADA', 'POSTA IN ARRIVO', 'CAIXA DE ENTRADA', 'POSTEINGANG', 'KIKASHA CHA UJUMBE'],
     ['Le mode de transmission est en cours de vérification. Pour une urgence, contactez les services d’urgence locaux.', '正在检查消息传递方式。如遇紧急情况，请联系当地急救服务。', 'Se está verificando el método de envío. En caso de emergencia, contacta con los servicios locales.', 'La modalità di invio è in fase di verifica. In caso di emergenza, contatta i servizi locali.', 'O método de envio está a ser verificado. Em caso de emergência, contacte os serviços locais.', 'Der Übertragungsweg wird geprüft. Wenden Sie sich im Notfall an die örtlichen Rettungsdienste.', 'Njia ya kutuma inakaguliwa. Katika dharura, wasiliana na huduma za dharura za eneo lako.'],
   ];
+  additionalTranslations.push(
+    ['Services municipaux', '市政服务', 'Servicios municipales', 'Servizi comunali', 'Serviços municipais', 'Städtische Dienste', 'Huduma za halmashauri'],
+    ['Consulte les services municipaux et leur statut. Les détails d’adresse et d’horaires sont des exemples de démonstration.', '查看市政服务及其状态。地址和开放时间仅为演示示例。', 'Consulta los servicios municipales y su estado. Las direcciones y los horarios son ejemplos de demostración.', 'Consulta i servizi comunali e il loro stato. Indirizzi e orari sono esempi dimostrativi.', 'Consulte os serviços municipais e o respetivo estado. Moradas e horários são exemplos de demonstração.', 'Hier finden Sie städtische Dienste und ihren Status. Adressen und Öffnungszeiten sind Beispiele.', 'Angalia huduma za halmashauri na hali zake. Anwani na saa za kazi ni mifano ya maonyesho.'],
+    ['Pour toute démarche qui ne relève pas des autres catégories.', '其他类别未涵盖的办事需求。', 'Para trámites que no correspondan a las demás categorías.', 'Per pratiche che non rientrano nelle altre categorie.', 'Para pedidos que não se enquadrem nas outras categorias.', 'Für Anliegen, die nicht in die anderen Kategorien fallen.', 'Kwa huduma zisizo katika kategoria nyingine.']
+  );
   const additionalLocales = ['zh', 'es', 'it', 'pt', 'de', 'sw'];
   additionalTranslations.forEach(([source, ...translated]) => {
     const existing = catalog[source] || {};

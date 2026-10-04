@@ -410,3 +410,21 @@ html[data-theme="light"] footer a { color: var(--ui-cobalt); }
 .appointment-staff-note { display: grid; gap: 6px; margin-top: 10px; font-size: .85rem; }
 .appointment-staff-note textarea { width: 100%; min-height: 60px; resize: vertical; }
 .appointment-purpose-copy { margin: 8px 0 0; color: var(--text); font-size: .9rem; line-height: 1.5; overflow-wrap: anywhere; }
+.citizen-services-panel { margin-bottom: 15px; }
+.citizen-services-panel .panel-heading { align-items: center; flex-wrap: wrap; }
+.citizen-services-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.citizen-services-links a { text-decoration: none; }
+.citizen-services-intro { margin: 12px 0; color: var(--ui-muted); font-size: 12px; line-height: 1.6; }
+.citizen-service-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 205px), 1fr)); gap: 11px; }
+.citizen-service-card { min-height: 158px; padding: 15px; border: 1px solid var(--ui-border); border-radius: 12px; background: var(--ui-surface); }
+.citizen-service-code { color: var(--ui-cobalt); font: 700 8px/1.4 Consolas, monospace; letter-spacing: .5px; }
+.citizen-service-card h3 { margin: 9px 0 5px; color: #1e2d3d; font-size: 14px; }
+.citizen-service-card p { margin: 0; color: var(--ui-muted); font-size: 11px; line-height: 1.5; }
+.citizen-service-card .service-info { margin-top: 11px; color: var(--ui-muted); font-size: 9px; }
+html[data-theme="dark"] .citizen-service-card h3 { color: #edf3fa; }
+html[data-theme="dark"] .citizen-service-card { background: var(--ui-surface-alt); }
+@media (max-width: 620px) {
+  .citizen-services-panel .panel-heading { align-items: flex-start; }
+  .citizen-services-links { width: 100%; flex-direction: column; }
+  .citizen-services-links a { justify-content: center; }
+}

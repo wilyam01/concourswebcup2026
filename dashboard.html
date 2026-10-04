@@ -26,6 +26,7 @@
       <button class="workspace"><span class="workspace-icon">TN</span><span><b>Nouvelle Aurore</b><small>Colonie · Secteur 07</small></span><span class="chevron">⌄</span></button>
       <div class="side-label nav-label">NAVIGATION</div>
       <nav class="nav-list" aria-label="Navigation principale">
+        <a class="nav-item" href="#citizenServices"><span class="nav-icon">▦</span>Services municipaux</a>
         <a class="nav-item active" href="#overview"><span class="nav-icon">◉</span>Vue d’ensemble<span class="nav-dot"></span></a>
         <a class="nav-item" href="#reports"><span class="nav-icon">⌖</span>Signalements<span class="nav-count" id="nav-open-report-count">0</span></a>
         <a class="nav-item" href="#my-requests"><span class="nav-icon">▤</span>Mes demandes<span class="nav-count" id="my-requests-nav-count">0</span></a>
@@ -105,6 +106,21 @@
             <div class="community-support-list" id="communitySupportList" aria-live="polite"></div>
             <p class="community-support-feedback" id="communitySupportFeedback" role="status" aria-live="polite"></p>
           </section>
+        </section>
+
+        <section class="panel citizen-services-panel" id="citizenServices" aria-labelledby="citizenServicesTitle">
+          <div class="panel-heading"><div><div class="panel-kicker">SERVICES LOCAUX · DISPONIBILITÉS</div><h2 id="citizenServicesTitle">Services municipaux</h2></div><div class="citizen-services-links"><a class="profile-secondary-button" href="index.html#services">Voir les services municipaux ↗</a><a class="profile-secondary-button" href="index.html#urgences">Voir les services d’urgence à proximité ↗</a></div></div>
+          <p class="citizen-services-intro">Consulte les services municipaux et leur statut. Les détails d’adresse et d’horaires sont des exemples de démonstration.</p>
+          <div class="service-tools"><p class="service-status-updated" id="serviceStatusUpdated" role="status" aria-live="polite">Chargement des statuts de service…</p></div>
+          <div class="citizen-service-grid">
+            <article class="service-card citizen-service-card" data-service-id="water"><span class="citizen-service-code">01 · ENVIRONNEMENT</span><h3>Eau &amp; environnement</h3><p>Suivez la qualité de l’eau, les réserves et les initiatives qui préservent notre planète.</p><div class="service-info">Démarches et informations</div></article>
+            <article class="service-card citizen-service-card" data-service-id="health"><span class="citizen-service-code">02 · SANTÉ</span><h3>Santé &amp; bien-être</h3><p>Centres de soin, accompagnement et prévention pour chaque génération.</p><div class="service-info">Soins et lieux d’urgence</div></article>
+            <article class="service-card citizen-service-card" data-service-id="energy"><span class="citizen-service-code">03 · ÉNERGIE</span><h3>Énergie &amp; habitat</h3><p>État du réseau, demandes de maintenance et solutions pour votre logement.</p><div class="service-info">Réseau et habitat</div></article>
+            <article class="service-card citizen-service-card" data-service-id="mobility"><span class="citizen-service-code">04 · MOBILITÉ</span><h3>Se déplacer</h3><p>Lignes, horaires et itinéraires accessibles pour vos déplacements.</p><div class="service-info">Transports et horaires</div></article>
+            <article class="service-card citizen-service-card" data-service-id="civic"><span class="citizen-service-code">05 · VIE CITOYENNE</span><h3>Vie citoyenne</h3><p>Partagez vos idées, suivez les projets et prenez part aux consultations du Conseil.</p><div class="service-info">Projets et consultations</div></article>
+            <article class="service-card citizen-service-card" data-service-id="solidarity"><span class="citizen-service-code">06 · SOLIDARITÉ</span><h3>Aide &amp; accompagnement</h3><p>Un point d’entrée pour les démarches, le soutien de proximité et les questions pratiques.</p><div class="service-info">Accueil et accompagnement</div></article>
+            <article class="service-card citizen-service-card" data-service-id="other"><span class="citizen-service-code">07 · AUTRES DÉMARCHES</span><h3>Autre service</h3><p>Pour toute démarche qui ne relève pas des autres catégories.</p><div class="service-info">Accueil municipal</div></article>
+          </div>
         </section>
 
         <section class="panel appointments-panel" id="appointments" aria-labelledby="appointmentsTitle">

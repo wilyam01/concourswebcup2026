@@ -62,6 +62,18 @@ test('public map locates municipal offices and emergency services with clear dem
   assert.match(styles, /\.emergency-marker\.type-municipal/);
 });
 
+test('citizen dashboard lists municipal services and shows their current status', () => {
+  const markup = fs.readFileSync(path.join(projectRoot, 'dashboard.html'), 'utf8');
+  const community = fs.readFileSync(path.join(projectRoot, 'community.js'), 'utf8');
+  assert.match(markup, /href="#citizenServices"[\s\S]*?Services municipaux/);
+  assert.match(markup, /id="citizenServices"[\s\S]*?id="citizenServicesTitle"/);
+  assert.match(markup, /id="serviceStatusUpdated"/);
+  const serviceIds = [...markup.matchAll(/class="service-card citizen-service-card" data-service-id="([a-z]+)"/g)].map((match) => match[1]);
+  assert.deepEqual(serviceIds, ['water', 'health', 'energy', 'mobility', 'civic', 'solidarity', 'other']);
+  assert.match(community, /document\.querySelectorAll\('\.service-card\[data-service-id\]'\)/);
+  assert.match(community, /NovaTerraCity\.getServiceStatuses\(\)/);
+});
+
 test('interface languages are available across the app and backed by local catalogs', () => {
   const accessibility = fs.readFileSync(path.join(projectRoot, 'accessibility.js'), 'utf8');
   const language = fs.readFileSync(path.join(projectRoot, 'language.js'), 'utf8');
