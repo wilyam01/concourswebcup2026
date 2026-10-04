@@ -44,6 +44,42 @@ function visibleRequests() {
   });
 }
 
+function renderSimilarRequests() {
+  const host = document.querySelector('#similarRequestGroups');
+  const stopWords = new Set(['dans', 'avec', 'pour', 'une', 'des', 'les', 'sur', 'par', 'the', 'and', 'for', 'near', 'from']);
+  const tokens = (request) => new Set(normalizeSearchText(`${request.title} ${request.description}`).match(/[a-z0-9]{4,}/g)?.filter((word) => !stopWords.has(word)) || []);
+  const candidates = state.requests.filter((request) => request.status !== 'done').slice(0, 300);
+  const wordSets = candidates.map(tokens);
+  const seen = new Set();
+  const groups = [];
+  for (let left = 0; left < candidates.length; left += 1) {
+    const first = candidates[left];
+    if (seen.has(first.id)) continue;
+    const firstWords = wordSets[left];
+    const matches = [first];
+    for (let right = left + 1; right < candidates.length; right += 1) {
+      const next = candidates[right];
+      if (first.type !== next.type && first.service !== next.service) continue;
+      const shared = [...firstWords].filter((word) => wordSets[right].has(word)).length;
+      if (shared >= 2) matches.push(next);
+    }
+    if (matches.length > 1) {
+      matches.forEach((request) => seen.add(request.id));
+      groups.push(matches.slice(0, 6));
+    }
+  }
+  host.replaceChildren(...groups.slice(0, 8).map((group) => {
+    const list = document.createElement('ul');
+    group.forEach((request) => {
+      const item = document.createElement('li');
+      item.textContent = `${request.id} · ${request.title} · ${request.district}`;
+      list.append(item);
+    });
+    const section = document.createElement('section'); section.className = 'similarity-group'; section.append(list); return section;
+  }));
+  document.querySelector('.similarity-panel').hidden = groups.length === 0;
+}
+
 function renderRequestSummary(requests) {
   const count = document.querySelector("#request-count");
   const filtersActive = document.querySelector("#request-search").value.trim()
@@ -82,7 +118,7 @@ function requestCard(request) {
     : request.updatedAt;
   return `<article class="request-card ${escapeHtml(request.priority)}">
     <p class="request-meta"><span>${escapeHtml(request.id)}</span><span>${escapeHtml(updatedAt)}</span></p>
-    <h4>${escapeHtml(request.title)}</h4><p class="request-place">${escapeHtml(request.district)}</p><p class="request-description">${escapeHtml(request.description)}</p>
+    <h4>${escapeHtml(request.title)}</h4><p class="request-place">${escapeHtml(request.district)}</p><p class="request-description">${escapeHtml(request.description)}</p>${request.feedback ? `<p class="request-citizen-feedback">Avis citoyen · ${escapeHtml(request.feedback.rating)}/5${request.feedback.comment ? ` · ${escapeHtml(request.feedback.comment)}` : ''}</p>` : ''}
     <footer><span class="request-badges"><span class="type-label">${escapeHtml(citizenCategoryLabel[request.type] || request.type)}</span>${request.service ? `<span class="service-label">${escapeHtml(citizenServiceLabel[request.service] || request.service)}</span>` : ""}<span class="priority-label ${escapeHtml(request.priority)}">${priorityLabel[request.priority] || "Normale"}</span></span><label class="status-select">Statut<select class="request-status" data-id="${escapeHtml(request.id)}" aria-label="Statut du dossier ${escapeHtml(request.id)}" ${statusDisabled}><option value="todo" ${request.status === "todo" ? "selected" : ""}>À traiter</option><option value="in_progress" ${request.status === "in_progress" ? "selected" : ""}>En cours</option><option value="done" ${request.status === "done" ? "selected" : ""}>Terminé</option></select></label></footer>
   </article>`;
 }
@@ -94,13 +130,34 @@ function renderKanban() {
     const items = requests.filter((request) => request.status === column.status);
     return `<section class="kanban-column"><header class="column-heading"><h3>${column.title}</h3><span>${items.length}</span></header>${items.length ? items.map(requestCard).join("") : "<div class=\"empty-column\">Aucune demande dans cette colonne.</div>"}</section>`;
   }).join("");
+  renderSimilarRequests();
 }
 
 function renderMessages() {
   const list = document.querySelector("#message-list");
   if (!state.messages.length) { list.innerHTML = "<div class=\"empty-column\">Aucun message citoyen pour le moment.</div>"; return; }
-  list.innerHTML = state.messages.map((message) => `<article class="message-row ${message.unread ? "unread" : ""}"><div class="message-sender"><b>${escapeHtml(message.name || "Citoyen")}</b><span>${escapeHtml(message.category || "Message")}</span></div><div class="message-copy"><b>${escapeHtml(message.subject || "Sans sujet")}</b><p>${escapeHtml(message.message || "")}</p></div><time>${escapeHtml(message.createdAt || "Recu recemment")}</time></article>`).join("");
+  list.innerHTML = state.messages.map((message) => `<article class="message-row ${message.unread ? "unread" : ""}"><div class="message-sender"><b>${escapeHtml(message.name || "Citoyen")}</b><span>${escapeHtml(message.category || "Message")}</span></div><div class="message-copy"><b>${escapeHtml(message.subject || "Sans sujet")}</b><p>${escapeHtml(message.message || "")}</p></div><time>${escapeHtml(message.createdAt || "Recu recemment")}</time><form class="message-reply-form" data-message-id="${escapeHtml(message.id || '')}"><label>Répondre au citoyen<textarea name="body" rows="3" maxlength="2000" required placeholder="Votre réponse sera envoyée par e-mail."></textarea></label><button type="submit" ${window.NovaTerraApi?.enabled ? '' : 'disabled'}>Envoyer la réponse</button><span role="status" aria-live="polite"></span></form></article>`).join("");
 }
+
+document.querySelector('#message-list').addEventListener('submit', async (event) => {
+  const form = event.target.closest('.message-reply-form');
+  if (!form) return;
+  event.preventDefault();
+  const button = form.querySelector('button');
+  const status = form.querySelector('[role="status"]');
+  button.disabled = true;
+  try {
+    await window.NovaTerraApi.request(`/citizen-messages/${encodeURIComponent(form.dataset.messageId)}/replies`, {
+      method: 'POST', body: JSON.stringify({ body: form.elements.body.value.trim() }),
+    });
+    status.textContent = 'Réponse envoyée par e-mail.';
+    form.reset();
+  } catch (error) {
+    status.textContent = error?.message === 'EMAIL_DELIVERY_NOT_CONFIGURED'
+      ? 'Envoi indisponible : le service e-mail municipal n’est pas configuré.'
+      : 'La réponse n’a pas pu être envoyée. Réessaie.';
+  } finally { button.disabled = !window.NovaTerraApi?.enabled; }
+});
 
 function render() { renderMetrics(); renderKanban(); renderMessages(); }
 

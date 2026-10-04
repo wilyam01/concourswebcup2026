@@ -190,6 +190,7 @@
     </div>
     <p class="profile-dialog-intro" id="reportFormNote">Décris le problème et choisis le service concerné. Ce formulaire conserve le signalement sur cet appareil; il n’est pas transmis à la mairie. Pour une urgence immédiate, appelle le <a href="tel:112">112</a>.</p>
     <form class="profile-form" id="citizenReportForm">
+      <div class="form-trap" aria-hidden="true"><label>Ne pas remplir<input name="website" tabindex="-1" autocomplete="off" /></label></div>
       <label for="reportTitleInput" id="reportTitleLabel">Résumé<input id="reportTitleInput" name="title" type="text" maxlength="100" required placeholder="Ex. Éclairage en panne rue des Étoiles" /></label>
       <label for="reportCategory" id="reportCategoryLabel">Type de problème<select id="reportCategory" name="type" required>
         <option value="" disabled selected>Choisir une catégorie</option><option value="road">Voirie et trottoirs</option><option value="lighting">Éclairage public</option><option value="water">Eau et assainissement</option><option value="waste">Déchets et propreté</option><option value="mobility">Transports et mobilité</option><option value="safety">Sécurité</option><option value="health">Santé et solidarité</option><option value="other">Autre</option>

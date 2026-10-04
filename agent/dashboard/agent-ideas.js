@@ -37,7 +37,28 @@
         body.textContent = idea.body || '';
         const meta = document.createElement('small');
         meta.textContent = `${idea.reference ? `${english() ? 'Reference' : 'Référence'} ${idea.reference} · ` : ''}${new Intl.DateTimeFormat(english() ? 'en' : 'fr', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(idea.createdAt))}`;
-        card.append(title, body, meta);
+        const status = document.createElement('select');
+        status.setAttribute('aria-label', english() ? `Project status: ${idea.title}` : `État du projet : ${idea.title}`);
+        const stages = english()
+          ? [['received', 'Received'], ['reviewing', 'Under review'], ['planned', 'Planned'], ['in_progress', 'In progress'], ['completed', 'Completed'], ['declined', 'Declined']]
+          : [['received', 'Reçue'], ['reviewing', 'À l’étude'], ['planned', 'Planifiée'], ['in_progress', 'En cours'], ['completed', 'Terminée'], ['declined', 'Non retenue']];
+        stages.forEach(([value, label]) => status.add(new Option(label, value)));
+        status.value = idea.status || 'received';
+        status.disabled = !window.NovaTerraApi?.enabled || !idea.reference;
+        status.addEventListener('change', async () => {
+          status.disabled = true;
+          try {
+            await window.NovaTerraApi.request(`/citizen-ideas/${encodeURIComponent(idea.reference)}`, {
+              method: 'PATCH', body: JSON.stringify({ status: status.value }),
+            });
+            idea.status = status.value;
+            feedback.textContent = english() ? 'Project status updated.' : 'État du projet mis à jour.';
+          } catch (_) {
+            status.value = idea.status || 'received';
+            feedback.textContent = english() ? 'Project status could not be saved.' : 'Impossible d’enregistrer cet état.';
+          } finally { status.disabled = false; }
+        });
+        card.append(title, body, meta, status);
         host.append(card);
       });
       feedback.textContent = ideas.length

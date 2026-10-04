@@ -467,3 +467,4 @@ html[data-theme="light"] .security-feedback { color:#53677c; }
   .security-code-form { grid-template-columns:1fr; }
   .two-factor-recovery-codes { grid-template-columns:1fr; }
 }
+.form-trap{position:absolute!important;left:-10000px!important;width:1px!important;height:1px!important;overflow:hidden!important}

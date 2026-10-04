@@ -118,12 +118,22 @@ app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHe
 app.use('/api/citizen-messages', rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: 'draft-7', legacyHeaders: false }));
 const privacySubmissionLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 12, standardHeaders: 'draft-7', legacyHeaders: false });
 const ideaSubmissionLimit = rateLimit({ windowMs: 60 * 60 * 1000, limit: 5, standardHeaders: 'draft-7', legacyHeaders: false });
+const citizenRequestLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 8, standardHeaders: 'draft-7', legacyHeaders: false });
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
 app.get('/api/citizen-ideas', authenticate, allowRoles('CITOYEN', 'AGENT', 'ADMIN'), (_req, res) => {
-  const ideas = db.prepare('SELECT id AS reference,title,body,created_at AS createdAt FROM citizen_ideas ORDER BY created_at DESC LIMIT 200').all();
+  const ideas = db.prepare('SELECT id AS reference,title,body,status,created_at AS createdAt FROM citizen_ideas ORDER BY created_at DESC LIMIT 200').all();
   res.json({ ideas });
+});
+
+app.patch('/api/citizen-ideas/:id', authenticate, allowRoles('AGENT', 'ADMIN'), (req, res) => {
+  const status = clean(req.body?.status, 30);
+  if (!['received', 'reviewing', 'planned', 'in_progress', 'completed', 'declined'].includes(status)) return res.status(400).json({ error: 'INVALID_PROJECT_STATUS' });
+  const result = db.prepare('UPDATE citizen_ideas SET status=? WHERE id=?').run(status, req.params.id);
+  if (!result.changes) return res.status(404).json({ error: 'PROJECT_NOT_FOUND' });
+  recordAudit(req, { action: 'project.status_changed', entityType: 'citizen_project', entityId: req.params.id, summary: 'Citizen project status changed', metadata: { status } });
+  res.json({ reference: req.params.id, status });
 });
 
 app.get('/api/consultation-votes', authenticate, allowRoles('CITOYEN', 'AGENT', 'ADMIN'), (req, res) => {
@@ -145,9 +155,13 @@ app.put('/api/consultation-votes/:consultationId', authenticate, allowRoles('CIT
 });
 
 app.post('/api/citizen-ideas', ideaSubmissionLimit, (req, res) => {
+  if (clean(req.body?.website, 300)) return res.status(400).json({ error: 'INVALID_INPUT' });
   const title = clean(req.body?.title, 100);
   const body = clean(req.body?.body, 1000);
   if (title.length < 3 || body.length < 10) return res.status(400).json({ error: 'INVALID_INPUT', message: 'Le titre doit contenir au moins 3 caractères et la description 10.' });
+  const duplicate = db.prepare(`SELECT id FROM citizen_ideas WHERE lower(title)=lower(?) AND lower(body)=lower(?) AND created_at>? LIMIT 1`)
+    .get(title, body, new Date(Date.now() - 10 * 60_000).toISOString());
+  if (duplicate) return res.status(409).json({ error: 'DUPLICATE_SUBMISSION' });
   const idea = { id: id('IDEA'), title, body, createdAt: isoNow() };
   db.prepare('INSERT INTO citizen_ideas(id,title,body,created_at) VALUES(?,?,?,?)').run(idea.id, idea.title, idea.body, idea.createdAt);
   res.status(201).json({ idea: { reference: idea.id, createdAt: idea.createdAt } });
@@ -464,9 +478,13 @@ app.post('/api/requests/sync', authenticate, allowRoles('AGENT', 'ADMIN'), async
 function citizenRequest(row) {
   return { id: row.id, ownerEmail: row.owner_email, ownerName: row.owner_name, title: row.title, district: row.district,
     type: row.type, service: row.service, priority: row.priority, status: row.status,
-    description: row.description, createdAt: row.created_at, updatedAt: row.updated_at, source: 'citizen-local' };
+    description: row.description, createdAt: row.created_at, updatedAt: row.updated_at, source: 'citizen-local',
+    feedback: row.feedback_rating ? { rating: row.feedback_rating, comment: row.feedback_comment, createdAt: row.feedback_created_at } : null };
 }
 const requestColumns = `SELECT r.*,u.email AS owner_email,u.display_name AS owner_name
+  ,(SELECT rating FROM request_feedback f WHERE f.request_id=r.id) AS feedback_rating
+  ,(SELECT comment FROM request_feedback f WHERE f.request_id=r.id) AS feedback_comment
+  ,(SELECT created_at FROM request_feedback f WHERE f.request_id=r.id) AS feedback_created_at
   FROM citizen_requests r JOIN users u ON u.id=r.owner_id`;
 app.get('/api/citizen-requests', authenticate, (req, res) => {
   const rows = ['AGENT', 'ADMIN'].includes(req.user.role)
@@ -511,17 +529,34 @@ app.delete('/api/citizen-requests/:id/support', authenticate, allowRoles('CITOYE
   });
   res.json({ requestId: req.params.id, supported: false, supportCount: withdraw() });
 });
-app.post('/api/citizen-requests', authenticate, allowRoles('CITOYEN'), (req, res) => {
+app.post('/api/citizen-requests', authenticate, allowRoles('CITOYEN'), citizenRequestLimit, (req, res) => {
   const body = req.body || {};
+  if (clean(body.website, 300)) return res.status(400).json({ error: 'INVALID_INPUT' });
   const title = clean(body.title, 100), district = clean(body.district, 120), type = clean(body.type, 80), description = clean(body.description, 1000);
   const service = clean(body.service, 40), priority = ['high', 'normal', 'low'].includes(body.priority) ? body.priority : 'normal';
   if (!title || !district || !type || !description || !services.has(service)) return res.status(400).json({ error: 'INVALID_INPUT' });
+  const duplicate = db.prepare(`SELECT id FROM citizen_requests WHERE owner_id=? AND lower(title)=lower(?) AND lower(district)=lower(?) AND created_at>? LIMIT 1`)
+    .get(req.user.id, title, district, new Date(Date.now() - 10 * 60_000).toISOString());
+  if (duplicate) return res.status(409).json({ error: 'DUPLICATE_SUBMISSION', requestId: duplicate.id });
   const timestamp = isoNow(), requestId = id('NT');
   db.prepare(`INSERT INTO citizen_requests(id,owner_id,title,district,type,service,priority,status,description,created_at,updated_at)
     VALUES(?,?,?,?,?,?,?,'todo',?,?,?)`).run(requestId, req.user.id, title, district, type, service, priority, description, timestamp, timestamp);
   recordAudit(req, { action: 'citizen_request.created', entityType: 'citizen_request', entityId: requestId, summary: 'Citizen report submitted', metadata: { service, priority, status: 'todo' } });
   const created = db.prepare(`${requestColumns} WHERE r.id=?`).get(requestId);
   res.status(201).json({ request: citizenRequest(created) });
+});
+app.post('/api/citizen-requests/:id/feedback', authenticate, allowRoles('CITOYEN'), (req, res) => {
+  const request = db.prepare('SELECT owner_id,status FROM citizen_requests WHERE id=?').get(req.params.id);
+  if (!request || request.owner_id !== req.user.id) return res.status(404).json({ error: 'REQUEST_NOT_FOUND' });
+  if (request.status !== 'done') return res.status(409).json({ error: 'REQUEST_NOT_COMPLETED' });
+  const rating = Number(req.body?.rating), comment = clean(req.body?.comment, 500);
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ error: 'INVALID_RATING' });
+  const createdAt = isoNow();
+  db.prepare(`INSERT INTO request_feedback(request_id,user_id,rating,comment,created_at) VALUES(?,?,?,?,?)
+    ON CONFLICT(request_id) DO UPDATE SET rating=excluded.rating,comment=excluded.comment,created_at=excluded.created_at`)
+    .run(req.params.id, req.user.id, rating, comment, createdAt);
+  recordAudit(req, { action: 'citizen_request.feedback_submitted', entityType: 'citizen_request', entityId: req.params.id, summary: 'Citizen submitted service feedback', metadata: { rating } });
+  res.json({ feedback: { rating, comment, createdAt } });
 });
 app.patch('/api/citizen-requests/:id', authenticate, allowRoles('AGENT', 'ADMIN'), (req, res) => {
   const status = req.body?.status;
@@ -557,14 +592,37 @@ app.get('/api/citizen-messages', authenticate, allowRoles('AGENT', 'ADMIN'), (_r
   res.json({ messages: db.prepare('SELECT id,name,email,category,subject,message,created_at AS createdAt,unread FROM messages ORDER BY created_at DESC LIMIT 300').all().map((item) => ({ ...item, unread: Boolean(item.unread) })) });
 });
 app.post('/api/citizen-messages', (req, res) => {
+  if (clean(req.body?.website, 300)) return res.status(400).json({ error: 'INVALID_INPUT' });
   const name = clean(req.body?.name, 80), email = clean(req.body?.email, 254).toLowerCase();
   const category = clean(req.body?.category, 60), subject = clean(req.body?.subject, 160), message = clean(req.body?.message, 4000);
   if (name.length < 2 || !/^\S+@\S+\.\S+$/.test(email) || !category || !subject || !message) return res.status(400).json({ error: 'INVALID_INPUT' });
+  const duplicate = db.prepare(`SELECT id FROM messages WHERE lower(email)=lower(?) AND lower(subject)=lower(?) AND lower(message)=lower(?) AND created_at>? LIMIT 1`)
+    .get(email, subject, message, new Date(Date.now() - 10 * 60_000).toISOString());
+  if (duplicate) return res.status(409).json({ error: 'DUPLICATE_SUBMISSION' });
   const messageId = id('MSG');
   db.prepare('INSERT INTO messages(id,name,email,category,subject,message,created_at) VALUES(?,?,?,?,?,?,?)').run(messageId, name, email, category, subject, message, isoNow());
   recordAudit(req, { actorEmail: email, actorRole: 'ANONYMOUS', action: 'contact_message.received', entityType: 'contact_message', entityId: messageId, summary: 'Citizen contact message received', metadata: { category } });
   res.status(201).json({ id: messageId, name, email, category, subject, message, createdAt: isoNow(), unread: true });
 });
+app.post('/api/citizen-messages/:id/replies', authenticate, allowRoles('AGENT', 'ADMIN'), asyncRoute(async (req, res) => {
+  const target = db.prepare('SELECT id,email,subject FROM messages WHERE id=?').get(req.params.id);
+  if (!target) return res.status(404).json({ error: 'MESSAGE_NOT_FOUND' });
+  const body = clean(req.body?.body, 2000);
+  if (body.length < 2) return res.status(400).json({ error: 'INVALID_REPLY' });
+  if (!emailDeliveryConfigured()) return res.status(503).json({ error: 'EMAIL_DELIVERY_NOT_CONFIGURED' });
+  const replyId = id('REPLY'), createdAt = isoNow();
+  db.prepare('INSERT INTO message_replies(id,message_id,author_id,body,delivery_status,created_at) VALUES(?,?,?,?,?,?)')
+    .run(replyId, target.id, req.user.id, body, 'pending', createdAt);
+  try {
+    await sendTransactionalEmail({ to: target.email, subject: `Réponse Nova Terra — ${target.subject}`, text: body });
+    db.prepare("UPDATE message_replies SET delivery_status='sent' WHERE id=?").run(replyId);
+    recordAudit(req, { action: 'contact_message.reply_sent', entityType: 'contact_message', entityId: target.id, summary: 'Agent replied to a citizen message', metadata: { replyId } });
+    res.status(201).json({ id: replyId, deliveryStatus: 'sent', createdAt });
+  } catch (_) {
+    db.prepare("UPDATE message_replies SET delivery_status='failed' WHERE id=?").run(replyId);
+    res.status(502).json({ error: 'EMAIL_DELIVERY_FAILED' });
+  }
+}));
 
 function announcement(row) {
   return { id: row.id, kind: row.kind, title: row.title, body: row.body, targetSector: row.target_sector,
@@ -870,11 +928,12 @@ app.patch('/api/accounts/:id/role', authenticate, allowRoles('ADMIN'), (req, res
 app.get('/api/audit-logs', authenticate, allowRoles('ADMIN', 'AGENT'), (req, res) => {
   const isAdmin = req.user.role === 'ADMIN';
   const adminCategories = {
-    auth: ['auth.%'], account: ['account.%'], report: ['citizen_request.%'], contact: ['contact_message.%'],
+    auth: ['auth.%'], account: ['account.%'], report: ['citizen_request.%'], project: ['project.%'], contact: ['contact_message.%'],
     announcement: ['announcement.%'], service: ['service.%'], appointment: ['appointment.%'], privacy: ['privacy_request.%'], official: ['official_requests.%'],
   };
   const agentCategories = {
     access: ['account.access_changed', 'account.role_changed'], report: ['citizen_request.%'],
+    project: ['project.%'],
     announcement: ['announcement.%'], service: ['service.%'], appointment: ['appointment.%'], official: ['official_requests.%'],
   };
   const categories = isAdmin ? adminCategories : agentCategories;

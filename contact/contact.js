@@ -71,14 +71,20 @@ form.addEventListener("submit", async (event) => {
   sending = true;
   submitButton.textContent = document.documentElement.lang === "en" ? "Sending…" : "Transmission…";
   const values = Object.fromEntries(new FormData(form));
+  if (values.website) {
+    sending = false;
+    submitButton.disabled = false;
+    applyContactLanguage();
+    return;
+  }
   try {
     await window.NovaTerra.sendMessage(values);
     form.hidden = true;
     success.hidden = false;
-  } catch {
+  } catch (sendError) {
     error.textContent = document.documentElement.lang === "en"
-      ? "The message could not be sent. Please try again in a moment."
-      : "Le message n'a pas pu être envoyé. Réessaie dans un instant.";
+      ? (sendError?.message === 'DUPLICATE_SUBMISSION' ? 'This message was already received recently.' : 'The message could not be sent. Please try again in a moment.')
+      : (sendError?.message === 'DUPLICATE_SUBMISSION' ? 'Ce message a déjà été reçu récemment.' : 'Le message n’a pas pu être envoyé. Réessaie dans un instant.');
     error.hidden = false;
   } finally {
     sending = false;

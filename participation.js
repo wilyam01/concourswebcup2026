@@ -175,7 +175,13 @@
       title.textContent = idea.title;
       const body = document.createElement('span');
       body.textContent = idea.body;
-      item.append(title, body);
+      const status = document.createElement('small');
+      const stage = idea.status || 'received';
+      const labels = english
+        ? { received: 'Received', reviewing: 'Under review', planned: 'Planned', in_progress: 'In progress', completed: 'Completed', declined: 'Not selected' }
+        : { received: 'Reçue', reviewing: 'À l’étude', planned: 'Planifiée', in_progress: 'En cours', completed: 'Terminée', declined: 'Non retenue' };
+      status.textContent = `${english ? 'Project status' : 'État du projet'} : ${labels[stage] || labels.received}`;
+      item.append(title, body, status);
       ideaList.append(item);
     });
   }

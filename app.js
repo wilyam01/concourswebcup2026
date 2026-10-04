@@ -409,6 +409,44 @@ async function renderPersonalRequests() {
     priority.textContent = labels.priority[request.priority] || labels.priority.normal;
     bottom.append(status, service, category, priority);
     card.append(top, title, description, bottom);
+    if (request.status === 'done') {
+      let savedFeedback = request.feedback;
+      if (!window.NovaTerraApi?.enabled) {
+        try { savedFeedback = JSON.parse(localStorage.getItem(`nova-terra.request-feedback.v1:${request.id}`) || 'null'); } catch (_) { savedFeedback = null; }
+      }
+      if (savedFeedback) {
+        const note = document.createElement('p');
+        note.className = 'request-feedback-saved';
+        note.textContent = `${english ? 'Your rating' : 'Ton avis'} : ${'★'.repeat(savedFeedback.rating)}${savedFeedback.comment ? ` · ${savedFeedback.comment}` : ''}`;
+        card.append(note);
+      } else {
+        const form = document.createElement('form');
+        form.className = 'request-feedback-form';
+        const label = document.createElement('label'); label.textContent = english ? 'Rate this service' : 'Évalue ce service';
+        const rating = document.createElement('select'); rating.name = 'rating'; rating.required = true;
+        rating.add(new Option(english ? 'Choose a rating' : 'Choisir une note', ''));
+        for (let value = 5; value >= 1; value -= 1) rating.add(new Option(`${value} / 5`, String(value)));
+        const comment = document.createElement('input'); comment.name = 'comment'; comment.maxLength = 500; comment.placeholder = english ? 'Optional comment' : 'Commentaire facultatif';
+        const button = document.createElement('button'); button.type = 'submit'; button.textContent = english ? 'Send feedback' : 'Envoyer mon avis';
+        const message = document.createElement('span'); message.setAttribute('role', 'status');
+        label.append(rating); form.append(label, comment, button, message);
+        form.addEventListener('submit', async (event) => {
+          event.preventDefault(); button.disabled = true;
+          const value = { rating: Number(rating.value), comment: comment.value.trim() };
+          try {
+            if (window.NovaTerraApi?.enabled) await window.NovaTerraApi.request(`/citizen-requests/${encodeURIComponent(request.id)}/feedback`, { method: 'POST', body: JSON.stringify(value) });
+            else localStorage.setItem(`nova-terra.request-feedback.v1:${request.id}`, JSON.stringify(value));
+            message.textContent = english ? 'Thank you for your feedback.' : 'Merci pour ton retour.';
+            savedFeedback = value;
+            await renderPersonalRequests();
+          } catch (_) {
+            message.textContent = english ? 'Your feedback could not be saved.' : 'Impossible d’enregistrer ton avis.';
+            button.disabled = false;
+          }
+        });
+        card.append(form);
+      }
+    }
     return card;
   }));
   document.querySelector("#personalRequestEmpty").textContent = requests.length ? labels.emptyFilter : labels.empty;
@@ -509,6 +547,7 @@ citizenReportForm.addEventListener("submit", async (event) => {
   citizenReportErrorKey = "";
   error.hidden = true;
   const values = Object.fromEntries(new FormData(citizenReportForm));
+  if (values.website) return;
   try {
     const request = await window.NovaTerra.createCitizenRequest({ ...values, ownerEmail: currentUser.email });
     await renderPersonalRequests();
@@ -521,9 +560,13 @@ citizenReportForm.addEventListener("submit", async (event) => {
     renderPersonalRequests();
     citizenReportForm.reset();
     personalRequestsDialog.close();
-  } catch {
+  } catch (saveError) {
     citizenReportErrorKey = "save-failed";
-    renderCitizenReportError();
+    if (saveError?.message === 'DUPLICATE_SUBMISSION') {
+      document.querySelector('#citizenReportError').textContent = document.documentElement.lang === 'en'
+        ? 'A similar report was just submitted. Check your request history before sending it again.'
+        : 'Un signalement similaire vient d’être envoyé. Consulte ton historique avant de le soumettre à nouveau.';
+    } else renderCitizenReportError();
     error.hidden = false;
   }
 });

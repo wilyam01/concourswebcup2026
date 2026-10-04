@@ -27,7 +27,7 @@ db.exec(`
     created_at TEXT NOT NULL, updated_at TEXT NOT NULL
   );
   CREATE TABLE IF NOT EXISTS citizen_ideas (
-    id TEXT PRIMARY KEY, title TEXT NOT NULL, body TEXT NOT NULL, created_at TEXT NOT NULL
+    id TEXT PRIMARY KEY, title TEXT NOT NULL, body TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'received', created_at TEXT NOT NULL
   );
   CREATE TABLE IF NOT EXISTS consultation_votes (
     consultation_id TEXT NOT NULL, choice INTEGER NOT NULL, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -36,6 +36,11 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS messages (
     id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL, category TEXT NOT NULL,
     subject TEXT NOT NULL, message TEXT NOT NULL, created_at TEXT NOT NULL, unread INTEGER NOT NULL DEFAULT 1
+  );
+  CREATE TABLE IF NOT EXISTS message_replies (
+    id TEXT PRIMARY KEY, message_id TEXT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    author_id TEXT REFERENCES users(id) ON DELETE SET NULL, body TEXT NOT NULL,
+    delivery_status TEXT NOT NULL DEFAULT 'pending', created_at TEXT NOT NULL
   );
   CREATE TABLE IF NOT EXISTS announcements (
     id TEXT PRIMARY KEY, kind TEXT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL,
@@ -87,6 +92,11 @@ db.exec(`
     created_at TEXT NOT NULL,
     PRIMARY KEY(request_id,user_id)
   );
+  CREATE TABLE IF NOT EXISTS request_feedback (
+    request_id TEXT PRIMARY KEY REFERENCES citizen_requests(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5), comment TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL
+  );
   CREATE TABLE IF NOT EXISTS passwordless_challenges (
     id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     code_hash TEXT NOT NULL, created_at TEXT NOT NULL, expires_at TEXT NOT NULL,
@@ -131,6 +141,9 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS two_factor_challenges_user ON two_factor_login_challenges(user_id, created_at DESC);
   CREATE INDEX IF NOT EXISTS security_notifications_user ON security_notifications(user_id, created_at DESC);
 `);
+
+const ideaColumns = new Set(db.prepare('PRAGMA table_info(citizen_ideas)').all().map((column) => column.name));
+if (!ideaColumns.has('status')) db.exec("ALTER TABLE citizen_ideas ADD COLUMN status TEXT NOT NULL DEFAULT 'received'");
 
 const userColumns = new Set(db.prepare('PRAGMA table_info(users)').all().map((column) => column.name));
 if (!userColumns.has('sector')) db.exec("ALTER TABLE users ADD COLUMN sector TEXT NOT NULL DEFAULT ''");

@@ -165,6 +165,10 @@ F49 ajoute une notification dans le centre d’alertes à chaque changement de s
 
 Les fonctions D04, D11/F26, D12/F35, D14/F27, D16, F25, D17, D19 et F22 étaient déjà présentes dans les pages citoyennes et le back-office. F28 existait en mode local; `GET /api/service-popularity` le relie maintenant aux demandes du backend et ne renvoie que les totaux par service, sans détail de dossier ni identité.
 
+## Audit des fonctionnalites F61–F84
+
+Le [tableau de couverture et de doublons](docs/feature-audit-f61-f84.md) distingue les fonctions déjà présentes, les ajouts de cette révision et les éléments qui demandent une intégration externe ou une décision produit.
+
 ## Securite de l'espace agent
 
 `/agent/dashboard/` est une interface statique et ne peut pas proteger des donnees a elle seule. Avant la production, l'API doit verifier la session et les droits d'agent sur chaque endpoint, avec HTTPS, CORS limite au domaine du site et une authentification cote serveur. Aucun token prive ne doit etre ajoute au JavaScript du navigateur.

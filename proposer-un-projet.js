@@ -9,7 +9,8 @@
     event.preventDefault();
     const button = form.querySelector('button[type="submit"]');
     const data = new FormData(form);
-    const idea = { title: String(data.get('title') || '').trim(), body: String(data.get('body') || '').trim() };
+    const idea = { title: String(data.get('title') || '').trim(), body: String(data.get('body') || '').trim(), website: String(data.get('website') || '') };
+    if (idea.website) return;
     button.disabled = true;
     status.textContent = 'Envoi en cours…';
     try {
@@ -28,6 +29,8 @@
     } catch (error) {
       status.textContent = error.message === 'INVALID_INPUT'
         ? 'Vérifiez le titre et la description puis réessayez.'
+        : error.message === 'DUPLICATE_SUBMISSION'
+          ? 'Cette proposition a déjà été reçue récemment.'
         : 'Envoi impossible pour le moment. Réessayez plus tard.';
     } finally {
       button.disabled = false;

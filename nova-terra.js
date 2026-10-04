@@ -221,7 +221,7 @@ window.NovaTerra = {
     const normalizedEmail = String(ownerEmail).trim().toLowerCase();
     return requests.filter((request) => request.ownerEmail === normalizedEmail);
   },
-  async createCitizenRequest({ ownerEmail, title, district, type, service, priority = "normal", description }) {
+  async createCitizenRequest({ ownerEmail, title, district, type, service, priority = "normal", description, website = "" }) {
     const normalizedEmail = String(ownerEmail || "").trim().toLowerCase();
     const normalizedTitle = toSafeText(title, "", 100);
     const normalizedDistrict = toSafeText(district, "", 120);
@@ -234,7 +234,7 @@ window.NovaTerra = {
     const normalizedPriority = normalizePriority(priority);
     if (NOVA_TERRA_API_BASE_URL) {
       const payload = await window.NovaTerraApi.request('/citizen-requests', {
-        method: 'POST', body: JSON.stringify({ title: normalizedTitle, district: normalizedDistrict, type: normalizedType, service, priority: normalizedPriority, description: normalizedDescription }),
+        method: 'POST', body: JSON.stringify({ title: normalizedTitle, district: normalizedDistrict, type: normalizedType, service, priority: normalizedPriority, description: normalizedDescription, website }),
       });
       return normalizeCitizenRequest(payload.request);
     }
