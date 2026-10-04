@@ -9,24 +9,27 @@
     { id: 'central-rescue', type: 'rescue', name: 'Poste de secours central', englishName: 'Central Emergency Station', district: 'Centre civique', englishDistrict: 'Civic Centre', detail: 'Point de secours · fiche illustrative', englishDetail: 'Emergency response point · illustrative listing', x: 45, y: 64 },
     { id: 'south-rescue', type: 'rescue', name: 'Relais de secours Sud', englishName: 'South Emergency Relay', district: 'Serres du Sud', englishDistrict: 'Southern Greenhouses', detail: 'Relais de secours · fiche illustrative', englishDetail: 'Emergency relay · illustrative listing', x: 79, y: 73 },
     { id: 'civic-cooling', type: 'cooling', name: 'Espace fraîcheur civique', englishName: 'Civic Cooling Centre', district: 'Centre civique', englishDistrict: 'Civic Centre', detail: 'Espace de fraîcheur · horaires à confirmer', englishDetail: 'Cooling space · hours to be confirmed', x: 29, y: 80 },
+    { id: 'civic-services', type: 'municipal', name: 'Maison des services municipaux', englishName: 'Municipal Services Centre', district: 'Centre civique', englishDistrict: 'Civic Centre', detail: 'Accueil et démarches · fiche illustrative', englishDetail: 'Resident services and procedures · illustrative listing', x: 52, y: 29 },
+    { id: 'boreal-services', type: 'municipal', name: 'Antenne municipale Boréale', englishName: 'Boreal Municipal Office', district: 'District Boréal', englishDistrict: 'Boreal District', detail: 'Accueil de proximité · fiche illustrative', englishDetail: 'Local resident services · illustrative listing', x: 13, y: 52 },
+    { id: 'south-services', type: 'municipal', name: 'Point municipal des Serres', englishName: 'Southern Greenhouses Municipal Desk', district: 'Serres du Sud', englishDistrict: 'Southern Greenhouses', detail: 'Accueil de proximité · fiche illustrative', englishDetail: 'Local resident services · illustrative listing', x: 72, y: 49 },
   ];
   const typeLabels = {
-    fr: { hospital: 'Hôpital / soins', rescue: 'Secours', cooling: 'Lieu frais' },
-    en: { hospital: 'Hospital / care', rescue: 'Emergency response', cooling: 'Cooling centre' },
+    fr: { hospital: 'Hôpital / soins', rescue: 'Secours', cooling: 'Lieu frais', municipal: 'Service municipal' },
+    en: { hospital: 'Hospital / care', rescue: 'Emergency response', cooling: 'Cooling centre', municipal: 'Municipal service' },
   };
   const labels = {
     fr: {
-      nav: 'Urgences', filterLabel: 'Filtrer les lieux sur la carte', all: 'Tous les lieux', hospital: 'Hôpitaux & soins', rescue: 'Secours', cooling: 'Lieux frais',
-      kicker: '00 · SANTÉ & SÉCURITÉ', title: 'Urgences et lieux de soin', intro: 'Repère les centres de soin, postes de secours et lieux de fraîcheur de la cité.',
-      call: 'Danger immédiat ? Appelle le 112', map: 'Carte schématique interactive des urgences et hôpitaux', north: 'District Boréal', center: 'Centre civique', south: 'Serres du Sud', caption: 'CARTE SCHÉMATIQUE · DÉMO',
+      nav: 'Urgences et services', filterLabel: 'Filtrer les lieux sur la carte', all: 'Tous les lieux', hospital: 'Hôpitaux & soins', rescue: 'Secours', cooling: 'Lieux frais', municipal: 'Services municipaux',
+      kicker: '00 · SERVICES LOCAUX', title: 'Services municipaux et lieux d’urgence', intro: 'Repère les antennes municipales, les centres de soin, les postes de secours et les lieux de fraîcheur.',
+      call: 'Danger immédiat ? Appelle le 112', map: 'Carte schématique interactive des services municipaux et lieux d’urgence', north: 'District Boréal', center: 'Centre civique', south: 'Serres du Sud', caption: 'CARTE SCHÉMATIQUE · DÉMO',
       locations: 'Lieux répertoriés', count: (n) => `${n} lieu${n > 1 ? 'x' : ''}`, empty: 'Aucun lieu dans cette catégorie.',
       selected: (name, district) => `Lieu sélectionné : ${name}, ${district}.`, details: 'Sélectionner ce lieu sur la carte', callPlace: 'Pour une urgence réelle, appeler le 112',
       disclaimer: 'Maquette illustrative : les lieux affichés, horaires et disponibilités ne sont pas des données officielles. En situation réelle, appelle le 112.',
     },
     en: {
-      nav: 'Emergencies', filterLabel: 'Filter places on the map', all: 'All places', hospital: 'Hospitals & care', rescue: 'Emergency response', cooling: 'Cooling centres',
-      kicker: '00 · HEALTH & SAFETY', title: 'Emergency and care locations', intro: 'Find care centres, emergency response points and cooling spaces around the city.',
-      call: 'Immediate danger? Call 112', map: 'Schematic interactive map of emergency and hospital locations', north: 'Boreal District', center: 'Civic Centre', south: 'Southern Greenhouses', caption: 'SCHEMATIC MAP · DEMO',
+      nav: 'Emergency and city services', filterLabel: 'Filter places on the map', all: 'All places', hospital: 'Hospitals & care', rescue: 'Emergency response', cooling: 'Cooling centres', municipal: 'Municipal services',
+      kicker: '00 · LOCAL SERVICES', title: 'Municipal services and emergency locations', intro: 'Find municipal offices, care centres, emergency response points and cooling spaces around the city.',
+      call: 'Immediate danger? Call 112', map: 'Schematic interactive map of municipal services and emergency locations', north: 'Boreal District', center: 'Civic Centre', south: 'Southern Greenhouses', caption: 'SCHEMATIC MAP · DEMO',
       locations: 'Listed locations', count: (n) => `${n} place${n === 1 ? '' : 's'}`, empty: 'No locations in this category.',
       selected: (name, district) => `Selected location: ${name}, ${district}.`, details: 'Select this location on the map', callPlace: 'For a real emergency, call 112',
       disclaimer: 'Illustrative demo: locations, hours and availability are not official data. In a real emergency, call 112.',
@@ -118,6 +121,7 @@
     section.querySelector('#emergencyFilters [data-emergency-filter="hospital"]').textContent = current.hospital;
     section.querySelector('#emergencyFilters [data-emergency-filter="rescue"]').textContent = current.rescue;
     section.querySelector('#emergencyFilters [data-emergency-filter="cooling"]').textContent = current.cooling;
+    section.querySelector('#emergencyFilters [data-emergency-filter="municipal"]').textContent = current.municipal;
     section.querySelector('#emergencyKicker').textContent = current.kicker;
     section.querySelector('#emergencyTitle').textContent = current.title;
     section.querySelector('#emergencyIntro').textContent = current.intro;

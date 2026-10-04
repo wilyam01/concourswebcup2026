@@ -48,6 +48,20 @@ test('HTML pages reference existing local files and fragment targets', () => {
   }
 });
 
+test('public map locates municipal offices and emergency services with clear demo data', () => {
+  const markup = fs.readFileSync(path.join(projectRoot, 'index.html'), 'utf8');
+  const map = fs.readFileSync(path.join(projectRoot, 'emergency-map.js'), 'utf8');
+  const styles = fs.readFileSync(path.join(projectRoot, 'emergency-map.css'), 'utf8');
+  assert.match(markup, /data-emergency-filter="municipal"/, 'the map should provide a municipal services filter');
+  assert.match(map, /id: 'civic-services', type: 'municipal'/);
+  assert.match(map, /id: 'boreal-services', type: 'municipal'/);
+  assert.match(map, /id: 'south-services', type: 'municipal'/);
+  assert.match(map, /data-emergency-filter="municipal"/);
+  assert.match(map, /typeLabels[\s\S]*?municipal:/);
+  assert.match(map, /Maquette illustrative[\s\S]*?pas des données officielles/);
+  assert.match(styles, /\.emergency-marker\.type-municipal/);
+});
+
 test('interface languages are available across the app and backed by local catalogs', () => {
   const accessibility = fs.readFileSync(path.join(projectRoot, 'accessibility.js'), 'utf8');
   const language = fs.readFileSync(path.join(projectRoot, 'language.js'), 'utf8');

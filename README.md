@@ -46,7 +46,7 @@ git push origin main
 
 Le bouton « Aa » regroupe les préférences déjà présentes : navigation clavier avec repère de saut et focus visible, mode contraste élevé, agrandissement du texte, langue et fil d’Ariane. La palette daltonisme prolonge le contraste existant; l’interface simplifiée et le petit glossaire ajoutent les fonctions D13. Le fil d’actualités, les annonces prioritaires, les alertes crue/canicule et les repères de navigation sont déjà couverts : D15, D18/F30, F29/F31, F41/F42/D20 et F44 réutilisent les composants en place au lieu d’ajouter des copies.
 
-La section **Urgences** de l’accueil ajoute la carte filtrable des hôpitaux, postes de secours et lieux frais (F45/F46). Ses emplacements et horaires sont illustratifs, non officiels; appeler le 112 en cas d’urgence réelle. Une source cartographique municipale pourra remplacer ces exemples si elle est fournie.
+La carte **Services locaux et urgences** de l'accueil localise des antennes de services municipaux (F45), des hôpitaux, des postes de secours et des lieux frais (F46), avec filtres par catégorie et fiches sélectionnables. Les points, noms, horaires et disponibilités sont illustratifs, non officiels; appeler le 112 en cas d'urgence réelle. Une source cartographique municipale pourra remplacer ces exemples si elle est fournie.
 
 ## Éco-conception et faible débit
 

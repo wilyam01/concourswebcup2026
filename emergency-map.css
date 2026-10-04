@@ -24,6 +24,8 @@
 .emergency-marker.type-hospital { border-radius:50%; background:#0072b2; }
 .emergency-marker.type-rescue { border-radius:7px; background:#d55e00; }
 .emergency-marker.type-cooling { border-radius:3px; background:#008b68; }
+.emergency-marker.type-municipal { border-radius:3px; background:#7653b4; transform:translate(-50%,-50%) rotate(45deg); }
+.emergency-marker.type-municipal:hover,.emergency-marker.type-municipal[aria-pressed="true"] { transform:translate(-50%,-50%) rotate(45deg) scale(1.18); }
 .emergency-map-caption { position:absolute; right:12px; bottom:11px; color:#c2d0df; font:8px var(--mono,monospace); letter-spacing:.6px; }
 .emergency-facility-panel { min-height:390px; padding:16px; border:1px solid #8ba8bf30; border-radius:15px; background:#ffffff06; }
 .emergency-list-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; padding-bottom:12px; border-bottom:1px solid #9aabc022; }
@@ -32,6 +34,7 @@
 .emergency-facility-list { display:grid; max-height:344px; gap:8px; overflow:auto; padding-top:11px; }
 .emergency-facility { display:grid; grid-template-columns:1fr auto; gap:4px 9px; padding:10px; border:1px solid #9aabc02c; border-left:4px solid #0072b2; border-radius:9px; background:#0d1521; }
 .emergency-facility.type-rescue { border-left-color:#d55e00; }.emergency-facility.type-cooling { border-left-color:#008b68; }
+.emergency-facility.type-municipal { border-left-color:#9674d2; }
 .emergency-facility-type { grid-column:1/-1; color:#aab8c9; font:8px var(--mono,monospace); text-transform:uppercase; }
 .emergency-facility-select { display:grid; justify-items:start; gap:3px; padding:0; border:0; color:#f2f4f8; background:transparent; text-align:left; }
 .emergency-facility-select b { font-size:12px; }.emergency-facility-select span { color:#abb8c8; font-size:10px; }
