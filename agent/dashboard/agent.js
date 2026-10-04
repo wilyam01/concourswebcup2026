@@ -6,6 +6,13 @@ if (!agentUser || !['agent', 'admin'].includes(agentUser.profile)) {
 const agentInitials = agentUser.name.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
 document.querySelector('#agentAvatar').textContent = agentInitials || 'AG';
 document.querySelector('#agentName').textContent = agentUser.name;
+const agentRoleCaption = () => agentUser.profile === 'admin'
+  ? (document.documentElement.lang === 'en' ? 'City administrator' : 'Administrateur municipal')
+  : (document.documentElement.lang === 'en' ? 'Municipal agent' : 'Agent municipal');
+document.querySelector('.agent-profile small').textContent = agentRoleCaption();
+window.addEventListener('nova:language-change', () => {
+  document.querySelector('.agent-profile small').textContent = agentRoleCaption();
+});
 document.querySelector('#agentGreetingName').textContent = agentUser.name.split(/\s+/)[0];
 function includeCitizenSubmissions(requests, citizenSubmissions = window.NovaTerra.getLocalCitizenRequests()) {
   const existingIds = new Set(requests.map((request) => request.id));
@@ -209,6 +216,32 @@ async function loadDashboard() {
   }
   render();
 }
+
+const agentNavigationSections = ['.metrics', '#demandes', '#messages', '#city-management', '#agentAppointments']
+  .map((selector) => document.querySelector(selector)).filter(Boolean);
+function activateAgentNavigation(hash, writeHistory = false) {
+  const selected = ['#dashboard', '#demandes', '#messages', '#city-management', '#auditTrailCard', '#agentAppointments'].includes(hash)
+    ? hash : '#dashboard';
+  const target = selected === '#auditTrailCard' ? '#city-management' : selected;
+  agentNavigationSections.forEach((section) => { section.hidden = true; });
+  if (target === '#dashboard') document.querySelector('.metrics').hidden = false;
+  else document.querySelector(target).hidden = false;
+  document.body.dataset.agentNavigation = selected === '#auditTrailCard' ? 'audit' : selected.slice(1);
+  document.querySelectorAll('.sidebar nav a[href^="#"]').forEach((link) => {
+    const active = link.getAttribute('href') === selected;
+    link.classList.toggle('active', active);
+    if (active) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
+  });
+  if (writeHistory && window.location.hash !== selected) history.pushState(null, '', selected);
+}
+document.querySelectorAll('.sidebar nav a[href^="#"]').forEach((link) => link.addEventListener('click', (event) => {
+  event.preventDefault();
+  activateAgentNavigation(link.getAttribute('href'), true);
+}));
+window.addEventListener('popstate', () => activateAgentNavigation(window.location.hash || '#dashboard'));
+window.addEventListener('hashchange', () => activateAgentNavigation(window.location.hash || '#dashboard'));
+activateAgentNavigation(window.location.hash || '#dashboard');
 
 document.querySelector("#request-search").addEventListener("input", renderKanban);
 document.querySelectorAll("#priority-filter, #status-filter, #type-filter").forEach((control) => control.addEventListener("change", renderKanban));

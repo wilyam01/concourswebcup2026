@@ -746,10 +746,7 @@ document.querySelectorAll('.view-btn').forEach((button) => {
     breadcrumbCurrent.textContent = councilView
       ? (document.documentElement.lang === 'en' ? 'High Council' : 'Haut Conseil')
       : (document.documentElement.lang === 'en' ? 'Overview' : 'Vue d’ensemble');
-    document.querySelector('.nav-item.active').classList.remove('active');
-    const destination = document.querySelector(councilView ? '.nav-item[href="#council"]' : '.nav-item[href="#overview"]');
-    destination.classList.add('active');
-    if (councilView) document.querySelector('#council').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    activateNavigationCategory(councilView ? '#council' : '#overview', { writeHistory: true });
   });
 });
 
@@ -785,6 +782,7 @@ reportDialog.addEventListener("click", (event) => {
   if (event.target === reportDialog) reportDialog.close();
 });
 document.querySelector("#reviewUrgentReports").addEventListener("click", () => {
+  activateNavigationCategory('#reports', { writeHistory: true });
   document.querySelector('[data-filter="urgent"]').click();
   document.querySelector("#reports").scrollIntoView({ behavior: "smooth", block: "start" });
   document.querySelector("#reports-search").focus({ preventScroll: true });
@@ -811,11 +809,85 @@ document.addEventListener('keydown', (event) => {
     menuButton.focus();
   }
 });
-document.querySelectorAll('.nav-item').forEach((link) => link.addEventListener('click', () => {
-  document.querySelectorAll('.nav-item').forEach((item) => item.classList.remove('active'));
-  link.classList.add('active');
+const dashboardNavigation = {
+  '#overview': ['.welcome-row', '.metric-grid', '.main-grid', '.bottom-grid'],
+  '#citizenServices': ['#citizenServices'],
+  '#reports': ['.bottom-grid'],
+  '#my-requests': ['#my-requests'],
+  '#planet': ['.main-grid'],
+  '#participation': ['#participation'],
+  '#appointments': ['#appointments'],
+  '#council': ['.bottom-grid'],
+};
+const dashboardNavigationElements = [
+  '.welcome-row', '.metric-grid', '.main-grid', '.bottom-grid', '#my-requests',
+  '#citizenServices', '#appointments', '#participation',
+].map((selector) => document.querySelector(selector)).filter(Boolean);
+
+function activateNavigationCategory(hash, { writeHistory = false } = {}) {
+  const isCitizen = currentUser.profile === 'citizen';
+  const staffOnlyCategory = hash === '#council';
+  const citizenOnlyCategory = ['#my-requests', '#appointments', '#participation'].includes(hash);
+  let selectedHash = dashboardNavigation[hash] ? hash : '#overview';
+  if ((staffOnlyCategory && isCitizen) || (citizenOnlyCategory && !isCitizen)) selectedHash = '#overview';
+
+  dashboardNavigationElements.forEach((element) => { element.hidden = true; });
+  dashboardNavigation[selectedHash].forEach((selector) => {
+    const element = document.querySelector(selector);
+    if (element) element.hidden = false;
+  });
+  const reportsPanel = document.querySelector('#reports');
+  const councilPanel = document.querySelector('#council');
+  reportsPanel.hidden = selectedHash === '#council';
+  councilPanel.hidden = isCitizen || selectedHash === '#reports';
+  const climatePanel = document.querySelector('.climate-panel');
+  if (climatePanel) climatePanel.hidden = selectedHash === '#planet';
+  const alertHost = document.querySelector('#communityAlertHost');
+  if (alertHost) alertHost.hidden = selectedHash !== '#overview';
+
+  document.querySelector('#my-requests').hidden = !isCitizen || selectedHash !== '#my-requests';
+  document.querySelector('#appointments').hidden = !isCitizen || selectedHash !== '#appointments';
+  document.querySelector('#participation').hidden = !isCitizen || selectedHash !== '#participation';
+  document.querySelector('.nav-item[href="#my-requests"]').hidden = !isCitizen;
+  document.querySelector('.nav-item[href="#appointments"]').hidden = !isCitizen;
+  document.querySelector('.nav-item[href="#participation"]').hidden = !isCitizen;
+  document.querySelector('.nav-item[href="#council"]').hidden = isCitizen;
+  document.querySelector('.nav-item[href="agent/dashboard/index.html"]').hidden = isCitizen;
+  document.querySelector('.view-btn[data-view="council"]').hidden = isCitizen;
+  document.querySelector('.view-switch').hidden = isCitizen;
+
+  document.querySelectorAll('.nav-item').forEach((item) => {
+    const active = item.getAttribute('href') === selectedHash;
+    item.classList.toggle('active', active);
+    if (active) item.setAttribute('aria-current', 'page');
+    else item.removeAttribute('aria-current');
+  });
+  const councilView = selectedHash === '#council';
+  document.querySelectorAll('.view-btn').forEach((button) => button.classList.toggle('selected', button.dataset.view === (councilView ? 'council' : 'citizen')));
+  const breadcrumb = document.querySelector('.breadcrumbs b[data-current-view]');
+  breadcrumb.dataset.currentView = councilView ? 'council' : 'citizen';
+  breadcrumb.textContent = councilView
+    ? (document.documentElement.lang === 'en' ? 'High Council' : 'Haut Conseil')
+    : (document.documentElement.lang === 'en' ? 'Overview' : 'Vue d’ensemble');
+  if (selectedHash === '#overview') {
+    document.querySelector('h1').innerHTML = document.documentElement.lang === 'en'
+      ? 'The pulse of <span>Terra Nova.</span>' : 'Le pouls de <span>Terra Nova.</span>';
+    document.querySelector('.subheading').textContent = document.documentElement.lang === 'en'
+      ? 'Every report matters. Here is what is happening in your city.' : 'Chaque signal compte. Voici ce qui se passe dans votre cité.';
+  }
+  if (writeHistory && window.location.hash !== selectedHash) history.pushState(null, '', selectedHash);
   setSidebarOpen(false);
+}
+
+document.querySelectorAll('.nav-item').forEach((link) => link.addEventListener('click', (event) => {
+  const href = link.getAttribute('href');
+  if (!dashboardNavigation[href]) return;
+  event.preventDefault();
+  activateNavigationCategory(href, { writeHistory: true });
 }));
+window.addEventListener('popstate', () => activateNavigationCategory(window.location.hash || '#overview'));
+window.addEventListener('hashchange', () => activateNavigationCategory(window.location.hash || '#overview'));
+activateNavigationCategory(window.location.hash || '#overview');
 
 const profilePhotoInput = document.querySelector('#profilePhotoInput');
 const profilePhotoButtons = [...document.querySelectorAll('.profile-photo-trigger')];

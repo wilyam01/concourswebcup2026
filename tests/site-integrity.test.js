@@ -74,6 +74,29 @@ test('citizen dashboard lists municipal services and shows their current status'
   assert.match(community, /NovaTerraCity\.getServiceStatuses\(\)/);
 });
 
+test('role navigation shows one category and keeps administration rights on the server', () => {
+  const dashboard = fs.readFileSync(path.join(projectRoot, 'dashboard.html'), 'utf8');
+  const app = fs.readFileSync(path.join(projectRoot, 'app.js'), 'utf8');
+  const agentPage = fs.readFileSync(path.join(projectRoot, 'agent/dashboard/index.html'), 'utf8');
+  const agentApp = fs.readFileSync(path.join(projectRoot, 'agent/dashboard/agent.js'), 'utf8');
+  const backend = fs.readFileSync(path.join(projectRoot, 'backend/src/server.js'), 'utf8');
+  const roles = fs.readFileSync(path.join(projectRoot, 'docs/role-permissions.md'), 'utf8');
+  for (const category of ['overview', 'citizenServices', 'reports', 'my-requests', 'appointments', 'planet', 'participation', 'council']) {
+    assert.match(dashboard, new RegExp(`href="#${category}"`), `citizen workspace should navigate to ${category}`);
+  }
+  assert.match(app, /function activateNavigationCategory/);
+  assert.match(app, /document\.querySelector\('\.nav-item\[href="agent\/dashboard\/index\.html"\]'\)\.hidden = isCitizen/);
+  assert.match(app, /document\.querySelector\('\.nav-item\[href="#council"\]'\)\.hidden = isCitizen/);
+  for (const category of ['#dashboard', '#demandes', '#messages', '#city-management', '#agentAppointments']) {
+    assert.ok(agentPage.includes(`href="${category}"`), `team workspace should navigate to ${category}`);
+  }
+  assert.match(agentApp, /function activateAgentNavigation/);
+  assert.match(backend, /app\.patch\('\/api\/accounts\/:id\/role', authenticate, allowRoles\('ADMIN'\)/);
+  assert.match(backend, /app\.patch\('\/api\/privacy-requests\/:id', authenticate, allowRoles\('ADMIN'\)/);
+  assert.match(backend, /app\.get\('\/api\/activity-summary', authenticate, allowRoles\('ADMIN'\)/);
+  assert.match(roles, /Citoyen[\s\S]*Agent[\s\S]*Administrateur/);
+});
+
 test('interface languages are available across the app and backed by local catalogs', () => {
   const accessibility = fs.readFileSync(path.join(projectRoot, 'accessibility.js'), 'utf8');
   const language = fs.readFileSync(path.join(projectRoot, 'language.js'), 'utf8');

@@ -171,4 +171,6 @@ Le [tableau de couverture et de doublons](docs/feature-audit-f61-f84.md) disting
 
 ## Securite de l'espace agent
 
+La navigation par catégorie et la matrice de droits citoyen/agent/administrateur sont détaillées dans [docs/role-permissions.md](docs/role-permissions.md).
+
 `/agent/dashboard/` est une interface statique et ne peut pas proteger des donnees a elle seule. Avant la production, l'API doit verifier la session et les droits d'agent sur chaque endpoint, avec HTTPS, CORS limite au domaine du site et une authentification cote serveur. Aucun token prive ne doit etre ajoute au JavaScript du navigateur.
