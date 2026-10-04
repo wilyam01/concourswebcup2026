@@ -72,6 +72,23 @@ test('mairie navigation groups municipal transit schedules and the complete city
   assert.doesNotMatch(community, /filter\(\(item\) => item\.kind === 'news'\)\.slice/);
 });
 
+test('connected workspaces expose every public category and contact messages reach staff securely', () => {
+  const citizenPage = fs.readFileSync(path.join(projectRoot, 'dashboard.html'), 'utf8');
+  const agentPage = fs.readFileSync(path.join(projectRoot, 'agent/dashboard/index.html'), 'utf8');
+  const contactPage = fs.readFileSync(path.join(projectRoot, 'contact/index.html'), 'utf8');
+  const contact = fs.readFileSync(path.join(projectRoot, 'contact/contact.js'), 'utf8');
+  const backend = fs.readFileSync(path.join(projectRoot, 'backend/src/server.js'), 'utf8');
+  for (const category of ['services', 'mairie', 'actualites', 'partenaires', 'communaute', 'urgences']) {
+    assert.ok(citizenPage.includes(`index.html#${category}`), `citizen workspace should link to ${category}`);
+    assert.ok(agentPage.includes(`../../index.html#${category}`), `staff workspace should link to ${category}`);
+  }
+  assert.match(contact, /contactSession\?\.profile === "citizen"/);
+  assert.match(contactPage, /boîte partagée des agents et administrateurs/);
+  assert.match(backend, /app\.post\('\/api\/citizen-messages', optionalAuth/);
+  assert.match(backend, /req\.user\.role !== 'CITOYEN'/);
+  assert.match(backend, /app\.get\('\/api\/citizen-messages', authenticate, allowRoles\('AGENT', 'ADMIN'\)/);
+});
+
 test('citizen dashboard lists municipal services and shows their current status', () => {
   const markup = fs.readFileSync(path.join(projectRoot, 'dashboard.html'), 'utf8');
   const community = fs.readFileSync(path.join(projectRoot, 'community.js'), 'utf8');

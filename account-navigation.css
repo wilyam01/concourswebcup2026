@@ -1,0 +1,13 @@
+.sidebar { overflow-y: auto; }
+.city-exploration-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px; }
+.city-exploration-nav .nav-item { gap: 6px; padding: 8px 7px; font-size: 10px; }
+.city-exploration-nav .nav-icon { width: 13px; font-size: 12px; }
+.sidebar-section-label { margin: 22px 8px 7px; color: #aab9b1; font: 9px var(--mono, monospace); letter-spacing: 1px; }
+.sidebar nav.city-exploration-nav { margin-top: 0; grid-template-columns: 1fr; }
+.sidebar nav.city-exploration-nav a { padding: 7px 10px; font-size: 10px; }
+.contact-recipient { padding: 10px 12px; border-left: 3px solid #3eaa88; border-radius: 0 7px 7px 0; color: #315a50; background: #3eaa8810; font-size: 12px; line-height: 1.55; }
+@media (max-width: 640px) {
+  .sidebar { overflow: visible; }
+  .sidebar nav.city-exploration-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 7px; }
+  .sidebar-section-label { margin: 16px 0 0; }
+}

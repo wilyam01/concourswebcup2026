@@ -10,6 +10,8 @@ const messagesAreDemo = !window.TERRA_NOVA_CONFIG?.apiBaseUrl;
 const introDescription = document.querySelector("#contact-intro-description");
 const serviceDescription = document.querySelector("#service-description");
 const followUpMethod = document.querySelector("#follow-up-method");
+const contactRecipient = document.querySelector("#contact-recipient");
+const contactSession = window.NovaTerraAuth?.getSession();
 let sending = false;
 
 function applyContactLanguage() {
@@ -54,6 +56,9 @@ function applyContactLanguage() {
   successDescription.textContent = copy.successDescription;
   serviceDescription.textContent = copy.service;
   followUpMethod.textContent = copy.followUp;
+  contactRecipient.textContent = messagesAreDemo
+    ? (english ? "Demo mode: this message stays in this browser and is not sent to staff." : "Mode démonstration : ce message reste dans ce navigateur et n’est pas transmis aux équipes.")
+    : (english ? "Your message goes to the shared inbox for municipal agents and administrators. They can reply to you by email." : "Ton message est transmis à la boîte partagée des agents et administrateurs. Ils pourront te répondre par e-mail.");
   if (!sending) submitButton.textContent = english ? "Send message" : "Envoyer le message";
   document.querySelector("#new-message").textContent = english ? "Send another message" : "Envoyer un autre message";
   if (!error.hidden) error.textContent = english
@@ -62,6 +67,12 @@ function applyContactLanguage() {
 }
 
 applyContactLanguage();
+if (contactSession?.profile === "citizen") {
+  form.elements.name.value = contactSession.name || "";
+  form.elements.email.value = contactSession.email || "";
+  form.elements.name.readOnly = true;
+  form.elements.email.readOnly = true;
+}
 window.addEventListener("nova:language-change", applyContactLanguage);
 
 form.addEventListener("submit", async (event) => {
@@ -82,9 +93,12 @@ form.addEventListener("submit", async (event) => {
     form.hidden = true;
     success.hidden = false;
   } catch (sendError) {
-    error.textContent = document.documentElement.lang === "en"
-      ? (sendError?.message === 'DUPLICATE_SUBMISSION' ? 'This message was already received recently.' : 'The message could not be sent. Please try again in a moment.')
-      : (sendError?.message === 'DUPLICATE_SUBMISSION' ? 'Ce message a déjà été reçu récemment.' : 'Le message n’a pas pu être envoyé. Réessaie dans un instant.');
+    const english = document.documentElement.lang === "en";
+    error.textContent = sendError?.message === 'DUPLICATE_SUBMISSION'
+      ? (english ? 'This message was already received recently.' : 'Ce message a déjà été reçu récemment.')
+      : sendError?.message === 'api_not_configured'
+        ? (english ? 'Online messaging is not connected. Nothing was sent. Please contact the site administrator.' : 'La messagerie en ligne n’est pas connectée. Rien n’a été transmis. Contacte l’administrateur du site.')
+        : (english ? 'The message could not be sent. Check the connection and try again.' : 'Le message n’a pas pu être transmis. Vérifie la connexion et réessaie.');
     error.hidden = false;
   } finally {
     sending = false;

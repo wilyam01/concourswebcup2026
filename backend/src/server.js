@@ -600,9 +600,12 @@ app.post('/api/notifications/read', authenticate, allowRoles('CITOYEN'), (req, r
 app.get('/api/citizen-messages', authenticate, allowRoles('AGENT', 'ADMIN'), (_req, res) => {
   res.json({ messages: db.prepare('SELECT id,name,email,category,subject,message,created_at AS createdAt,unread FROM messages ORDER BY created_at DESC LIMIT 300').all().map((item) => ({ ...item, unread: Boolean(item.unread) })) });
 });
-app.post('/api/citizen-messages', (req, res) => {
+app.post('/api/citizen-messages', optionalAuth, (req, res) => {
   if (clean(req.body?.website, 300)) return res.status(400).json({ error: 'INVALID_INPUT' });
-  const name = clean(req.body?.name, 80), email = clean(req.body?.email, 254).toLowerCase();
+  if (req.user && req.user.role !== 'CITOYEN') return res.status(403).json({ error: 'CITIZEN_REQUIRED' });
+  const authenticatedCitizen = req.user?.role === 'CITOYEN' ? req.user : null;
+  const name = authenticatedCitizen ? authenticatedCitizen.display_name : clean(req.body?.name, 80);
+  const email = (authenticatedCitizen ? authenticatedCitizen.email : clean(req.body?.email, 254)).toLowerCase();
   const category = clean(req.body?.category, 60), subject = clean(req.body?.subject, 160), message = clean(req.body?.message, 4000);
   if (name.length < 2 || !/^\S+@\S+\.\S+$/.test(email) || !category || !subject || !message) return res.status(400).json({ error: 'INVALID_INPUT' });
   const duplicate = db.prepare(`SELECT id FROM messages WHERE lower(email)=lower(?) AND lower(subject)=lower(?) AND lower(message)=lower(?) AND created_at>? LIMIT 1`)
@@ -610,7 +613,7 @@ app.post('/api/citizen-messages', (req, res) => {
   if (duplicate) return res.status(409).json({ error: 'DUPLICATE_SUBMISSION' });
   const messageId = id('MSG');
   db.prepare('INSERT INTO messages(id,name,email,category,subject,message,created_at) VALUES(?,?,?,?,?,?,?)').run(messageId, name, email, category, subject, message, isoNow());
-  recordAudit(req, { actorEmail: email, actorRole: 'ANONYMOUS', action: 'contact_message.received', entityType: 'contact_message', entityId: messageId, summary: 'Citizen contact message received', metadata: { category } });
+  recordAudit(req, { actor: req.user, actorEmail: email, actorRole: req.user?.role || 'ANONYMOUS', action: 'contact_message.received', entityType: 'contact_message', entityId: messageId, summary: 'Citizen contact message received', metadata: { category } });
   res.status(201).json({ id: messageId, name, email, category, subject, message, createdAt: isoNow(), unread: true });
 });
 app.post('/api/citizen-messages/:id/replies', authenticate, allowRoles('AGENT', 'ADMIN'), asyncRoute(async (req, res) => {
