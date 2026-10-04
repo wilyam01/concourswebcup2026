@@ -62,6 +62,16 @@ test('public map locates municipal offices and emergency services with clear dem
   assert.match(styles, /\.emergency-marker\.type-municipal/);
 });
 
+test('mairie navigation groups municipal transit schedules and the complete city news feed', () => {
+  const markup = fs.readFileSync(path.join(projectRoot, 'index.html'), 'utf8');
+  const community = fs.readFileSync(path.join(projectRoot, 'community.js'), 'utf8');
+  assert.match(markup, /href="#mairie">Mairie<\/a>/);
+  assert.match(markup, /id="mairie"[\s\S]*?id="mobilite"[\s\S]*?id="actualites"[\s\S]*?id="inscription"/);
+  assert.match(markup, /id="mobilityBlueHours"[\s\S]*?id="mobilityGreenHours"[\s\S]*?id="mobilityGoldHours"/);
+  assert.match(community, /filter\(\(item\) => item\.kind === 'news'\);/);
+  assert.doesNotMatch(community, /filter\(\(item\) => item\.kind === 'news'\)\.slice/);
+});
+
 test('citizen dashboard lists municipal services and shows their current status', () => {
   const markup = fs.readFileSync(path.join(projectRoot, 'dashboard.html'), 'utf8');
   const community = fs.readFileSync(path.join(projectRoot, 'community.js'), 'utf8');

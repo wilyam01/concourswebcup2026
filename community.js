@@ -359,7 +359,7 @@
   async function renderPublicNews() {
     const newsList = document.querySelector('#news-list');
     if (!newsList) return;
-    const items = (await announcementItems()).filter((item) => item.kind === 'news').slice(0, 5);
+    const items = (await announcementItems()).filter((item) => item.kind === 'news');
     newsList.querySelectorAll('[data-community-news]').forEach((element) => element.remove());
     items.forEach((item) => {
       const article = document.createElement('article');

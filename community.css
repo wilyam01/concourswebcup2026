@@ -196,3 +196,12 @@ html[data-theme="light"] .assistant-heading,html[data-theme="light"] .assistant-
 html[data-theme="light"] .assistant-message { border-color:#d9e2eb; color:#263950; background:#eef3f7; }
 html[data-theme="light"] .assistant-message.user { color:#1b3855; background:#e4efff; }
 html[data-theme="light"] .assistant-form input { border-color:#ccd7e2; color:#1c2b3d; background:#fff; }
+.mairie-hub { padding-top: 72px; background: radial-gradient(ellipse at 50% 0%, #3d64801a, transparent 55%); }
+.mairie-hub-heading { padding: 0 0 30px; }
+.mairie-hub-heading h2 { margin: 12px 0; font-size: clamp(34px, 4vw, 48px); font-weight: 500; letter-spacing: -1.8px; }
+.mairie-hub-heading h2 em { color: var(--lilac); font-style: normal; }
+.mairie-hub-heading>div>p:last-of-type { max-width: 600px; color: #aab6c7; font-size: 12px; line-height: 1.7; }
+.mairie-hub-heading nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.mairie-hub-heading nav a { padding: 9px 12px; border: 1px solid #8ad5df55; border-radius: 8px; color: #d8f5f5; background: #38b7bc12; font-size: 10px; text-decoration: none; }
+.mairie-hub-heading nav a:hover { border-color: #8ad5df; }
+@media (max-width: 700px) { .mairie-hub { padding-top: 52px; } .mairie-hub-heading { padding-bottom: 16px; } }

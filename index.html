@@ -19,7 +19,7 @@
   <header class="public-header">
     <a class="public-brand" href="#accueil" aria-label="Nova Terra, accueil"><span class="brand-symbol"><i></i><i></i><i></i><i></i></span><span><b>NOVA <em>TERRA</em></b><small>VILLE · PLANÈTE · COMMUNAUTÉ</small></span></a>
     <button class="menu-toggle" id="menuToggle" type="button" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="publicNav">☰</button>
-    <nav class="public-nav" id="publicNav" aria-label="Navigation principale"><a href="#services">Services</a><a href="#actualites">Actualités</a><a href="#partenaires">Partenaires</a><a href="#communaute">La communauté</a><a href="#urgences" id="emergencyNavLink">Urgences</a></nav>
+    <nav class="public-nav" id="publicNav" aria-label="Navigation principale"><a href="#services">Services</a><a href="#mairie">Mairie</a><a href="#actualites">Actualités</a><a href="#partenaires">Partenaires</a><a href="#communaute">La communauté</a><a href="#urgences" id="emergencyNavLink">Urgences</a></nav>
     <div class="header-actions"><button class="theme-toggle" type="button" data-theme-toggle aria-label="Changer le thème"><span class="theme-symbol" aria-hidden="true">☼</span></button><a class="login-link" href="connexion.html">Connexion <span>↗</span></a><a class="button button-small" href="inscription.html">Rejoindre Nova Terra <span>→</span></a></div>
   </header>
 
@@ -77,6 +77,8 @@
       <div class="service-note"><span class="note-mark">✳</span><p><b>Un besoin urgent ?</b> La permanence citoyenne reste disponible à toute heure au <a href="tel:112">112</a>.</p><span class="note-hours">CENTRE DE COORDINATION · SECTEUR 01</span></div>
     </section>
 
+    <div class="mairie-hub" id="mairie" aria-labelledby="mairieTitle">
+      <header class="section mairie-hub-heading"><div><p class="section-kicker">INFORMATIONS MUNICIPALES</p><h2 id="mairieTitle">La mairie, <em>au quotidien.</em></h2><p>Horaires des transports municipaux et actualit&#233;s publi&#233;es par la ville, r&#233;unies dans un espace d&#233;di&#233;.</p><nav aria-label="Rubriques de la mairie"><a href="#mobilite">Horaires des transports</a><a href="#actualites">Toutes les actualitÃ©s</a></nav></header>
     <section class="mobility-section" id="mobilite" aria-labelledby="mobilityTitle"><div class="section mobility-inner"><div class="section-heading"><div><div class="section-kicker" id="mobilityKicker"><span>04</span> TRANSPORTS &amp; MOBILITÉ</div><h2 id="mobilityTitle">Le réseau, à votre rythme.</h2></div><div class="section-aside"><p id="mobilityIntro">Consultez les lignes, leurs horaires de service et la fréquence des navettes.</p></div></div>
       <div class="mobility-routes">
         <article class="mobility-route"><div class="mobility-route-top"><span class="route-line route-blue">A</span><span id="mobilityBlueLabel">LIGNE BLEUE</span></div><h3 id="mobilityBlueRoute">District Boréal ↔ Centre civique</h3><div class="mobility-route-meta"><span id="mobilityBlueHours">Service · 06:00–22:00</span><b id="mobilityBlueFrequency">Toutes les 12 min</b></div><p id="mobilityBlueAccess">Navette accessible · arrêt principal : place des Étoiles</p></article>
@@ -94,10 +96,11 @@
       <div class="news-bottom"><span><i></i> INFORMATIONS VÉRIFIÉES PAR LA MAIRIE</span><span>ARCHIVE MUNICIPALE · CYCLE 184</span></div>
     </div></section>
 
+    </div>
     <section class="join-section" id="inscription"><div class="join-grid"></div><div class="join-orbit"></div><div class="join-content"><div class="section-kicker"><span>03</span> VOTRE VOIX A SA PLACE ICI</div><h2>La cité avance<br />quand <em>chacun·e</em><br />y prend part.</h2><p>Rejoignez l’espace citoyen pour suivre les services, signaler un besoin et faire entendre vos idées.</p><div class="join-actions"><a class="button" href="inscription.html">Créer mon compte citoyen <span>↗</span></a><a class="join-secondary" href="dashboard.html">Connexion à mon espace <span>→</span></a></div><div class="join-foot"><span><i></i> ACCÈS CITOYEN SÉCURISÉ</span><span>UNE CITÉ, UN DESTIN COMMUN</span></div></div><div class="join-planet"><div class="join-planet-ring"></div><span>TN</span></div></section>
   </main>
 
-  <footer class="public-footer"><a class="public-brand footer-brand" href="#accueil"><span class="brand-symbol"><i></i><i></i><i></i><i></i></span><span><b>NOVA <em>TERRA</em></b><small>VILLE · PLANÈTE · COMMUNAUTÉ</small></span></a><p>Prendre soin de notre monde, ensemble.</p><div class="footer-links"><a href="#services">Services</a><a href="#actualites">Actualités</a><a href="dashboard.html">Espace citoyen ↗</a><a href="contact/index.html">Contact citoyen</a><a href="agent/dashboard/index.html">Espace agent ↗</a></div><span class="footer-copy">© 2089 VILLE DE NOVA TERRA · FAIT POUR NOTRE AVENIR</span></footer>
+  <footer class="public-footer"><a class="public-brand footer-brand" href="#accueil"><span class="brand-symbol"><i></i><i></i><i></i><i></i></span><span><b>NOVA <em>TERRA</em></b><small>VILLE · PLANÈTE · COMMUNAUTÉ</small></span></a><p>Prendre soin de notre monde, ensemble.</p><div class="footer-links"><a href="#services">Services</a><a href="#mairie">Mairie</a><a href="#actualites">Actualités</a><a href="dashboard.html">Espace citoyen ↗</a><a href="contact/index.html">Contact citoyen</a><a href="agent/dashboard/index.html">Espace agent ↗</a></div><span class="footer-copy">© 2089 VILLE DE NOVA TERRA · FAIT POUR NOTRE AVENIR</span></footer>
   <script src="config.js"></script>
   <script src="api-client.js"></script>
   <script src="nova-terra.js?v=demo-request-normalization-2"></script>
