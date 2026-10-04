@@ -77,11 +77,11 @@ Le backend vérifie les rôles côté serveur, chiffre les mots de passe avec bc
 
 ### Déploiement
 
-Le backend ne peut pas tourner sur GitHub Pages. Héberge-le sur un service Node.js avec une base de données persistante, active HTTPS et configure `CORS_ORIGIN` avec le domaine de la vitrine. Configure ensuite `DEPLOYED_API_BASE_URL` dans `config.js` avec l’URL publique du backend terminant par `/api`. Les secrets restent dans l’environnement du serveur. Le fichier SQLite local convient au développement; pour plusieurs instances de production, remplace-le par une base gérée persistante.
+Le backend ne peut pas tourner sur GitHub Pages. Héberge-le sur un service Node.js 22+ avec HTTPS et un volume persistant monté pour SQLite. Configure `JWT_SECRET` (32 caractères aléatoires minimum), `CORS_ORIGIN` avec l’origine exacte de la vitrine et `TRUST_PROXY_HOPS` avec le nombre de proxys réellement utilisés par l’hébergeur (souvent `1`, à confirmer dans sa documentation; `0` en accès direct/local). Ne définis jamais cette option à `true`. Dans GitHub, ajoute la variable de dépôt `TERRA_NOVA_API_BASE_URL` avec l’URL HTTPS publique du backend terminant par `/api`; le workflow Pages l’injectera dans la copie publiée de `config.js`. Sans cette variable, Pages reste volontairement en mode démonstration. Les limites de fréquence sont en mémoire par instance : garde une seule instance API avec SQLite; pour une montée en charge multi-instance, migre vers une base et un stockage de limite partagés.
 
 Pour synchroniser les demandes officielles, configure aussi `TERRA_NOVA_API_URL`, `TERRA_NOVA_API_KEY` et `TERRA_NOVA_POLL_MS` dans l’environnement du backend. L’API officielle WebCup actuelle reste en lecture seule; ces demandes sont donc consultables mais leur statut ne peut pas être modifié depuis Nova Terra.
 
-`npm test` execute le controle de structure et les tests du proxy WebCup avec le runner integre a Node.js ; aucune dependance npm n'est necessaire pour ces tests. Sous Windows PowerShell, si la politique d'execution bloque `npm.ps1`, utiliser `npm.cmd test`. Ces tests ne remplacent pas encore une suite de tests navigateur automatisee.
+`npm test` execute le controle de structure et les tests du proxy WebCup et de la configuration runtime avec le runner integre a Node.js ; aucune dependance npm n'est necessaire pour ces tests. Sous Windows PowerShell, si la politique d'execution bloque `npm.ps1`, utiliser `npm.cmd test`. Ces tests ne remplacent pas encore une suite de tests navigateur automatisee.
 
 Le rôle Fullstack / logique métier / présentation, le déroulé de démonstration, le pitch, les scénarios de secours et les commandes de vérification et de déploiement sont détaillés dans [docs/demo-pitch.md](docs/demo-pitch.md).
 

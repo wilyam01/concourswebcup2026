@@ -26,8 +26,23 @@ jobs:
           node-version: 24
       - name: Verify project and API proxy tests
         run: npm test
+  backend-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install backend dependencies
+        run: npm ci --prefix backend
+      - name: Smoke-test backend startup, signup, and session
+        run: node backend/scripts/smoke-check.mjs
   deploy:
-    needs: check
+    needs: [check, backend-check]
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -41,6 +56,10 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/pages"
           rsync -a --exclude='.git/' --exclude='concourswebcup2026-main/' ./ "$RUNNER_TEMP/pages/"
+      - name: Configure backend URL
+        env:
+          TERRA_NOVA_API_BASE_URL: ${{ vars.TERRA_NOVA_API_BASE_URL }}
+        run: node scripts/configure-pages-api.mjs "$RUNNER_TEMP/pages/config.js"
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:

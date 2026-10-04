@@ -13,9 +13,13 @@ import { recordAudit } from './audit.js';
 import { logEvent } from './logger.js';
 import { emailDeliveryConfigured, sendTransactionalEmail } from './mailer.js';
 import { decryptTotpSecret, deviceFingerprint, deviceLabel, encryptTotpSecret, hashOneTimeCode, hasTotpEncryptionKey, makeDeviceId, makeTotpSecret, matchTotpCounter, safeHexEqual } from './security.js';
+import { parseTrustProxyHops } from './runtimeConfig.js';
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) throw new Error('JWT_SECRET must contain at least 32 characters');
 const app = express();
+// Set this to the exact number of trusted reverse-proxy hops used by the host.
+// Do not use `true`: an unrestricted trust setting lets clients spoof their IP.
+app.set('trust proxy', parseTrustProxyHops(process.env.TRUST_PROXY_HOPS || '0'));
 const id = (prefix) => `${prefix}-${newId().slice(0, 8).toUpperCase()}`;
 db.function('normalize_sector', { deterministic: true }, (value) => String(value || '').trim().toLocaleLowerCase('fr'));
 const services = new Set(['water', 'health', 'energy', 'mobility', 'civic', 'solidarity', 'other']);
