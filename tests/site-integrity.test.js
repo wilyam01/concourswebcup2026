@@ -67,6 +67,8 @@ test('mairie navigation groups municipal transit schedules and the complete city
   const community = fs.readFileSync(path.join(projectRoot, 'community.js'), 'utf8');
   assert.match(markup, /href="#mairie">Mairie<\/a>/);
   assert.match(markup, /id="mairie"[\s\S]*?id="mobilite"[\s\S]*?id="actualites"[\s\S]*?id="inscription"/);
+  assert.match(markup, /href="#actualites">Toutes les actualit&#233;s<\/a>/);
+  assert.doesNotMatch(markup, new RegExp(`Toutes les actualit${String.fromCharCode(0x00c3, 0x00a9)}s`));
   assert.match(markup, /id="mobilityBlueHours"[\s\S]*?id="mobilityGreenHours"[\s\S]*?id="mobilityGoldHours"/);
   assert.match(community, /filter\(\(item\) => item\.kind === 'news'\);/);
   assert.doesNotMatch(community, /filter\(\(item\) => item\.kind === 'news'\)\.slice/);
